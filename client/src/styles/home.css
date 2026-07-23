@@ -1,0 +1,425 @@
+/* ============================================
+   首页样式 (Home Page Styles)
+   .page-home - 首页专属样式
+   ============================================ */
+
+/* ============================================
+   1. 页面容器 (Page Container)
+   ============================================ */
+
+.page-home {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-8) var(--container-padding);
+  animation: fadeIn var(--duration-slow) var(--ease-out);
+}
+
+/* ============================================
+   2. 标题区域 (Header Section)
+   ============================================ */
+
+.page-home .header-section {
+  text-align: center;
+  max-width: var(--content-max-width);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.page-home h1 {
+  animation: intro_up_down 600ms var(--ease-out) backwards;
+  text-align: center;
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+  width: 100%;
+}
+
+.page-home h1:first-of-type {
+  font-size: var(--text-5xl);
+  font-weight: var(--font-bold);
+  letter-spacing: var(--tracking-tight);
+}
+
+.page-home h1:nth-of-type(2) {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  animation-delay: 200ms;
+}
+
+.page-home h2 {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-semibold);
+  margin-top: var(--space-12);
+  margin-bottom: var(--space-6);
+  margin-left: 0;
+  animation: slideUp var(--duration-normal) var(--ease-out) backwards;
+  animation-delay: 400ms;
+}
+
+/* ============================================
+   3. 署名组件样式 (Writer Byline)
+   ============================================ */
+
+.page-home .header-section #writer {
+  text-align: center;
+  padding-right: 0;
+  margin-bottom: var(--space-8);
+  width: 100%;
+  max-width: var(--content-max-width);
+}
+
+/* ============================================
+   4. 链接按钮区域 (Links Section)
+   ============================================ */
+
+.page-home .container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin: var(--space-8) auto;
+  max-width: var(--container-max-width);
+  width: 100%;
+  animation: slideUp var(--duration-normal) var(--ease-out) backwards;
+  animation-delay: 600ms;
+}
+
+.page-home .container .btn {
+  min-width: 180px;
+  text-align: center;
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--text-lg);
+  border-width: 2px;
+}
+
+/* ============================================
+   5. 联系方式区域 (Contact Section)
+   ============================================ */
+
+.page-home .contact-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  margin: var(--space-12) auto;
+  max-width: var(--container-max-width);
+  width: 100%;
+  animation: slideUp var(--duration-normal) var(--ease-out) backwards;
+  animation-delay: 800ms;
+}
+
+.page-home .contact-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border-radius: var(--space-2);
+  transition: all var(--duration-normal) var(--ease-out);
+  cursor: pointer;
+}
+
+.page-home .contact-item:hover {
+  background-color: var(--gray-100);
+  transform: translateY(-2px);
+}
+
+.page-home .contact-item img {
+  width: 50px;
+  height: 50px;
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+
+.page-home .contact-item:hover img {
+  transform: scale(1.1);
+}
+
+.page-home .contact-item p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* ============================================
+   6. 聊天表单区域 (Chat Form Section)
+   ============================================ */
+
+.page-home .chat-section {
+  max-width: 600px;
+  margin: var(--space-12) auto;
+  width: 100%;
+  animation: slideUp var(--duration-normal) var(--ease-out) backwards;
+  animation-delay: 1000ms;
+}
+
+.page-home .chat-section h2 {
+  margin-top: 0;
+  margin-left: 0;
+}
+
+.page-home #message-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.page-home .form-group {
+  margin-bottom: var(--space-4);
+  margin-left: 0;
+}
+
+.page-home .form-group label {
+  margin-bottom: var(--space-2);
+  margin-left: 0;
+  font-weight: var(--font-medium);
+}
+
+.page-home input[type="text"],
+.page-home textarea {
+  margin-left: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.page-home button[type="submit"] {
+  width: 100%;
+  max-width: 100%;
+  margin: var(--space-4) 0;
+}
+
+/* ============================================
+   7. 留言板区域 (Messages Board Section)
+   ============================================ */
+
+.page-home #messages {
+  margin-top: var(--space-12);
+  max-width: var(--container-max-width);
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  animation: slideUp var(--duration-normal) var(--ease-out) backwards;
+  animation-delay: 1200ms;
+}
+
+.page-home .message {
+  margin: var(--space-3) 0;
+  padding: var(--space-5);
+  background-color: var(--paper);
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--space-1);
+  box-shadow: var(--card-shadow);
+  animation: intro_left_right 0.5s var(--ease-out) forwards;
+  transition: all var(--duration-normal) var(--ease-out);
+}
+
+.page-home .message:hover {
+  border-left-color: var(--color-text);
+  box-shadow: var(--card-shadow-hover);
+  transform: translateX(4px);
+}
+
+.page-home .message .message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  gap: var(--space-3);
+}
+
+.page-home .message .message-sender {
+  font-weight: var(--font-semibold);
+  font-size: var(--text-base);
+  color: var(--color-text);
+}
+
+.page-home .message .message-content {
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.page-home .message .timestamp {
+  text-align: right;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  margin-top: var(--space-2);
+}
+
+/* 消息淡入动画 */
+.page-home .messageFadeIn {
+  opacity: 0;
+  animation: intro_left_right 0.5s var(--ease-out) forwards;
+}
+
+/* 为每个消息添加交错延迟 */
+.page-home .message:nth-child(1) { animation-delay: 0.1s; }
+.page-home .message:nth-child(2) { animation-delay: 0.2s; }
+.page-home .message:nth-child(3) { animation-delay: 0.3s; }
+.page-home .message:nth-child(4) { animation-delay: 0.4s; }
+.page-home .message:nth-child(5) { animation-delay: 0.5s; }
+.page-home .message:nth-child(n+6) { animation-delay: 0.6s; }
+
+/* ============================================
+   7. 工具提示优化 (Tooltip Enhancement)
+   ============================================ */
+
+.page-home .tooltip {
+  background-color: var(--ink);
+  color: var(--paper);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 4px;
+  font-size: var(--text-xs);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  pointer-events: none;
+  transition: opacity var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
+}
+
+/* ============================================
+   8. 响应式设计 (Responsive Design)
+   ============================================ */
+
+@media (max-width: 768px) {
+  .page-home {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .page-home h1:first-of-type {
+    font-size: var(--text-4xl);
+  }
+
+  .page-home h1:nth-of-type(2) {
+    font-size: var(--text-2xl);
+  }
+
+  .page-home h2 {
+    font-size: var(--text-xl);
+    margin-top: var(--space-8);
+  }
+
+  .page-home .container {
+    gap: var(--space-4);
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-home .container .btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .page-home .contact-container {
+    gap: var(--space-6);
+  }
+
+  .page-home .contact-item {
+    padding: var(--space-4);
+  }
+
+  .page-home .contact-item img {
+    width: 40px;
+    height: 40px;
+  }
+
+  .page-home #messages {
+    padding: 0 var(--space-2);
+  }
+
+  .page-home .message {
+    padding: var(--space-4);
+  }
+}
+
+@media (max-width: 480px) {
+  .page-home {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .page-home h1:first-of-type {
+    font-size: var(--text-3xl);
+  }
+
+  .page-home h1:nth-of-type(2) {
+    font-size: var(--text-xl);
+  }
+
+  .page-home h2 {
+    font-size: var(--text-lg);
+  }
+
+  .page-home .contact-container {
+    gap: var(--space-4);
+  }
+
+  .page-home .contact-item {
+    padding: var(--space-3);
+  }
+
+  .page-home .contact-item img {
+    width: 36px;
+    height: 36px;
+  }
+
+  .page-home .message .message-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .page-home .message .timestamp {
+    text-align: left;
+  }
+}
+
+/* ============================================
+   9. 深色模式支持 (Dark Mode Support - 可选)
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  /* 如果需要深色模式，可以在这里添加覆盖样式 */
+  /* 当前保持黑白简约风格，不启用深色模式 */
+}
+
+/* ============================================
+   10. 无障碍优化 (Accessibility Improvements)
+   ============================================ */
+
+.page-home .btn:focus-visible,
+.page-home input:focus-visible,
+.page-home textarea:focus-visible,
+.page-home button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 减少动画效果 */
+@media (prefers-reduced-motion: reduce) {
+  .page-home,
+  .page-home h1,
+  .page-home h2,
+  .page-home .container,
+  .page-home .contact-container,
+  .page-home .chat-section,
+  .page-home #messages,
+  .page-home .message {
+    animation-duration: 0.01ms !important;
+  }
+
+  .page-home .contact-item:hover,
+  .page-home .message:hover {
+    transform: none !important;
+  }
+}

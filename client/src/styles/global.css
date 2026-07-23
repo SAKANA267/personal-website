@@ -1,0 +1,370 @@
+/* ============================================
+   全局样式 (Global Styles)
+   ============================================ */
+
+/* ============================================
+   1. 全局关键帧动画 (Global Keyframe Animations)
+   保留原有动画，但使用设计系统变量优化
+   ============================================ */
+
+/* 左侧滑入动画 - 用于消息、行元素等 */
+@keyframes intro_left_right {
+  0% {
+    transform: translateX(-50px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* 顶部下落动画 - 用于标题进场 */
+@keyframes intro_up_down {
+  0% {
+    color: var(--paper);
+    padding-top: var(--space-12);
+  }
+  100% {
+    color: var(--color-text);
+    padding-top: 0;
+  }
+}
+
+/* 彩虹文字动画 - 用于署名悬停效果 */
+@keyframes rainbow_color {
+  0% { color: #ff0000; }
+  14% { color: #ff8000; }
+  28% { color: #ffff00; }
+  42% { color: #00ff00; }
+  57% { color: #0080ff; }
+  71% { color: #8000ff; }
+  85% { color: #ff0080; }
+  100% { color: #ff0000; }
+}
+
+/* ============================================
+   2. 署名样式 (Writer Byline Styles)
+   ============================================ */
+
+#writer {
+  animation: intro_left_right 1s var(--ease-out) backwards;
+  text-align: right;
+  padding-right: var(--space-4);
+  margin-bottom: var(--space-8);
+  transition: color var(--duration-normal) var(--ease-out);
+}
+
+#writer:hover {
+  animation: rainbow_color 5s infinite;
+}
+
+/* ============================================
+   3. 页脚样式 (Footer Styles)
+   ============================================ */
+
+footer {
+  background-color: var(--gray-100);
+  color: var(--color-text);
+  text-align: center;
+  padding: var(--space-6) var(--space-4);
+  margin-top: auto; /* 确保页脚在页面底部 */
+  border-top: var(--divider-border-width) solid var(--divider-color);
+  width: 100%;
+}
+
+.footer-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.footer-content p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* 备案信息 */
+.ICP {
+  margin-top: var(--space-2);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ICP a {
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  font-size: var(--text-xs);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.ICP a:hover {
+  color: var(--color-text);
+  text-decoration: underline;
+}
+
+.ICP img {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+}
+
+/* ============================================
+   4. 全局按钮样式 (Global Button Styles)
+   统一所有页面的按钮交互模式
+   ============================================ */
+
+.btn {
+  display: inline-block;
+  padding: var(--btn-padding-y) var(--btn-padding-x);
+  font-size: var(--btn-font-size);
+  font-weight: var(--font-medium);
+  text-align: center;
+  cursor: pointer;
+  border: var(--btn-border-width) solid var(--color-text);
+  background-color: transparent;
+  color: var(--color-text);
+  border-radius: var(--btn-border-radius);
+  transition: all var(--btn-transition) var(--ease-out);
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.btn:hover {
+  background-color: var(--color-text);
+  color: var(--paper);
+  transform: scale(var(--btn-hover-scale));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+  background-color: var(--color-success);
+  color: var(--paper);
+  border-color: var(--color-success);
+  transform: scale(1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 禁用状态 */
+.btn:disabled,
+.btn.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ============================================
+   5. 全局表单样式 (Global Form Styles)
+   ============================================ */
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
+select {
+  width: 100%;
+  max-width: 600px;
+  padding: var(--input-padding-y) var(--input-padding-x);
+  font-size: var(--input-font-size);
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background-color: var(--paper);
+  border: var(--input-border-width) solid var(--input-border-color);
+  border-radius: var(--input-border-radius);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--input-focus-border-color);
+  box-shadow: 0 0 0 3px rgba(115, 115, 115, 0.1);
+}
+
+input[type="text"]::placeholder,
+input[type="email"]::placeholder,
+input[type="password"]::placeholder,
+textarea::placeholder {
+  color: var(--gray-500);
+}
+
+textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+/* 表单标签 */
+label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+}
+
+/* 表单组 */
+.form-group {
+  margin-bottom: var(--space-6);
+}
+
+/* ============================================
+   6. 全局卡片样式 (Global Card Styles)
+   ============================================ */
+
+.card {
+  background-color: var(--paper);
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-radius: var(--card-border-radius);
+  padding: var(--card-padding);
+  box-shadow: var(--card-shadow);
+  transition: box-shadow var(--duration-normal) var(--ease-out),
+              border-color var(--duration-normal) var(--ease-out);
+}
+
+.card:hover {
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--color-border-strong);
+}
+
+/* ============================================
+   7. 工具提示样式 (Tooltip Styles)
+   ============================================ */
+
+.tooltip {
+  position: fixed;
+  background-color: var(--ink);
+  color: var(--paper);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 4px;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity var(--duration-normal) var(--ease-out),
+              transform var(--duration-normal) var(--ease-out);
+  transform: translateY(0);
+}
+
+.tooltip.show {
+  opacity: 1;
+}
+
+/* ============================================
+   8. 分割线样式 (Divider Styles)
+   ============================================ */
+
+.divider {
+  width: 100%;
+  height: var(--divider-border-width);
+  background-color: var(--divider-color);
+  border: none;
+  margin: var(--space-8) 0;
+}
+
+.divider-vertical {
+  width: var(--divider-border-width);
+  height: 100%;
+  background-color: var(--divider-color);
+  border: none;
+  margin: 0 var(--space-4);
+}
+
+/* ============================================
+   9. 加载和过渡状态 (Loading & Transition States)
+   ============================================ */
+
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--gray-200) 0%,
+    var(--gray-100) 50%,
+    var(--gray-200) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================
+   10. 响应式优化 (Responsive Improvements)
+   ============================================ */
+
+@media (max-width: 768px) {
+  footer {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .footer-content {
+    padding: 0 var(--space-2);
+  }
+
+  .btn {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  textarea,
+  select {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .ICP {
+    flex-direction: column;
+    gap: var(--space-1);
+  }
+
+  .tooltip {
+    font-size: 0.7rem;
+    padding: var(--space-1) var(--space-2);
+  }
+}
+
+/* ============================================
+   11. 打印样式 (Print Styles)
+   ============================================ */
+
+@media print {
+  footer {
+    position: fixed;
+    bottom: 0;
+  }
+
+  .btn,
+  .tooltip,
+  .loading-skeleton {
+    display: none;
+  }
+}

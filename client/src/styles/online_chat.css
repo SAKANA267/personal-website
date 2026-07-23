@@ -1,0 +1,92 @@
+/* 在线聊天页样式（原 online_chat.css，加 .page-chat 前缀） */
+.page-chat h1{
+    animation: intro_up_down;
+    animation-fill-mode: backwards;
+    animation-duration: 600ms;
+    text-align: center;
+}
+.page-chat h2{
+    margin-left: 10px;
+}
+.page-chat p{
+    margin-left: 40px;
+}
+
+.page-chat .topnav {
+    display: flex;
+    justify-content: space-between;
+    overflow: hidden;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+.page-chat .topnav .btn{
+    margin-left: 40px;
+    margin-right: 40px;
+    float: left;
+    color: black;
+    text-align: center;
+    padding: 10px;
+    border: 1px solid black;
+    font-size: 17px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+    border-radius: 0px;
+}
+
+.page-chat #messageContainer {
+    border: 1px solid #ccc;
+    height: 60vh;
+    overflow: auto;
+    padding: 6px;
+    margin-top: 30px;
+}
+
+.page-chat .message {
+    margin: 8px;
+    padding: 15px 10px 10px 30px;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.page-chat .timestamp {
+    text-align: right;
+    bottom: 5px;
+    right: 10px;
+    font-size: 12px;
+    color: #999;
+}
+
+.page-chat .messageFadeIn{
+    opacity: 0;
+    animation: intro_left_right 0.5s ease-in-out forwards;
+}
+
+.page-chat .btn {
+    margin: 10px;
+    color: black;
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 17px;
+    transition: background-color 0.2s ease, transform 0.25s ease-in-out;
+}
+
+.page-chat input[type="text"],
+.page-chat textarea {
+    margin-left: 10px;
+    width: 80%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.page-chat .btn:hover {
+    background-color: black;
+    color: #f0f0f0;
+    transform: scale(1.1);
+}
+
+.page-chat .btn:active {
+    background-color: #4CAF50;
+    color: white;
+}

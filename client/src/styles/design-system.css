@@ -1,0 +1,453 @@
+/* ============================================
+   SAKANA 个人网站设计系统
+   Design System for SAKANA Personal Website
+   ============================================ */
+
+/* ============================================
+   1. CSS 自定义属性 (CSS Custom Properties)
+   ============================================ */
+
+:root {
+  /* === 颜色系统 (Color System) === */
+  /* 核心颜色 - 保持黑白简约，增加灰度层次 */
+  --ink: #0a0a0a;              /* 主黑色 - 比纯黑更柔和 */
+  --paper: #fafafa;            /* 主白色 - 微暖纸色 */
+  --gray-100: #f5f5f5;         /* 极浅灰 - 背景 */
+  --gray-200: #e5e5e5;         /* 浅灰 - 边框、分割线 */
+  --gray-300: #d4d4d4;         /* 中浅灰 - 次要边框 */
+  --gray-500: #737373;         /* 中灰 - 次要文本 */
+  --gray-600: #525252;         /* 中深灰 - 强调文本 */
+  --gray-800: #262626;         /* 深灰 - 强调文本、悬停状态 */
+  --gray-900: #171717;         /* 近黑 - 最深强调色 */
+
+  /* 语义化颜色变量 */
+  --color-bg: var(--paper);
+  --color-bg-alt: var(--gray-100);
+  --color-text: var(--ink);
+  --color-text-secondary: var(--gray-500);
+  --color-border: var(--gray-200);
+  --color-border-strong: var(--gray-300);
+  --color-accent: var(--gray-800);
+  --color-accent-hover: var(--ink);
+  --color-success: #4CAF50;     /* 保留原有的绿色反馈 */
+
+  /* === 字体系统 (Typography System) === */
+  /* 字体家族 */
+  --font-display: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', 'Monaco', 'Courier New', monospace;
+
+  /* 字体大小比例 (Major Third Scale - 1.250) */
+  --text-xs: 0.75rem;          /* 12px - 标签、时间戳 */
+  --text-sm: 0.875rem;         /* 14px - 次要信息 */
+  --text-base: 1rem;           /* 16px - 正文 */
+  --text-lg: 1.125rem;         /* 18px - 强调文本 */
+  --text-xl: 1.25rem;          /* 20px - 小标题 */
+  --text-2xl: 1.563rem;        /* 25px - 中标题 */
+  --text-3xl: 1.953rem;        /* 31px - 大标题 */
+  --text-4xl: 2.441rem;        /* 39px - 特大标题 */
+  --text-5xl: 3.052rem;        /* 49px - 超大标题 */
+
+  /* 字重 */
+  --font-light: 300;
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* 行高 */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.75;
+
+  /* 字母间距 */
+  --tracking-tight: -0.025em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.025em;
+
+  /* === 间距系统 (Spacing System) === */
+  /* 基于 4px 网格的比例系统 */
+  --space-0: 0;
+  --space-1: 0.25rem;          /* 4px */
+  --space-2: 0.5rem;           /* 8px */
+  --space-3: 0.75rem;          /* 12px */
+  --space-4: 1rem;             /* 16px */
+  --space-5: 1.25rem;          /* 20px */
+  --space-6: 1.5rem;           /* 24px */
+  --space-8: 2rem;             /* 32px */
+  --space-10: 2.5rem;          /* 40px */
+  --space-12: 3rem;            /* 48px */
+  --space-16: 4rem;            /* 64px */
+  --space-20: 5rem;            /* 80px */
+  --space-24: 6rem;            /* 96px */
+
+  /* === 布局系统 (Layout System) === */
+  --container-max-width: 1200px;
+  --container-padding: var(--space-6);
+  --content-max-width: 800px;
+
+  /* === 组件令牌 (Component Tokens) === */
+  /* 按钮 */
+  --btn-padding-y: var(--space-3);
+  --btn-padding-x: var(--space-6);
+  --btn-font-size: var(--text-base);
+  --btn-border-width: 1px;
+  --btn-border-radius: 2px;
+  --btn-transition: 200ms ease;
+  --btn-hover-scale: 1.05;
+
+  /* 表单 */
+  --input-padding-y: var(--space-3);
+  --input-padding-x: var(--space-4);
+  --input-font-size: var(--text-base);
+  --input-border-width: 1px;
+  --input-border-radius: 2px;
+  --input-border-color: var(--gray-200);
+  --input-focus-border-color: var(--gray-500);
+
+  /* 卡片 */
+  --card-padding: var(--space-6);
+  --card-border-radius: 0;
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  --card-shadow-hover: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+  /* 分割线 */
+  --divider-border-width: 1px;
+  --divider-color: var(--gray-200);
+
+  /* === 动画系统 (Animation System) === */
+  /* 过渡时长 */
+  --duration-instant: 50ms;
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 500ms;
+
+  /* 缓动函数 */
+  --ease-out: cubic-bezier(0.215, 0.61, 0.355, 1);
+  --ease-in-out: cubic-bezier(0.645, 0.045, 0.355, 1);
+  --ease-bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* === 响应式断点 (Responsive Breakpoints) === */
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1200px;
+}
+
+/* ============================================
+   2. CSS 重置样式 (CSS Reset)
+   ============================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   3. 基础元素样式 (Base Element Styles)
+   ============================================ */
+
+/* 标题 */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  color: var(--color-text);
+  margin-bottom: var(--space-4);
+}
+
+h1 { font-size: var(--text-4xl); }
+h2 { font-size: var(--text-3xl); }
+h3 { font-size: var(--text-2xl); }
+h4 { font-size: var(--text-xl); }
+h5 { font-size: var(--text-lg); }
+h6 { font-size: var(--text-base); }
+
+/* 段落和文本 */
+p {
+  margin-bottom: var(--space-4);
+  max-width: var(--content-max-width);
+}
+
+a {
+  color: var(--color-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+a:hover {
+  color: var(--color-accent);
+}
+
+/* 列表 */
+ul, ol {
+  margin-bottom: var(--space-4);
+  padding-left: var(--space-6);
+}
+
+li {
+  margin-bottom: var(--space-2);
+}
+
+/* 图片 */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* 表单元素 */
+button, input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+/* 焦点可见性 */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   4. 工具类 (Utility Classes)
+   ============================================ */
+
+/* 容器 */
+.container {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 var(--container-padding);
+}
+
+.container-content {
+  width: 100%;
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+}
+
+/* 文本工具 */
+.text-center { text-align: center; }
+.text-right { text-align: right; }
+.text-secondary { color: var(--color-text-secondary); }
+.text-mono { font-family: var(--font-mono); }
+
+/* 间距工具 */
+.mt-0 { margin-top: var(--space-0); }
+.mt-2 { margin-top: var(--space-2); }
+.mt-4 { margin-top: var(--space-4); }
+.mt-6 { margin-top: var(--space-6); }
+.mt-8 { margin-top: var(--space-8); }
+.mt-12 { margin-top: var(--space-12); }
+
+.mb-0 { margin-bottom: var(--space-0); }
+.mb-2 { margin-bottom: var(--space-2); }
+.mb-4 { margin-bottom: var(--space-4); }
+.mb-6 { margin-bottom: var(--space-6); }
+.mb-8 { margin-bottom: var(--space-8); }
+.mb-12 { margin-bottom: var(--space-12); }
+
+.p-4 { padding: var(--space-4); }
+.p-6 { padding: var(--space-6); }
+.p-8 { padding: var(--space-8); }
+
+/* 显示工具 */
+.hidden { display: none; }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Flexbox 工具 */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.flex-wrap { flex-wrap: wrap; }
+.gap-2 { gap: var(--space-2); }
+.gap-4 { gap: var(--space-4); }
+.gap-6 { gap: var(--space-6); }
+.gap-8 { gap: var(--space-8); }
+
+/* ============================================
+   5. 全局关键帧动画 (Global Keyframe Animations)
+   ============================================ */
+
+/* 淡入动画 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 上滑淡入动画 */
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 左侧滑入动画 */
+@keyframes slideInLeft {
+  from {
+    transform: translateX(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* 顶部下落动画 */
+@keyframes slideDown {
+  from {
+    transform: translateY(-50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* 缩放淡入动画 */
+@keyframes scaleIn {
+  from {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* 脉冲动画 */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 旋转动画 */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 彩虹文字动画 (保留原有的彩虹效果) */
+@keyframes rainbowColor {
+  0% { color: #ff0000; }
+  14% { color: #ff8000; }
+  28% { color: #ffff00; }
+  42% { color: #00ff00; }
+  57% { color: #0080ff; }
+  71% { color: #8000ff; }
+  85% { color: #ff0080; }
+  100% { color: #ff0000; }
+}
+
+/* 减少动画效果 (尊重用户偏好) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================
+   6. 主容器布局 (Main Layout)
+   ============================================ */
+
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* 确保主要内容区域占据剩余空间 */
+main {
+  flex: 1;
+  width: 100%;
+}
+
+/* ============================================
+   7. 响应式基础 (Responsive Foundation)
+   ============================================ */
+
+@media (max-width: 768px) {
+  :root {
+    --container-padding: var(--space-4);
+  }
+
+  h1 { font-size: var(--text-3xl); }
+  h2 { font-size: var(--text-2xl); }
+  h3 { font-size: var(--text-xl); }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --container-padding: var(--space-3);
+  }
+
+  h1 { font-size: var(--text-2xl); }
+  h2 { font-size: var(--text-xl); }
+  h3 { font-size: var(--text-lg); }
+}

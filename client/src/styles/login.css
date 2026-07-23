@@ -1,0 +1,51 @@
+/*
+ * 登录/注册页样式（原 login.css 的页面相关部分，加 .page-auth 前缀）。
+ * 原 login.css 是自包含超集（含加载动画、页脚、关键帧等），这些部分在本项目中由
+ * 全局基础样式（loading_animation.css / defalut.css）统一提供；这里仅保留
+ * 认证页特有的布局规则。注意：原 login.css 不含 label/input/button 规则，
+ * 因此认证表单控件保持浏览器默认样式（与原项目一致）。
+ */
+.page-auth h1{
+    animation: intro_up_down;
+    animation-fill-mode: backwards;
+    animation-duration: 600ms;
+    text-align: center;
+}
+.page-auth h2{
+    margin-left: 10px;
+}
+.page-auth p{
+    margin-left: 40px;
+}
+
+.page-auth .topnav {
+    display: flex;
+    justify-content: space-between;
+    overflow: hidden;
+    background-color: #fff;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+.page-auth .topnav .btn{
+    margin-right: 40px;
+}
+
+.page-auth .btn {
+    float: left;
+    color: black;
+    text-align: center;
+    padding: 10px;
+    border: 1px solid black;
+    font-size: 17px;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.page-auth .btn:hover {
+    background-color: black;
+    color: #f0f0f0;
+    transform: scale(1.1);
+}
+
+.page-auth .btn:active {
+    background-color: #4CAF50;
+    color: white;
+}

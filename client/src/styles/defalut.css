@@ -1,0 +1,94 @@
+@keyframes intro_left_right{
+    0% {
+        transform: translateX(-50px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes intro_up_down{
+    0%{
+        color: white;
+        padding-top: 50px;
+    }
+    100%{
+        color: black;
+    }
+}
+
+@keyframes rainbow_color {
+    0% {
+        color: red;
+    }
+    14% {
+        color: orange;
+    }
+    28% {
+        color: yellow;
+    }
+    42% {
+        color: green;
+    }
+    57% {
+        color: blue;
+    }
+    71% {
+        color: indigo;
+    }
+    85% {
+        color: violet;
+    }
+    100% {
+        color: red;
+    }
+}
+
+#writer{
+    animation: intro_left_right;
+    animation-fill-mode: backwards;
+    animation-duration: 1s;
+    animation-timing-function: ease-out;
+
+    text-align: right;
+    padding-right: 10px;
+}
+#writer:hover{
+    animation: rainbow_color 5s infinite;
+}
+
+
+/* 页脚样式 */
+footer {
+    background-color: #f0f0f0; /* 灰色背景 */
+    color: #333; /* 深色文字 */
+    text-align: center;
+    padding: 1rem;
+    margin-top: auto; /* 确保页脚在页面底部 */
+    border-top: 2px solid #ccc; /* 分割线 */
+}
+
+.footer-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.footer-content p {
+    margin: 0.5rem 0;
+}
+
+.ICP {
+    margin-top: 0.5rem;
+}
+
+.ICP a {
+    color: #333;
+    text-decoration: none;
+}
+
+.ICP a:hover {
+    text-decoration: underline;
+}

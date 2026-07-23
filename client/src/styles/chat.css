@@ -1,0 +1,537 @@
+/* ============================================
+   在线聊天页样式 (Online Chat Page Styles)
+   .page-chat - 聊天页面专属样式
+   ============================================ */
+
+/* ============================================
+   1. 页面容器 (Page Container)
+   ============================================ */
+
+.page-chat {
+  min-height: 100vh;
+  width: 100%;
+  padding: var(--space-8) var(--container-padding);
+  animation: fadeIn var(--duration-slow) var(--ease-out);
+}
+
+/* ============================================
+   2. 标题区域 (Header Section)
+   ============================================ */
+
+.page-chat h1 {
+  animation: intro_up_down 600ms var(--ease-out) backwards;
+  text-align: center;
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+}
+
+.page-chat h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  margin-top: var(--space-8);
+  margin-bottom: var(--space-4);
+  margin-left: 0;
+  color: var(--color-text);
+  animation: slideUp var(--duration-normal) var(--ease-out) backwards;
+}
+
+/* ============================================
+   3. 顶部导航栏 (Top Navigation)
+   ============================================ */
+
+.page-chat .topnav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--paper);
+  box-shadow: var(--card-shadow);
+  padding: var(--space-4) var(--space-6);
+  margin-bottom: var(--space-8);
+  border-bottom: var(--divider-border-width) solid var(--divider-color);
+  animation: slideDown var(--duration-normal) var(--ease-out) backwards;
+}
+
+.page-chat .topnav .nav-item {
+  display: flex;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.page-chat .topnav .btn {
+  margin: 0;
+  padding: var(--space-3) var(--space-6);
+  font-size: var(--text-base);
+  border-width: 1px;
+  border-radius: var(--space-1);
+  transition: all var(--btn-transition) var(--ease-out);
+}
+
+.page-chat .topnav .btn:hover {
+  background-color: var(--color-text);
+  color: var(--paper);
+  transform: translateY(-2px);
+}
+
+.page-chat .topnav .btn:active {
+  transform: translateY(0);
+}
+
+/* ============================================
+   4. 消息容器 (Message Container)
+   ============================================ */
+
+.page-chat #messageContainer {
+  border: var(--divider-border-width) solid var(--divider-color);
+  height: 60vh;
+  min-height: 400px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-6);
+  margin-top: var(--space-6);
+  background-color: var(--paper);
+  border-radius: var(--space-1);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+  animation: slideUp var(--duration-normal) var(--ease-out) backwards;
+}
+
+/* 自定义滚动条 */
+.page-chat #messageContainer::-webkit-scrollbar {
+  width: 8px;
+}
+
+.page-chat #messageContainer::-webkit-scrollbar-track {
+  background: var(--gray-100);
+  border-radius: 4px;
+}
+
+.page-chat #messageContainer::-webkit-scrollbar-thumb {
+  background: var(--gray-300);
+  border-radius: 4px;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.page-chat #messageContainer::-webkit-scrollbar-thumb:hover {
+  background: var(--gray-500);
+}
+
+/* ============================================
+   5. 消息卡片 (Message Cards)
+   ============================================ */
+
+.page-chat .message {
+  margin: var(--space-3) 0;
+  padding: var(--space-5);
+  background-color: var(--paper);
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--space-1);
+  box-shadow: var(--card-shadow);
+  animation: intro_left_right 0.5s var(--ease-out) forwards;
+  transition: all var(--duration-normal) var(--ease-out);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.page-chat .message:hover {
+  border-left-color: var(--color-text);
+  box-shadow: var(--card-shadow-hover);
+  transform: translateX(4px);
+}
+
+.page-chat .message .message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+  gap: var(--space-3);
+}
+
+.page-chat .message .message-sender {
+  font-weight: var(--font-semibold);
+  font-size: var(--text-base);
+  color: var(--color-text);
+}
+
+.page-chat .message .message-content {
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text);
+  margin-bottom: var(--space-2);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.page-chat .message .timestamp {
+  text-align: right;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+  margin-top: var(--space-2);
+}
+
+/* 系统消息样式 */
+.page-chat .message.system-message {
+  background-color: var(--gray-100);
+  border-left-color: var(--gray-500);
+  font-style: italic;
+}
+
+.page-chat .message.system-message .message-content {
+  color: var(--color-text-secondary);
+}
+
+/* 用户自己的消息 */
+.page-chat .message.own-message {
+  background-color: var(--gray-100);
+  border-left-color: var(--color-success);
+}
+
+/* ============================================
+   6. 消息淡入动画 (Message Fade-in Animations)
+   ============================================ */
+
+.page-chat .messageFadeIn {
+  opacity: 0;
+  animation: intro_left_right 0.5s var(--ease-out) forwards;
+}
+
+/* 为消息添加交错延迟 */
+.page-chat .message:nth-child(1) { animation-delay: 0.05s; }
+.page-chat .message:nth-child(2) { animation-delay: 0.1s; }
+.page-chat .message:nth-child(3) { animation-delay: 0.15s; }
+.page-chat .message:nth-child(4) { animation-delay: 0.2s; }
+.page-chat .message:nth-child(5) { animation-delay: 0.25s; }
+.page-chat .message:nth-child(n+6) { animation-delay: 0.3s; }
+
+/* ============================================
+   7. 输入区域 (Input Section)
+   ============================================ */
+
+.page-chat .input-section {
+  margin-top: var(--space-6);
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+  animation: slideUp var(--duration-normal) var(--ease-out) backwards;
+}
+
+.page-chat .input-group {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+}
+
+.page-chat .input-group input[type="text"],
+.page-chat .input-group textarea {
+  flex: 1;
+  margin-left: 0;
+  width: 100%;
+  min-height: 48px;
+  resize: none;
+}
+
+.page-chat .input-group button {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 100px;
+  padding: var(--space-3) var(--space-6);
+  height: 48px;
+}
+
+.page-chat button[type="submit"] {
+  margin: var(--space-4) auto;
+  display: block;
+  width: 100%;
+  max-width: 200px;
+  padding: var(--space-4) var(--space-8);
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+}
+
+/* ============================================
+   8. 按钮样式 (Button Styles)
+   ============================================ */
+
+.page-chat .btn {
+  margin: var(--space-2);
+  color: var(--color-text);
+  text-align: center;
+  padding: var(--space-3) var(--space-6);
+  border: var(--btn-border-width) solid var(--gray-300);
+  border-radius: var(--space-1);
+  font-size: var(--text-base);
+  transition: all var(--duration-normal) var(--ease-out);
+  background-color: var(--paper);
+}
+
+.page-chat .btn:hover {
+  background-color: var(--color-text);
+  color: var(--paper);
+  border-color: var(--color-text);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.page-chat .btn:active {
+  background-color: var(--color-success);
+  color: var(--paper);
+  border-color: var(--color-success);
+  transform: translateY(0) scale(1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   9. 表单样式 (Form Styles)
+   ============================================ */
+
+.page-chat input[type="text"],
+.page-chat textarea {
+  margin-left: 0;
+  width: 80%;
+  max-width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: var(--input-border-width) solid var(--input-border-color);
+  border-radius: var(--input-border-radius);
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.page-chat input[type="text"]:focus,
+.page-chat textarea:focus {
+  outline: none;
+  border-color: var(--input-focus-border-color);
+  box-shadow: 0 0 0 3px rgba(115, 115, 115, 0.1);
+}
+
+/* ============================================
+   10. 连接状态指示器 (Connection Status)
+   ============================================ */
+
+.page-chat .connection-status {
+  text-align: center;
+  padding: var(--space-3);
+  margin-bottom: var(--space-4);
+  border-radius: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
+}
+
+.page-chat .connection-status.connected {
+  background-color: rgba(76, 175, 80, 0.1);
+  color: var(--color-success);
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.page-chat .connection-status.disconnected {
+  background-color: rgba(244, 67, 54, 0.1);
+  color: #f44336;
+  border: 1px solid rgba(244, 67, 54, 0.3);
+}
+
+.page-chat .connection-status.connecting {
+  background-color: rgba(255, 152, 0, 0.1);
+  color: #ff9800;
+  border: 1px solid rgba(255, 152, 0, 0.3);
+}
+
+/* ============================================
+   11. 在线用户列表 (Online Users List - 可选)
+   ============================================ */
+
+.page-chat .online-users {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  background-color: var(--gray-100);
+  border-radius: var(--space-1);
+  border: var(--divider-border-width) solid var(--divider-color);
+}
+
+.page-chat .online-users h3 {
+  font-size: var(--text-base);
+  margin-bottom: var(--space-3);
+  color: var(--color-text-secondary);
+}
+
+.page-chat .online-users .user-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.page-chat .online-users .user-tag {
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--paper);
+  border: 1px solid var(--divider-color);
+  border-radius: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+
+/* ============================================
+   12. 响应式设计 (Responsive Design)
+   ============================================ */
+
+@media (max-width: 768px) {
+  .page-chat {
+    padding: var(--space-6) var(--space-4);
+  }
+
+  .page-chat h1 {
+    font-size: var(--text-3xl);
+  }
+
+  .page-chat h2 {
+    font-size: var(--text-lg);
+  }
+
+  .page-chat .topnav {
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4);
+  }
+
+  .page-chat .topnav .nav-item {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .page-chat .topnav .btn {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .page-chat #messageContainer {
+    height: 50vh;
+    min-height: 300px;
+    padding: var(--space-4);
+  }
+
+  .page-chat .message {
+    padding: var(--space-4);
+  }
+
+  .page-chat .input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .page-chat .input-group button {
+    width: 100%;
+  }
+
+  .page-chat button[type="submit"] {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .page-chat input[type="text"],
+  .page-chat textarea {
+    width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-chat {
+    padding: var(--space-4) var(--space-3);
+  }
+
+  .page-chat h1 {
+    font-size: var(--text-2xl);
+  }
+
+  .page-chat #messageContainer {
+    height: 45vh;
+    min-height: 250px;
+    padding: var(--space-3);
+  }
+
+  .page-chat .message {
+    padding: var(--space-3);
+  }
+
+  .page-chat .message .message-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-2);
+  }
+
+  .page-chat .message .timestamp {
+    text-align: left;
+  }
+
+  .page-chat .input-group {
+    gap: var(--space-3);
+  }
+
+  .page-chat .connection-status {
+    font-size: var(--text-xs);
+    padding: var(--space-2);
+  }
+}
+
+/* ============================================
+   13. 无障碍优化 (Accessibility)
+   ============================================ */
+
+.page-chat .btn:focus-visible,
+.page-chat input:focus-visible,
+.page-chat textarea:focus-visible,
+.page-chat button:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+  .page-chat #messageContainer {
+    border-width: 2px;
+  }
+
+  .page-chat .message {
+    border-width: 2px;
+  }
+}
+
+/* 减少动画效果 */
+@media (prefers-reduced-motion: reduce) {
+  .page-chat,
+  .page-chat h1,
+  .page-chat h2,
+  .page-chat .topnav,
+  .page-chat #messageContainer,
+  .page-chat .input-section,
+  .page-chat .message,
+  .page-chat .connection-status {
+    animation-duration: 0.01ms !important;
+  }
+
+  .page-chat .message:hover,
+  .page-chat .btn:hover {
+    transform: none !important;
+  }
+}
+
+/* ============================================
+   14. 打印样式 (Print Styles)
+   ============================================ */
+
+@media print {
+  .page-chat .topnav,
+  .page-chat .input-section,
+  .page-chat button {
+    display: none;
+  }
+
+  .page-chat #messageContainer {
+    height: auto;
+    border: none;
+    box-shadow: none;
+  }
+
+  .page-chat .message {
+    break-inside: avoid;
+    box-shadow: none;
+    border: 1px solid var(--color-border);
+  }
+}
