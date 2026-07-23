@@ -2,7 +2,7 @@
 
 这是对原项目 `nihonggo_web_learning`（开发者 SAKANA 的个人网站）的**忠实移植**：在不修改信息与功能的前提下，把技术栈从「原生 HTML/CSS/JS + PHP/MySQL + Node WebSocket」重写为「Vue 3 + TypeScript SPA + Node/Express + MySQL + ws」。所有文案、视觉、动画与交互行为均原样保留。
 
-> 注意：尽管原目录名暗示日语学习，该站点实际是 SAKANA 的个人网站（首页 / 在线聊天 / 自定义题库 / 开发日志 / 登录注册），不含任何日语学习内容——本重写同样不引入日语内容。
+>该站点是 SAKANA 的个人网站（首页 / 在线聊天 / 自定义题库 / 开发日志 / 登录注册）
 
 ## 目录结构
 
@@ -29,6 +29,7 @@ personal_website/
 ```bash
 npm run dev
 ```
+
 - 前端：http://localhost:5173 （Vite，`/api` 代理到后端 3000）
 - 后端：http://localhost:3000 （Express）
 - 聊天 WebSocket：ws://localhost:9000
@@ -39,6 +40,7 @@ npm run dev
 npm run build        # 产出 client/dist
 npm start            # 启动 server
 ```
+
 生产环境将 `client/.env.production` 的 `VITE_WS_URL` 指向 `wss://...`，并在 `server/.env` 中开启 `WS_USE_SSL=true` 并提供证书路径。
 
 ## 与原项目的差异说明
@@ -51,3 +53,4 @@ npm start            # 启动 server
 - **配置外置**：数据库凭据、端口、WS 地址全部走 `.env`，不再硬编码。
 
 其余所有交互细节（加载 1000ms 过渡、灰烬粒子、复制 tooltip、聊天 Blob 解析与 `': '` 切分、题库红绿反馈与 localStorage、留言/日志交错淡入、页脚与彩虹签名）均严格保留。
+

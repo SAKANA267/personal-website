@@ -24,7 +24,7 @@ async function submit() {
 
 <template>
   <div class="page-auth">
-    <TopNav :items="[{ label: 'Index', to: '/' }]" />
+    <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }]" />
 
     <div class="container">
       <h1>Login</h1>

@@ -83,7 +83,7 @@ function convertToJSON() {
 
 <template>
   <div class="page-bank">
-    <TopNav :items="[{ label: 'Index', to: '/' }]" />
+    <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }]" />
 
     <div class="container">
       <h1>自定义题库</h1>

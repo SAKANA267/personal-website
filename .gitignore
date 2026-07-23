@@ -12,3 +12,7 @@ server/.env
 server/certs/
 *.pem
 *.key
+
+# 开发日志（本地文档，不提交）
+logs/
+devlogs/
