@@ -2,7 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useLoading } from '../stores/loading'
 
 const router = createRouter({
-  history: createWebHistory(),
+  // base 跟随 vite 的 base（生产 /web/），保证子路径下刷新不 404
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', component: () => import('../views/HomeView.vue') },
     { path: '/online-chat', component: () => import('../views/OnlineChatView.vue') },

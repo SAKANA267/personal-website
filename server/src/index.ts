@@ -10,6 +10,9 @@ import { startChatServer } from './ws/chatServer.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
+// 经 nginx 反代时，信任代理头以正确识别 https 与客户端真实 IP；
+// 否则生产的 secure cookie（登录态）在反代后无法下发。
+app.set('trust proxy', 1)
 
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))

@@ -1,0 +1,4 @@
+# 保证 shell 脚本和 pm2 配置在所有平台都用 LF 换行
+# （避免 Windows 的 CRLF 导致服务器上 bash 执行报错）
+*.sh text eol=lf
+deploy/ecosystem.config.cjs text eol=lf

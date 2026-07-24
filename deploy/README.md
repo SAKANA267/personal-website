@@ -1,0 +1,84 @@
+# 部署 (deploy/)
+
+本地一键脚本部署到 Linux 服务器，用 pm2 管理进程。**不走远程 CI**，全部在本地经 SSH 完成。
+
+## 它做了什么
+
+`npm run deploy`（= `bash deploy/deploy.sh`）：
+
+1. 本地 `npm run build` 构建前端到 `client/dist`；
+2. `tar` 打包 `client/dist` + `server` 源码（不含 `node_modules` / `.env` / 证书），经 SSH 管道直接在服务器 `<DEPLOY_DIR>` 解压；
+3. 服务器上 `npm install --omit=dev` 装依赖，`pm2 reload`（首次 `pm2 start`）重启应用，`pm2 save` 持久化。
+
+传输用 Git Bash 自带的 `tar` / `ssh`，Windows 无需额外安装 rsync。
+
+## 前置：一次性服务器初始化
+
+1. **运行时**：Node.js ≥ 18（建议 nvm，或宝塔自带）；`npm install -g pm2`。
+2. **MySQL**：建库后导入 `server/src/schema.sql`（4 张表）。
+3. **放置配置**（不进 git、不被部署覆盖）到服务器 `<DEPLOY_DIR>/server/`：
+   - `.env`：参考 `server/.env.example`，填 DB 凭据、`SESSION_SECRET`、`PORT=3000`、`WS_PORT=9000`、生产 `WS_USE_SSL=true` 及证书路径；
+   - 若 `WS_USE_SSL=true`，把证书放到 `server/certs/`（默认 `server.pem` / `server.key`）。
+4. **反向代理 / SSL**（如 nginx）：
+   - `https://sakana267.online` → `127.0.0.1:3000`（Express，含静态前端）；
+   - `wss://sakana267.online:9000` → 直连 ws 的 9000 端口（或用 nginx 做 WebSocket 反代）。客户端连接地址由 `client/.env.production` 的 `VITE_WS_URL` 决定。
+5. **pm2 开机自启**（首次部署成功后在服务器执行一次）：
+   ```bash
+   pm2 startup   # 按提示复制执行返回的命令
+   pm2 save
+   ```
+6. **本地配置**：复制并填写部署目标信息
+   ```bash
+   cp deploy/.deploy.env.example deploy/.deploy.env
+   ```
+   至少填 `DEPLOY_HOST` / `DEPLOY_USER` / `DEPLOY_DIR`。确保本机已配置 SSH 公钥能免密 `ssh $DEPLOY_USER@$DEPLOY_HOST`。
+
+## 目录结构（服务器）
+
+部署后 `<DEPLOY_DIR>` 形如：
+
+```
+<DEPLOY_DIR>/
+├─ server/
+│  ├─ src/             ← 由部署覆盖
+│  ├─ package.json     ← 由部署覆盖
+│  ├─ tsconfig.json    ← 由部署覆盖
+│  ├─ node_modules/    ← npm install 生成，增量保留
+│  ├─ .env             ← 首次手动放置，不覆盖
+│  └─ certs/           ← 首次手动放置，不覆盖
+├─ client/dist/        ← 由部署覆盖
+├─ ecosystem.config.cjs
+└─ remote-setup.sh
+```
+
+> `server/src/index.ts` 用 `path.resolve(__dirname, '../../client/dist')` 定位前端产物，所以 `server/` 与 `client/dist/` 必须同级——这也是部署根目录这样组织的原因，请勿改动该相对路径。
+
+## 日常部署
+
+```bash
+npm run deploy
+```
+
+每次只覆盖源码与产物，依赖增量安装，pm2 平滑 reload。查看日志：
+
+```bash
+ssh <user>@<host> "pm2 logs personal-website --lines 50"
+```
+
+## 常见问题
+
+- **`pm2: command not found`（或 node/npm）**：非交互 ssh 不加载你的 shell 配置。在 `deploy/.deploy.env` 里用绝对路径设置 `NODE_BIN` / `NPM_BIN` / `PM2_BIN`（服务器上 `which pm2` 查）。脚本已对 nvm 与宝塔路径做了兜底。
+- **应用启动后连不上数据库**：检查 `server/.env` 是否存在且凭据正确（脚本会提醒 `.env` 缺失）。
+- **前端能打开但聊天连不上**：确认 `client/.env.production` 的 `VITE_WS_URL`、服务器 9000 端口防火墙、SSL 证书与 `WS_USE_SSL` 设置一致。
+- **部署因类型检查失败而中断**：`npm run build` 含 `vue-tsc --noEmit`，类型错误会阻止部署——这是有意为之，确保线上构建可用。
+
+## 可选：提交/推送即自动部署
+
+如果之后想让「每次提交」自动触发部署，加一个 git 钩子调用本脚本即可，例如 `.git/hooks/post-commit`：
+
+```bash
+#!/usr/bin/env bash
+bash deploy/deploy.sh
+```
+
+默认不启用——commit 往往频繁且包含未完成的工作。更推荐 `pre-push`（仅在 push 时触发）。需要时手动创建该钩子文件即可，不必入仓。

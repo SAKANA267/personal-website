@@ -3,6 +3,9 @@ import { useCopyText } from '../composables/useCopyText'
 import { goExternal } from '../stores/loading'
 
 const { tooltip, copy } = useCopyText()
+
+// 子路径部署：资源路径需带 base 前缀
+const BASE_URL = import.meta.env.BASE_URL
 </script>
 
 <template>
@@ -20,7 +23,7 @@ const { tooltip, copy } = useCopyText()
       <!-- Bilibili -->
       <div class="contact-item platform-bilibili" @click="goExternal('https://space.bilibili.com/35934540')">
         <div class="icon">
-          <img src="/resource/svg/bilibili.svg" alt="Bilibili" />
+          <img :src="`${BASE_URL}resource/svg/bilibili.svg`" alt="Bilibili" />
         </div>
         <p class="label">Bilibili</p>
       </div>
@@ -28,7 +31,7 @@ const { tooltip, copy } = useCopyText()
       <!-- QQ -->
       <div class="contact-item platform-qq" @click="(e) => copy('2678452710', e.clientX, e.clientY)">
         <div class="icon">
-          <img src="/resource/svg/QQ.svg" alt="QQ" />
+          <img :src="`${BASE_URL}resource/svg/QQ.svg`" alt="QQ" />
         </div>
         <p class="label">2678452710</p>
       </div>
@@ -36,7 +39,7 @@ const { tooltip, copy } = useCopyText()
       <!-- Email -->
       <div class="contact-item platform-email" @click="(e) => copy('ibert1ne@outlook.com', e.clientX, e.clientY)">
         <div class="icon">
-          <img src="/resource/svg/mail.svg" alt="Email" />
+          <img :src="`${BASE_URL}resource/svg/mail.svg`" alt="Email" />
         </div>
         <p class="label">ibert1ne@outlook.com</p>
       </div>
@@ -44,7 +47,7 @@ const { tooltip, copy } = useCopyText()
       <!-- GitHub -->
       <div class="contact-item platform-github" @click="goExternal('https://github.com/SAKANA267')">
         <div class="icon">
-          <img src="/resource/svg/github.svg" alt="GitHub" />
+          <img :src="`${BASE_URL}resource/svg/github.svg`" alt="GitHub" />
         </div>
         <p class="label">GitHub</p>
       </div>
