@@ -53,6 +53,7 @@ onMounted(fetchMessages)
       <p class="btn" @click="router.push('/online-chat')">Online chat</p>
       <p class="btn" @click="router.push('/question-bank')">Question bank</p>
       <p class="btn" @click="router.push('/dev-log')">Dev log</p>
+      <p class="btn" @click="router.push('/blog')">Blog</p>
     </div>
 
     <h2>Contact Me</h2>

@@ -41,7 +41,7 @@ onMounted(fetchMessages)
 
 <template>
   <div class="page-devlog">
-    <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }]" />
+    <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }, { label: 'Blog', to: '/blog' }]" />
 
     <div class="container">
       <h1>Dev log</h1>

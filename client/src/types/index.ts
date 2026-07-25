@@ -30,3 +30,14 @@ export interface User {
   username: string
   password: string
 }
+
+// 博客文章
+export interface BlogPost {
+  id: number
+  title: string // 中文标题
+  excerpt: string // 中文摘要
+  date: string // 'YYYY-MM-DD'（时间序标记）
+  category: string // 分类，如 '前端' | '设计' | '随笔'
+  tags: string[] // 标签，如 ['vue', 'design']
+  readTime?: number // 阅读时长（分钟）
+}

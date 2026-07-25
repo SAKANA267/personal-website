@@ -26,7 +26,7 @@ onUnmounted(disconnect)
 
 <template>
   <div class="page-chat">
-    <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }]" />
+    <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }, { label: 'Blog', to: '/blog' }]" />
 
     <div class="container">
       <h1>Online Chat</h1>

@@ -14,6 +14,7 @@ import './styles/contact.css' // 新增联系方式样式
 import './styles/chat.css' // 替换 online_chat.css
 import './styles/question_bank.css'
 import './styles/dev_log.css'
+import './styles/blog.css'
 import './styles/login.css'
 
 createApp(App).use(router).mount('#app')

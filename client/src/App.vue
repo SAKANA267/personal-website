@@ -16,6 +16,7 @@ import './styles/contact.css'
 import './styles/chat.css'
 import './styles/question_bank.css'
 import './styles/dev_log.css'
+import './styles/blog.css'
 import './styles/login.css'
 
 const route = useRoute()
