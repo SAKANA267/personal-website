@@ -1,25 +1,38 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import TopNav from '../components/TopNav.vue'
 import WriterByline from '../components/WriterByline.vue'
-import { blogPosts } from '../data/blogPosts'
+import { api } from '../composables/useApi'
 import type { BlogPost } from '../types'
 
 const query = ref('')
 const activeCategory = ref('All')
 const currentPage = ref(1)
 const pageSize = 5
+const posts = ref<BlogPost[]>([])
+
+// 从后端拉取文章列表（字段须与 BlogPost 一致）
+async function fetchPosts() {
+  try {
+    const data = await api.getBlogPosts()
+    if (Array.isArray(data)) posts.value = data
+    else console.error('Error:', (data as any)?.error)
+  } catch (e) {
+    console.error('Error:', e)
+  }
+}
+onMounted(fetchPosts)
 
 // 从文章派生分类，前置一个 "All"
 const categories = computed<string[]>(() => {
-  const set = new Set<string>(blogPosts.map((p) => p.category))
+  const set = new Set<string>(posts.value.map((p) => p.category))
   return ['All', ...Array.from(set)]
 })
 
 // 按分类 + 关键词过滤（标题 / 摘要 / 标签 / 分类，忽略大小写）
 const filtered = computed<BlogPost[]>(() => {
   const q = query.value.trim().toLowerCase()
-  return blogPosts.filter((p) => {
+  return posts.value.filter((p) => {
     if (activeCategory.value !== 'All' && p.category !== activeCategory.value) return false
     if (!q) return true
     return (

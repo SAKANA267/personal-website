@@ -33,3 +33,16 @@ CREATE TABLE IF NOT EXISTS logs (
   message TEXT NOT NULL,
   timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 博客文章
+CREATE TABLE IF NOT EXISTS blog_posts (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  title VARCHAR(255) NOT NULL,
+  excerpt TEXT NOT NULL,
+  `date` DATE NOT NULL,                       -- 文章日期，前端按此倒序
+  category VARCHAR(64) NOT NULL,
+  tags JSON NOT NULL,                         -- 对应前端 tags: string[]，mysql2 自动解析
+  read_time INT NULL,                         -- 阅读时长（分钟），可空 → readTime
+  is_published TINYINT(1) NOT NULL DEFAULT 1, -- 草稿 / 下线开关，默认发布
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

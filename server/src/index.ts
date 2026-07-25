@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url'
 import { messagesRouter } from './routes/messages.js'
 import { devlogRouter } from './routes/devlog.js'
 import { authRouter } from './routes/auth.js'
+import { blogRouter } from './routes/blog.js'
 import { startChatServer } from './ws/chatServer.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -30,6 +31,7 @@ app.use(
 app.use('/api/messages', messagesRouter)
 app.use('/api/devlog', devlogRouter)
 app.use('/api/auth', authRouter)
+app.use('/api/blog', blogRouter)
 
 // 生产：托管前端构建产物并做 SPA 回退
 const distDir = path.resolve(__dirname, '../../client/dist')

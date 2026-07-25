@@ -1,4 +1,4 @@
-import type { Message, DevLogEntry, User } from '../types'
+import type { Message, DevLogEntry, User, BlogPost } from '../types'
 
 const BASE = import.meta.env.VITE_API_BASE || '/api'
 
@@ -25,4 +25,5 @@ export const api = {
   postDevLog: (data: { content: string }) => post('/devlog', data),
   signup: (data: User) => post('/auth/signup', data),
   login: (data: User) => post('/auth/login', data),
+  getBlogPosts: () => getJson<BlogPost[]>('/blog'),
 }
