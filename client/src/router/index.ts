@@ -10,6 +10,7 @@ const router = createRouter({
     { path: '/question-bank', component: () => import('../views/QuestionBankView.vue') },
     { path: '/dev-log', component: () => import('../views/DevLogView.vue') },
     { path: '/blog', component: () => import('../views/BlogView.vue') },
+    { path: '/blog/:slug', component: () => import('../views/BlogDetailView.vue') },
     { path: '/login', component: () => import('../views/LoginView.vue') },
     { path: '/signup', component: () => import('../views/SignUpView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },

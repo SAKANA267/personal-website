@@ -32,12 +32,15 @@ export interface User {
 }
 
 // 博客文章
+// 内容来源：client/src/content/posts/*.md（frontmatter + 正文），文件名即 slug
 export interface BlogPost {
-  id: number
-  title: string // 中文标题
-  excerpt: string // 中文摘要
-  date: string // 'YYYY-MM-DD'（时间序标记）
-  category: string // 分类，如 '前端' | '设计' | '随笔'
-  tags: string[] // 标签，如 ['vue', 'design']
-  readTime?: number // 阅读时长（分钟）
+  slug: string // 由 .md 文件名派生，用作路由 /blog/:slug 与列表 key
+  title: string // 中文标题（frontmatter）
+  excerpt: string // 中文摘要（frontmatter）
+  date: string // 'YYYY-MM-DD'（frontmatter，时间序标记）
+  category: string // 分类，如 '前端' | '设计' | '随笔'（frontmatter）
+  tags: string[] // 标签，如 ['vue', 'design']（frontmatter）
+  readTime?: number // 阅读时长（分钟）（frontmatter）
+  content?: string // 原始 Markdown 正文（仅详情页使用）
+  id?: number // 遗留字段（数据库时代），文件驱动下不再使用
 }

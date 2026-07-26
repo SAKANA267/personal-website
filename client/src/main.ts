@@ -15,6 +15,7 @@ import './styles/chat.css' // 替换 online_chat.css
 import './styles/question_bank.css'
 import './styles/dev_log.css'
 import './styles/blog.css'
+import './styles/blog_detail.css' // 博客阅读页样式
 import './styles/login.css'
 
 createApp(App).use(router).mount('#app')
