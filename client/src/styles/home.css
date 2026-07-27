@@ -66,8 +66,6 @@
    ============================================ */
 
 .page-home .header-section #writer {
-  text-align: center;
-  padding-right: 0;
   margin-bottom: var(--space-8);
   width: 100%;
   max-width: var(--content-max-width);

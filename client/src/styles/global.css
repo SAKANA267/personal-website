@@ -49,8 +49,13 @@
 
 #writer {
   animation: intro_left_right 1s var(--ease-out) backwards;
-  text-align: right;
-  padding-right: var(--space-4);
+  text-align: center;
+  padding-right: 0;
+  /* 作为 <p>，#writer 会继承全局 p 的 max-width:800px 限宽。
+     用 auto 外边距让这个窄盒子在任意宽度的父容器里水平居中，
+     避免在 blog / chat 等宽容器里整体偏左（text-align 只居中盒内文字）。 */
+  margin-left: auto;
+  margin-right: auto;
   margin-bottom: var(--space-8);
   transition: color var(--duration-normal) var(--ease-out);
 }

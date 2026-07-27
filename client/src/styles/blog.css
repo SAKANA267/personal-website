@@ -10,10 +10,21 @@
 .page-blog {
   min-height: 100vh;
   width: 100%;
-  max-width: var(--container-max-width);
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: var(--space-8) var(--container-padding);
   animation: fadeIn var(--duration-slow) var(--ease-out);
+}
+
+.page-blog > .topnav,
+.page-blog > .masthead,
+.page-blog > .rule,
+.page-blog > .toolbar,
+.page-blog > .feed,
+.page-blog > .blog-pagination {
+  width: 100%;
+  max-width: var(--container-max-width);
 }
 
 /* ============================================
