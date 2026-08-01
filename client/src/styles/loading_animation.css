@@ -1,59 +1,48 @@
+/* 多色块加载遮罩：四块全屏色块依次从左滑入铺满，加载完成后统一向右滑出 */
 .loading{
     position: fixed;
-    display: flex; /* 添加 flex 布局 */
-    flex-direction: column;
-    justify-content: center; /* 水平居中 */
-    align-items: center; /* 垂直居中 */
     top: 0;
     left: 0;
     width: 100%;
     height: 100vh;
-    background-color: #f7f7f7;
     z-index: 100000000;
-    transition: 1s ease;
+    pointer-events: none; /* 容器透传点击，由各色块自身遮挡 */
 }
 
-.loading svg{
-    width: 5rem;
-    margin-bottom: 2rem;
-    overflow: visible;
-    transition: 0.3s ease;
+.loading__panel{
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
 }
 
-.loading svg circle{
-    fill: none;
-    stroke: #171717;
-    stroke-width: 12;
-    stroke-dasharray: 160;
-    stroke-dashoffset: 160;
-    transform-origin: center;
-    animation: circle_rotate 1s ease-in-out infinite;
+.loading__panel--1{ background-color: #5C7F71; }
+.loading__panel--2{ background-color: #802520; }
+.loading__panel--3{ background-color: #BA8530; }
+.loading__panel--4{ background-color: #F5EDDC; }
+
+/* 依次从左侧滑入（错峰 delay，约 500ms 内全部铺满，须 ≤ LOADING_COVER_MS） */
+.loading.loading_in .loading__panel{
+    animation: loading-panel-in 200ms ease both;
+}
+.loading.loading_in .loading__panel--1{ animation-delay: 0ms; }
+.loading.loading_in .loading__panel--2{ animation-delay: 100ms; }
+.loading.loading_in .loading__panel--3{ animation-delay: 200ms; }
+.loading.loading_in .loading__panel--4{ animation-delay: 300ms; }
+
+/* 加载完成后统一向右滑出 */
+.loading.loading_out .loading__panel{
+    animation: loading-panel-out 400ms ease forwards;
 }
 
-.loading p{
-    margin-left: 0px;
-    font-size: large;
-    display: flex; /* 添加 flex 布局 */
-    flex-direction: column;
-    justify-content: center; /* 水平居中 */
-    align-items: center; /* 垂直居中 */
+@keyframes loading-panel-in {
+    from { transform: translateX(-100%); }
+    to   { transform: translateX(0); }
 }
 
-@keyframes circle_rotate {
-    0% {
-    transform: rotate(0deg);
-    stroke-dashoffset: 160;
-    }
-    100%{
-    transform: rotate(360deg);
-    stroke-dashoffset: -160;
-    }
-
-}
-
-.loading_out{
-    transform: translateY(100%);
-}
-.loading_out svg{
-    opacity: 0;
+@keyframes loading-panel-out {
+    from { transform: translateX(0); }
+    to   { transform: translateX(100%); }
 }

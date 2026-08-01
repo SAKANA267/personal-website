@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useLoading } from '../stores/loading'
+import { useLoading, LOADING_COVER_MS } from '../stores/loading'
 
 const router = createRouter({
   // base 跟随 vite 的 base（生产 /web/），保证子路径下刷新不 404
@@ -19,7 +19,7 @@ const router = createRouter({
 
 const loading = useLoading()
 
-// 复刻 loading.in(page)：每次跳转先覆盖遮罩，停留 1 秒后再切换（afterEach 揭示）
+// 复刻 loading.in(page)：每次跳转先覆盖遮罩，停留 LOADING_COVER_MS 后再切换（afterEach 揭示）
 let firstNavigation = true
 router.beforeEach((to, from) => {
   // 初次加载（整页刷新）：不额外等待，由 App.vue 挂载后揭示，贴合原 window.load 行为
@@ -29,7 +29,7 @@ router.beforeEach((to, from) => {
   }
   if (to.path === from.path) return true
   loading.cover()
-  return new Promise<void>((resolve) => setTimeout(resolve, 1000))
+  return new Promise<void>((resolve) => setTimeout(resolve, LOADING_COVER_MS))
 })
 
 router.afterEach(() => {

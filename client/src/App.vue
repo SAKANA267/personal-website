@@ -4,7 +4,7 @@ import { useRoute } from 'vue-router'
 import LoadingOverlay from './components/LoadingOverlay.vue'
 import AppFooter from './components/AppFooter.vue'
 import AshParticles from './components/AshParticles.vue'
-import { useLoading } from './stores/loading'
+import { useLoading, LOADING_COVER_MS } from './stores/loading'
 
 // 导入设计系统
 import './styles/design-system.css'
@@ -23,8 +23,8 @@ import './styles/login.css'
 const route = useRoute()
 const loading = useLoading()
 
-// 初次挂载后揭示遮罩（对应原 window.load → loading.out()）
-onMounted(() => loading.reveal())
+// 首屏也播放四色块入场动画：等入场走完再揭示，节奏与路由切换的遮罩一致
+onMounted(() => setTimeout(() => loading.reveal(), LOADING_COVER_MS))
 </script>
 
 <template>
