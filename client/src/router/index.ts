@@ -19,6 +19,9 @@ const router = createRouter({
 
 const loading = useLoading()
 
+// 标题卡已并入首页顶部（HomeView 内），不再是独立路由；
+// sessionStorage['titleCardSeen'] 的「每会话首次」语义由 HomeView 自行维护。
+
 // 复刻 loading.in(page)：每次跳转先覆盖遮罩，停留 LOADING_COVER_MS 后再切换（afterEach 揭示）
 let firstNavigation = true
 router.beforeEach((to, from) => {

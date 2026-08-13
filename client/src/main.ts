@@ -17,5 +17,6 @@ import './styles/dev_log.css'
 import './styles/blog.css'
 import './styles/blog_detail.css' // 博客阅读页样式
 import './styles/login.css'
+import './styles/title_card.css' // 标题卡入口页样式
 
 createApp(App).use(router).mount('#app')

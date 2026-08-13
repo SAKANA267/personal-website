@@ -1,0 +1,478 @@
+@import url('https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600;700;900&display=swap');
+
+/* ============================================
+   标题卡英雄区 (Title Card Hero) —— 首页顶部封面
+   .page-title-card - 标题卡专属样式
+   --------------------------------------------
+   作为首页第一屏铺满视口（height:100vh），不再是独立路由页。
+   入场编排（.is-entering）：
+     构建线扫描(0→1.2s) → 三色彩带错位落下(0.3s 起，120ms 间隔)
+     → 主标题滑入收拢(0.6s 起) → 副标题 / 提示淡入(1.1s 起)
+   收起动画（.is-leaving）：整卡向上 translateY 滑出 + 暗角淡去，
+   由 JS 在 ~850ms 后 emit('enter') 揭示主页内容。
+   --------------------------------------------
+   响应式策略：
+   - .title-card 整屏铺满（width/height:100%），任何分辨率都铺满视口、上下左右无黑边；
+   - .title-card 设为 inline-size 容器，内部尺寸一律用 cqw（= 视口宽度 1%）等比缩放；
+   - 故障拖影偏移用 em，随主标题字号缩放。
+   ============================================ */
+
+.page-title-card {
+  --tc-font-display: "Futura", "Futura PT", "Jost", "Century Gothic", "Apple SD Gothic Neo", sans-serif;
+  --tc-font-body: "Futura", "Jost", "Helvetica Neue", "Arial", sans-serif;
+
+  /* 三色彩带（与全站加载遮罩四色中的前三色一致） */
+  --tc-ribbon-teal: #5C7F71;
+  --tc-ribbon-rust: #802520;
+  --tc-ribbon-gold: #BA8530;
+
+  --tc-text-beige: #ebe9e4;
+  --tc-text-dim: #d8d6d1;
+  --tc-bg-void: #1a1a1d;
+
+  --tc-glitch-cyan: #4a7a78;
+  --tc-glitch-red: #8b3a3a;
+
+  /* 作为首页顶部 hero：铺满首屏，相对定位，可被收起动画 transform */
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: #1a1a1d; /* 与卡片同色，兜底防任何 1px 缝隙露黑 */
+  font-family: var(--tc-font-body);
+  cursor: pointer;
+  /* 收起动画：整卡向上滑出。入场时不参与（initial 状态由各子元素自己的 keyframes 控制） */
+  transition: transform 0.85s var(--ease-in-out, cubic-bezier(0.65, 0, 0.35, 1)),
+              opacity 0.85s var(--ease-in-out, cubic-bezier(0.65, 0, 0.35, 1));
+  will-change: transform, opacity;
+}
+
+/* 收起：整卡向上滑出 + 淡出，并脱离文档流（绝对定位），
+   使下方主页内容顶上来接管视口；opacity:0 + pointer-events:none 保证不可见不可交互。 */
+.page-title-card.is-leaving {
+  position: absolute;
+  inset: 0;
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 主容器：整屏铺满（任何分辨率都铺满视口，无黑边） */
+.page-title-card .title-card {
+  container-type: inline-size;        /* 保留：cqw = 视口宽度 1% */
+  position: relative;
+  width: 100%;
+  height: 100%;                       /* .page-title-card 高度 100vh → 100% 即视口大小 */
+  background: var(--tc-bg-void);      /* #1a1a1d 覆盖整屏 */
+  overflow: hidden;
+}
+
+/* —— 入场编排（挂载即播放，forwards 固定终态）—— */
+
+/* 构建线：从中心向外扫描展开 */
+.page-title-card .construct-line--h {
+  transform: scaleX(0);
+  transform-origin: center;
+  animation: tcLineDrawH 1.2s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) 0.1s forwards;
+}
+.page-title-card .construct-line--v {
+  transform: scaleY(0);
+  transform-origin: center;
+  animation: tcLineDrawV 1.0s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) 0.3s forwards;
+}
+@keyframes tcLineDrawH {
+  from { transform: scaleX(0); opacity: 0; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+@keyframes tcLineDrawV {
+  from { transform: scaleY(0); opacity: 0; }
+  to   { transform: scaleY(1); opacity: 1; }
+}
+
+/* 三色彩带：从顶部错位落下 + scaleY 展开 */
+.page-title-card .ribbon {
+  transform: scaleY(0);
+  transform-origin: top center;
+  opacity: 0;
+}
+.page-title-card .ribbon--teal { animation: tcRibbonDrop 0.7s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) 0.30s forwards; }
+.page-title-card .ribbon--rust { animation: tcRibbonDrop 0.7s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) 0.42s forwards; }
+.page-title-card .ribbon--gold { animation: tcRibbonDrop 0.7s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) 0.54s forwards; }
+@keyframes tcRibbonDrop {
+  0%   { transform: translateY(-12%) scaleY(0); opacity: 0; }
+  60%  { opacity: 1; }
+  100% { transform: translateY(0) scaleY(1); opacity: 1; }
+}
+
+/* 右上角占位 + 角标：淡入 */
+.page-title-card .top-right,
+.page-title-card .corner-mark {
+  opacity: 0;
+  animation: tcFadeIn 0.8s var(--ease-out, ease-out) 1.1s forwards;
+}
+@keyframes tcFadeIn {
+  from { opacity: 0; }
+  to   { opacity: var(--tc-final-opacity, 1); }
+}
+/* 角标终态是低透明度，单独覆盖 */
+.page-title-card .corner-mark { --tc-final-opacity: 0.15; }
+
+/* 扫描线：从左向右扫出 */
+.page-title-card .scanlines {
+  transform: scaleX(0);
+  transform-origin: left center;
+  animation: tcScanReveal 0.9s var(--ease-out, ease-out) 0.5s forwards;
+}
+@keyframes tcScanReveal {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* 胶片颗粒：淡入 */
+.page-title-card .grain {
+  opacity: 0;
+  animation: tcGrainFade 0.6s ease-out 0.9s forwards;
+}
+@keyframes tcGrainFade {
+  to { opacity: 0.12; }
+}
+
+/* —— 主内容（副标题 / 标题 / 点 / 提示）入场 —— */
+
+.page-title-card .content {
+  /* content 由 JS 视差控制 transform，入场用一个内部包装更稳；这里改用 opacity + filter 入场 */
+}
+
+/* 副标题：从下方滑入 */
+.page-title-card .subtitle {
+  opacity: 0;
+  transform: translateY(10px);
+  animation: tcSubIn 0.7s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) 1.1s forwards;
+}
+@keyframes tcSubIn {
+  to { opacity: 0.85; transform: translateY(0); }
+}
+
+/* 主标题：从下方较大位移滑入。故障 RGB 通道（::before/::after）保持原有静态透明度 +
+   tcGlitchCyan/Red 循环，不参与入场缩放，避免 opacity 被 forwards 覆盖。 */
+.page-title-card .title-wrapper {
+  opacity: 0;
+  transform: translateY(24px) scale(0.96);
+  animation: tcTitleIn 1.1s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) 0.6s forwards;
+}
+@keyframes tcTitleIn {
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+/* 故障通道循环延迟到入场结束后再开始（1.6s），此前保持静态偏移 */
+.page-title-card .title-wrapper::before {
+  animation: tcGlitchCyan 4s 1.6s infinite;
+}
+.page-title-card .title-wrapper::after {
+  animation: tcGlitchRed 4s 1.6s infinite;
+}
+
+/* 白点：缩放淡入 */
+.page-title-card .dot {
+  opacity: 0;
+  transform: scale(0);
+  animation: tcDotIn 0.5s var(--ease-out, cubic-bezier(0.34, 1.56, 0.64, 1)) 1.45s forwards;
+}
+@keyframes tcDotIn {
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* 进入提示：先淡入到静态透明度，随后由 tcHintPulse 接管呼吸（同属性以后者运行为准） */
+.page-title-card .enter-hint {
+  opacity: 0;
+  animation: tcHintIn 0.6s ease-out 1.7s forwards,
+             tcHintPulse 2.4s ease-in-out 2.4s infinite;
+}
+@keyframes tcHintIn {
+  to { opacity: 0.35; }
+}
+
+/* 暗角 / Vignette */
+.page-title-card .title-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 70% 60% at center,
+    transparent 0%,
+    transparent 45%,
+    rgba(0, 0, 0, 0.35) 80%,
+    rgba(0, 0, 0, 0.7) 100%
+  );
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* 胶片颗粒 */
+.page-title-card .grain {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  opacity: 0.12;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  animation: tcGrainShift 0.4s steps(3) infinite;
+}
+@keyframes tcGrainShift {
+  0%   { transform: translate(0, 0); }
+  33%  { transform: translate(-2px, 1px); }
+  66%  { transform: translate(1px, -1px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* 左侧扫描线纹理 */
+.page-title-card .scanlines {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 35%;
+  height: 100%;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0.15;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 2px,
+    rgba(255, 255, 255, 0.08) 2px,
+    rgba(255, 255, 255, 0.08) 3px
+  );
+  mask-image: linear-gradient(to right, black 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black 0%, transparent 100%);
+}
+
+/* 三色彩带 */
+.page-title-card .ribbons {
+  position: absolute;
+  top: 7.5%;
+  left: 50%;
+  transform: translateX(-50%);
+  height: 85%;
+  display: flex;
+  gap: clamp(6px, 1.1cqw, 16px);
+  z-index: 10;
+}
+.page-title-card .ribbon {
+  width: clamp(14px, 3cqw, 42px);
+  height: 100%;
+  position: relative;
+}
+.page-title-card .ribbon--teal { background: var(--tc-ribbon-teal); }
+.page-title-card .ribbon--rust { background: var(--tc-ribbon-rust); }
+.page-title-card .ribbon--gold { background: var(--tc-ribbon-gold); }
+
+/* 彩带纹理叠加 */
+.page-title-card .ribbon::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n2'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.2' numOctaves='2'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n2)' opacity='0.5'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+  opacity: 0.3;
+}
+
+/* 文字内容区 */
+.page-title-card .content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 30;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(6px, 1.1cqw, 16px);
+}
+
+/* 副标题 */
+.page-title-card .subtitle {
+  font-family: var(--tc-font-body);
+  font-weight: 500;
+  font-size: clamp(8px, 1cqw, 14px);
+  letter-spacing: 0.42em;
+  color: var(--tc-text-dim);
+  text-transform: uppercase;
+  opacity: 0.85;
+  text-shadow:
+    1px 0 0 rgba(74, 122, 120, 0.3),
+    -1px 0 0 rgba(139, 58, 58, 0.3);
+}
+
+/* 主标题 SAKANA —— 拖影偏移用 em，随字号等比 */
+.page-title-card .title {
+  font-family: var(--tc-font-display);
+  font-weight: 900;
+  font-size: clamp(40px, 9cqw, 132px);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  color: var(--tc-text-beige);
+  text-transform: uppercase;
+  position: relative;
+  margin: 0;
+  /* 核心 RGB 故障拖影（em 随标题缩放） */
+  text-shadow:
+    -0.02em 0 0 rgba(74, 122, 120, 0.5),
+    -0.045em 0 0 rgba(74, 122, 120, 0.3),
+    -0.08em 0 0 rgba(74, 122, 120, 0.15),
+    0.02em 0 0 rgba(139, 58, 58, 0.5),
+    0.045em 0 0 rgba(139, 58, 58, 0.3),
+    0.08em 0 0 rgba(139, 58, 58, 0.15);
+}
+
+/* 故障动画层（伪元素叠加）—— 偏移用 em 随标题缩放 */
+.page-title-card .title-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.page-title-card .title-wrapper::before,
+.page-title-card .title-wrapper::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  font-family: var(--tc-font-display);
+  font-weight: 900;
+  font-size: clamp(40px, 9cqw, 132px);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+/* 青色通道 */
+.page-title-card .title-wrapper::before {
+  color: var(--tc-glitch-cyan);
+  opacity: 0.45;
+  transform: translate(-0.03em, 0);
+  mix-blend-mode: screen;
+  animation: tcGlitchCyan 4s infinite;
+}
+/* 红色通道 */
+.page-title-card .title-wrapper::after {
+  color: var(--tc-glitch-red);
+  opacity: 0.4;
+  transform: translate(0.03em, 0);
+  mix-blend-mode: screen;
+  animation: tcGlitchRed 4s infinite;
+}
+@keyframes tcGlitchCyan {
+  0%, 88%, 100% { transform: translate(-0.03em, 0); opacity: 0.45; }
+  90%           { transform: translate(-0.065em, 0.01em); opacity: 0.6; }
+  92%           { transform: translate(-0.02em, -0.01em); opacity: 0.3; }
+  94%           { transform: translate(-0.045em, 0); opacity: 0.5; }
+  96%           { transform: translate(-0.03em, 0); opacity: 0.45; }
+}
+@keyframes tcGlitchRed {
+  0%, 88%, 100% { transform: translate(0.03em, 0); opacity: 0.4; }
+  90%           { transform: translate(0.065em, -0.01em); opacity: 0.55; }
+  92%           { transform: translate(0.02em, 0.01em); opacity: 0.25; }
+  94%           { transform: translate(0.045em, 0); opacity: 0.45; }
+  96%           { transform: translate(0.03em, 0); opacity: 0.4; }
+}
+
+/* 白点 */
+.page-title-card .dot {
+  width: clamp(4px, 0.5cqw, 7px);
+  height: clamp(4px, 0.5cqw, 7px);
+  border-radius: 50%;
+  background: #ffffff;
+  margin-top: clamp(4px, 0.5cqw, 7px);
+  box-shadow: 0 0 clamp(4px, 0.6cqw, 8px) rgba(255, 255, 255, 0.5);
+}
+
+/* 进入提示 */
+.page-title-card .enter-hint {
+  margin-top: clamp(6px, 0.8cqw, 12px);
+  font-family: var(--tc-font-body);
+  font-size: clamp(7px, 0.8cqw, 11px);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(235, 233, 228, 0.35);
+  animation: tcHintPulse 2.4s ease-in-out infinite;
+}
+@keyframes tcHintPulse {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.75; }
+}
+
+/* 右上角区域（占位） */
+.page-title-card .top-right {
+  position: absolute;
+  top: 5%;
+  right: 5%;
+  z-index: 35;
+  display: flex;
+  gap: clamp(8px, 1.25cqw, 16px);
+  align-items: center;
+  opacity: 0.25;
+}
+.page-title-card .top-right .placeholder {
+  width: clamp(22px, 2.8cqw, 36px);
+  height: clamp(22px, 2.8cqw, 36px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(7px, 0.8cqw, 10px);
+  color: rgba(255, 255, 255, 0.4);
+}
+
+/* 构成主义装饰线 */
+.page-title-card .construct-line {
+  position: absolute;
+  z-index: 8;
+  pointer-events: none;
+}
+.page-title-card .construct-line--h {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(to right,
+    transparent 0%,
+    transparent 15%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 85%,
+    transparent 100%);
+}
+.page-title-card .construct-line--v {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  background: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 30%,
+    rgba(255, 255, 255, 0.04) 70%,
+    transparent 100%);
+}
+
+/* 角标 */
+.page-title-card .corner-mark {
+  position: absolute;
+  bottom: 4%;
+  right: 5%;
+  z-index: 35;
+  font-family: var(--tc-font-body);
+  font-size: clamp(7px, 0.75cqw, 10px);
+  font-weight: 400;
+  letter-spacing: 0.3em;
+  color: rgba(255, 255, 255, 0.15);
+  text-transform: uppercase;
+}
+.page-title-card .corner-mark--bl {
+  right: auto;
+  left: 5%;
+}
+
