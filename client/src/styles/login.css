@@ -5,20 +5,34 @@
  * 认证页特有的布局规则。注意：原 login.css 不含 label/input/button 规则，
  * 因此认证表单控件保持浏览器默认样式（与原项目一致）。
  */
+.page-auth {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-8) var(--container-padding);
+  animation: fadeIn var(--duration-slow) var(--ease-out);
+}
+
 .page-auth h1{
     animation: intro_up_down;
     animation-fill-mode: backwards;
     animation-duration: 600ms;
     text-align: center;
+    margin-left: 0;
 }
 .page-auth h2{
-    margin-left: 10px;
+    margin-left: 0;
+    text-align: center;
 }
 .page-auth p{
-    margin-left: 40px;
+    margin-left: 0;
 }
 
 .page-auth .topnav {
+    width: 100%;
+    max-width: var(--container-max-width);
     display: flex;
     justify-content: space-between;
     align-items: center;

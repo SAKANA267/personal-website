@@ -1,27 +1,23 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import TopNav from '../components/TopNav.vue'
 import WriterByline from '../components/WriterByline.vue'
-import { api } from '../composables/useApi'
+import { getAllPosts } from '../composables/useBlogPosts'
 import type { BlogPost } from '../types'
 
+const router = useRouter()
 const query = ref('')
 const activeCategory = ref('All')
 const currentPage = ref(1)
 const pageSize = 5
-const posts = ref<BlogPost[]>([])
 
-// 从后端拉取文章列表（字段须与 BlogPost 一致）
-async function fetchPosts() {
-  try {
-    const data = await api.getBlogPosts()
-    if (Array.isArray(data)) posts.value = data
-    else console.error('Error:', (data as any)?.error)
-  } catch (e) {
-    console.error('Error:', e)
-  }
+// 文章来源：本地 content/posts/*.md（文件驱动），按日期倒序
+const posts = computed<BlogPost[]>(() => getAllPosts())
+
+function openPost(slug: string) {
+  router.push(`/blog/${slug}`)
 }
-onMounted(fetchPosts)
 
 // 从文章派生分类，前置一个 "All"
 const categories = computed<string[]>(() => {
@@ -111,9 +107,14 @@ function goToPage(n: number) {
     <main class="feed">
       <article
         v-for="(post, index) in paged"
-        :key="post.id"
+        :key="post.slug"
         class="post-row"
         :style="{ animationDelay: (index + 1) * 0.12 + 's' }"
+        tabindex="0"
+        role="link"
+        :aria-label="`阅读文章：${post.title}`"
+        @click="openPost(post.slug)"
+        @keydown.enter="openPost(post.slug)"
       >
         <div class="post-main">
           <p class="post-meta">

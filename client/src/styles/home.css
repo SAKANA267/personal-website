@@ -13,8 +13,51 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* padding / fadeIn 入场由 .home-body 承载，避免标题卡在场时双重动画 */
+}
+
+/* 主页内容容器：标题卡在场时先隐藏（不占位、不出现滚动条），
+   标题卡收起后加 .is-revealed 升起揭示。 */
+.page-home .home-body {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: var(--space-8) var(--container-padding);
+  /* 标题卡显示期间完全移出视口且不可交互 */
+  visibility: hidden;
+  opacity: 0;
+}
+.page-home .home-body.is-revealed {
+  visibility: visible;
+  animation: homeBodyReveal 0.9s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+}
+/* 没有标题卡（非首会话）时直接淡入，等价于原 .page-home fadeIn */
+.page-home:not(:has(.page-title-card)) .home-body {
+  visibility: visible;
+  opacity: 1;
   animation: fadeIn var(--duration-slow) var(--ease-out);
+}
+@keyframes homeBodyReveal {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* 标题卡在场时，主页内容由 .home-body 整体升起揭示，
+   禁用内部各区块原有的逐项入场动画，避免双层动画叠加混乱。 */
+.page-home:has(.page-title-card) .home-body h1,
+.page-home:has(.page-title-card) .home-body h2,
+.page-home:has(.page-title-card) .home-body .container,
+.page-home:has(.page-title-card) .home-body .contact-container,
+.page-home:has(.page-title-card) .home-body .chat-section,
+.page-home:has(.page-title-card) .home-body #messages {
+  animation: none !important;
+}
+
+/* 标题卡在场期间锁定整页滚动，避免 footer / 隐藏的主页内容撑出滚动条；
+   标题卡 is-leaving 移出 DOM 后 :has() 失效，滚动自动恢复。 */
+body:has(.page-title-card:not(.is-leaving)) {
+  overflow: hidden;
 }
 
 /* ============================================
@@ -66,8 +109,6 @@
    ============================================ */
 
 .page-home .header-section #writer {
-  text-align: center;
-  padding-right: 0;
   margin-bottom: var(--space-8);
   width: 100%;
   max-width: var(--content-max-width);
