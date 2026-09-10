@@ -25,6 +25,29 @@ export interface ChatMessage {
   timestamp?: string
 }
 
+// 屏幕转播信令帧（wire format 为 'RTC:' + JSON，经聊天 WebSocket 传输）
+// 客户端 → 服务端（定向消息带 to）
+export type RtcClientMessage =
+  | { t: 'start' }
+  | { t: 'stop' }
+  | { t: 'watch'; to: string }
+  | { t: 'leave'; to: string }
+  | { t: 'offer'; to: string; sdp: RTCSessionDescriptionInit }
+  | { t: 'answer'; to: string; sdp: RTCSessionDescriptionInit }
+  | { t: 'ice'; to: string; candidate: RTCIceCandidateInit }
+
+// 服务端 → 客户端（转发消息带 from）
+export type RtcServerMessage =
+  | { t: 'welcome'; id: string; host: { id: string; label: string } | null }
+  | { t: 'started'; from: string; label: string }
+  | { t: 'stopped'; from: string }
+  | { t: 'denied'; reason: string }
+  | { t: 'watch'; from: string }
+  | { t: 'leave'; from: string }
+  | { t: 'offer'; from: string; sdp: RTCSessionDescriptionInit }
+  | { t: 'answer'; from: string; sdp: RTCSessionDescriptionInit }
+  | { t: 'ice'; from: string; candidate: RTCIceCandidateInit }
+
 // 用户（仅在网络传输时携带 password）
 export interface User {
   username: string

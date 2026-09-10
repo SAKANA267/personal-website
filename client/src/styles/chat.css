@@ -336,7 +336,77 @@
 }
 
 /* ============================================
-   11. 在线用户列表 (Online Users List - 可选)
+   11. 屏幕转播面板 (Screen Broadcast Panel)
+   ============================================ */
+
+.page-chat #broadcastPanel {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  background-color: var(--paper);
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-radius: var(--space-1);
+  box-shadow: var(--card-shadow);
+  animation: slideUp var(--duration-normal) var(--ease-out) backwards;
+}
+
+.page-chat .broadcast-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.page-chat .broadcast-controls .btn {
+  margin: 0;
+  padding: var(--space-2) var(--space-5);
+}
+
+.page-chat .broadcast-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* 直播中红点（呼吸扩散） */
+.page-chat .live-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #f44336;
+  animation: livePulse 1.6s var(--ease-out) infinite;
+}
+
+@keyframes livePulse {
+  0% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.6); }
+  70% { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0); }
+}
+
+.page-chat .broadcast-video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  margin-top: var(--space-4);
+  background-color: #000;
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-radius: var(--space-1);
+  object-fit: contain;
+}
+
+.page-chat .broadcast-hint {
+  margin-top: var(--space-2);
+  text-align: center;
+  font-size: var(--text-sm);
+  font-style: italic;
+  color: var(--color-text-secondary);
+}
+
+/* ============================================
+   12. 在线用户列表 (Online Users List - 可选)
    ============================================ */
 
 .page-chat .online-users {
@@ -369,7 +439,7 @@
 }
 
 /* ============================================
-   12. 响应式设计 (Responsive Design)
+   13. 响应式设计 (Responsive Design)
    ============================================ */
 
 @media (max-width: 768px) {
@@ -425,6 +495,16 @@
     max-width: 100%;
   }
 
+  .page-chat .broadcast-controls {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: center;
+  }
+
+  .page-chat .broadcast-controls .btn {
+    width: 100%;
+  }
+
   .page-chat input[type="text"],
   .page-chat textarea {
     width: 100%;
@@ -471,7 +551,7 @@
 }
 
 /* ============================================
-   13. 无障碍优化 (Accessibility)
+   14. 无障碍优化 (Accessibility)
    ============================================ */
 
 .page-chat .btn:focus-visible,
@@ -502,8 +582,13 @@
   .page-chat #messageContainer,
   .page-chat .input-section,
   .page-chat .message,
-  .page-chat .connection-status {
+  .page-chat .connection-status,
+  .page-chat #broadcastPanel {
     animation-duration: 0.01ms !important;
+  }
+
+  .page-chat .live-dot {
+    animation: none !important;
   }
 
   .page-chat .message:hover,
@@ -513,13 +598,14 @@
 }
 
 /* ============================================
-   14. 打印样式 (Print Styles)
+   15. 打印样式 (Print Styles)
    ============================================ */
 
 @media print {
   .page-chat .topnav,
   .page-chat .input-section,
-  .page-chat button {
+  .page-chat button,
+  .page-chat #broadcastPanel {
     display: none;
   }
 
