@@ -4,6 +4,9 @@
 -- 若已灌过且想重置：先 DELETE FROM blog_posts; 再执行本文件。
 
 INSERT INTO blog_posts (title, excerpt, `date`, category, tags, read_time) VALUES
+('U盘写保护问题处理报告',
+ '29GB 的 solidUSB 突然只读，diskpart 清属性、改注册表策略、格式化统统被拒。DiskGenius 扫出坏扇区、设备反复掉线——是主控触发了固件级写保护，在用最后的方式保住数据。此时别再修复，第一优先级是做镜像、抢文件。',
+ '2026-09-10', '运维', JSON_ARRAY('usb', '数据恢复', '硬件'), 6),
 ('重构留言板：从 PHP 到 Vue 3',
  '把老的 PHP + 原生 JS 留言板搬到 Vue 3 + TypeScript SPA。重点不在重写，而在不破坏任何肉眼可见的细节——提交提示、时间戳格式、卡片淡入顺序，一个都不能少。',
  '2026-07-20', '前端', JSON_ARRAY('vue', 'typescript', '重构'), 8),

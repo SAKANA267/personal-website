@@ -11,6 +11,16 @@ import type { BlogPost } from '../types'
  */
 export const blogPosts: BlogPost[] = [
   {
+    id: 8,
+    title: 'U盘写保护问题处理报告',
+    excerpt:
+      '29GB 的 solidUSB 突然只读，diskpart 清属性、改注册表策略、格式化统统被拒。DiskGenius 扫出坏扇区、设备反复掉线——是主控触发了固件级写保护，在用最后的方式保住数据。此时别再修复，第一优先级是做镜像、抢文件。',
+    date: '2026-09-10',
+    category: '运维',
+    tags: ['usb', '数据恢复', '硬件'],
+    readTime: 6,
+  },
+  {
     id: 1,
     title: '重构留言板：从 PHP 到 Vue 3',
     excerpt:
