@@ -15,13 +15,17 @@
 ## 前置：一次性服务器初始化
 
 1. **运行时**：Node.js ≥ 18（建议 nvm，或宝塔自带）；`npm install -g pm2`。
-2. **MySQL**：建库后导入 `server/src/schema.sql`（4 张表）。
+2. **MySQL**：建库后导入 `server/src/schema.sql`（6 张表：messages / devLog / users / logs / blog_posts / share_items）。
 3. **放置配置**（不进 git、不被部署覆盖）到服务器 `<DEPLOY_DIR>/server/`：
    - `.env`：参考 `server/.env.example`，填 DB 凭据、`SESSION_SECRET`、`PORT=3000`、`WS_PORT=9000`、生产 `WS_USE_SSL=true` 及证书路径；
    - 若 `WS_USE_SSL=true`，把证书放到 `server/certs/`（默认 `server.pem` / `server.key`）。
 4. **反向代理 / SSL**（如 nginx）：
    - `https://sakana267.online` → `127.0.0.1:3000`（Express，含静态前端）；
-   - `wss://sakana267.online:9000` → 直连 ws 的 9000 端口（或用 nginx 做 WebSocket 反代）。客户端连接地址由 `client/.env.production` 的 `VITE_WS_URL` 决定。
+   - `wss://sakana267.online:9000` → 直连 ws 的 9000 端口（或用 nginx 做 WebSocket 反代）。客户端连接地址由 `client/.env.production` 的 `VITE_WS_URL` 决定；
+   - **二维码分享需要**：在反代配置里放开上传体积（nginx 默认仅 1MB，超限直接 413）：
+     ```nginx
+     client_max_body_size 20m;   # 与 server/.env 的 SHARE_MAX_MB 保持一致
+     ```
 5. **pm2 开机自启**（首次部署成功后在服务器执行一次）：
    ```bash
    pm2 startup   # 按提示复制执行返回的命令
@@ -45,7 +49,8 @@
 │  ├─ tsconfig.json    ← 由部署覆盖
 │  ├─ node_modules/    ← npm install 生成，增量保留
 │  ├─ .env             ← 首次手动放置，不覆盖
-│  └─ certs/           ← 首次手动放置，不覆盖
+│  ├─ certs/           ← 首次手动放置，不覆盖
+│  └─ uploads/share/   ← 二维码分享的上传文件，运行时生成，部署不覆盖
 ├─ client/dist/        ← 由部署覆盖
 ├─ ecosystem.config.cjs
 └─ remote-setup.sh
