@@ -7,6 +7,7 @@ import { messagesRouter } from './routes/messages.js'
 import { devlogRouter } from './routes/devlog.js'
 import { authRouter } from './routes/auth.js'
 import { blogRouter } from './routes/blog.js'
+import { shareRouter } from './routes/share.js'
 import { startChatServer } from './ws/chatServer.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -15,8 +16,9 @@ const app = express()
 // 否则生产的 secure cookie（登录态）在反代后无法下发。
 app.set('trust proxy', 1)
 
-app.use(express.json())
-app.use(express.urlencoded({ extended: true }))
+// limit 提至 1mb：文字分享接口需要粘贴较长文本（其余接口不受影响）
+app.use(express.json({ limit: '1mb' }))
+app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 
 app.use(
   session({
@@ -32,6 +34,7 @@ app.use('/api/messages', messagesRouter)
 app.use('/api/devlog', devlogRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/blog', blogRouter)
+app.use('/api/share', shareRouter)
 
 // 生产：托管前端构建产物并做 SPA 回退
 const distDir = path.resolve(__dirname, '../../client/dist')

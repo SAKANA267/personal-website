@@ -80,6 +80,7 @@ onMounted(fetchMessages)
         <p class="btn" @click="router.push('/question-bank')">Question bank</p>
         <p class="btn" @click="router.push('/dev-log')">Dev log</p>
         <p class="btn" @click="router.push('/blog')">Blog</p>
+        <p class="btn" @click="router.push('/share')">二维码分享</p>
       </div>
 
       <h2>Contact Me</h2>

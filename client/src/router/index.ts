@@ -13,6 +13,9 @@ const router = createRouter({
     { path: '/blog/:slug', component: () => import('../views/BlogDetailView.vue') },
     { path: '/login', component: () => import('../views/LoginView.vue') },
     { path: '/signup', component: () => import('../views/SignUpView.vue') },
+    // 二维码分享：/share 上传，/share/:code 扫码取件（同一视图按参数切换模式）
+    { path: '/share', component: () => import('../views/ShareView.vue') },
+    { path: '/share/:code', component: () => import('../views/ShareView.vue') },
     // 图表实验室：lieflat-charts skill 学习测试页（不在主导航，直接 URL 访问）
     { path: '/charts-lab', component: () => import('../views/ChartsLabView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },

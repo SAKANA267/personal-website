@@ -19,3 +19,9 @@ devlogs/
 
 # 部署配置（含 SSH 主机/用户/路径，勿提交）
 deploy/.deploy.env
+
+# 二维码分享上传的文件（运行时生成，不提交）
+server/uploads/
+
+# ZCode agent 会话状态（本地工具数据，不提交）
+.zcode/

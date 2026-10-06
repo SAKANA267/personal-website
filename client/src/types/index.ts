@@ -67,3 +67,17 @@ export interface BlogPost {
   content?: string // 原始 Markdown 正文（仅详情页使用）
   id?: number // 遗留字段（数据库时代），文件驱动下不再使用
 }
+
+// 二维码分享条目（/share 上传生成，/share/:code 扫码取件）
+export interface ShareItem {
+  code: string
+  type: 'text' | 'image' | 'file'
+  title: string // 展示标题：文字取首行截断，文件用原始文件名
+  mimeType: string | null
+  size: number | null // 文件字节数（text 为 null）
+  content: string | null // type=text 时的正文
+  createdAt: string
+  expiresAt: string | null // null = 永久
+  views: number // 取件页打开次数
+  downloads: number // 下载次数
+}

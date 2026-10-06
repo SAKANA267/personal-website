@@ -21,6 +21,7 @@ import './styles/blog_detail.css'
 import './styles/login.css'
 import './styles/title_card.css' // 标题卡英雄区样式
 import './styles/charts_lab.css' // 图表实验室测试页样式
+import './styles/share.css' // 二维码分享页样式
 
 const route = useRoute()
 const loading = useLoading()
