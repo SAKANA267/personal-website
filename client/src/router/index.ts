@@ -13,6 +13,8 @@ const router = createRouter({
     { path: '/blog/:slug', component: () => import('../views/BlogDetailView.vue') },
     { path: '/login', component: () => import('../views/LoginView.vue') },
     { path: '/signup', component: () => import('../views/SignUpView.vue') },
+    // 图表实验室：lieflat-charts skill 学习测试页（不在主导航，直接 URL 访问）
+    { path: '/charts-lab', component: () => import('../views/ChartsLabView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })

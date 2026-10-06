@@ -1,0 +1,218 @@
+/* 图表实验室页样式（统一以 .page-charts-lab 前缀隔离） */
+
+.page-charts-lab {
+  min-height: 100vh;
+  background: #fafaf8;
+  color: #1c1c1a;
+  font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  padding-bottom: 60px;
+}
+
+.page-charts-lab .lab-container {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ── 页头 ── */
+.page-charts-lab .lab-header {
+  padding: 56px 0 28px;
+  border-bottom: 1px solid #e5e4de;
+}
+
+.page-charts-lab .lab-kicker {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #8f8e88;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.page-charts-lab .lab-header h1 {
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+}
+
+.page-charts-lab .lab-header p {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #4a4944;
+  margin: 0;
+  max-width: 720px;
+}
+
+.page-charts-lab .lab-header code {
+  font-size: 12.5px;
+  background: #f0efeb;
+  border: 1px solid #e0dfd8;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+
+/* ── 用法速览 ── */
+.page-charts-lab .lab-rules {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  margin: 28px 0 8px;
+}
+
+.page-charts-lab .lab-rule {
+  background: #fff;
+  border: 1px solid #e5e4de;
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+
+.page-charts-lab .lab-rule h3 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0 0 8px;
+  color: #1c1c1a;
+}
+
+.page-charts-lab .lab-rule h3 .rule-no {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  color: #8f8e88;
+  margin-right: 8px;
+}
+
+.page-charts-lab .lab-rule p {
+  font-size: 12.5px;
+  line-height: 1.75;
+  color: #6a6963;
+  margin: 0;
+}
+
+/* ── 用例卡片 ── */
+.page-charts-lab .lab-section-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 44px 0 6px;
+}
+
+.page-charts-lab .lab-section-sub {
+  font-size: 13px;
+  color: #8f8e88;
+  margin: 0 0 22px;
+}
+
+.page-charts-lab .lab-case {
+  background: #fff;
+  border: 1px solid #e5e4de;
+  border-radius: 18px;
+  margin-bottom: 30px;
+  overflow: hidden;
+}
+
+.page-charts-lab .lab-case-head {
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #efeee8;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.page-charts-lab .lab-case-id {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #f0efeb;
+  background: #1c1c1a;
+  border-radius: 999px;
+  padding: 3px 12px;
+}
+
+.page-charts-lab .lab-case-name {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.page-charts-lab .lab-case-family {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #8f8e88;
+  letter-spacing: 0.06em;
+}
+
+.page-charts-lab .lab-case-body {
+  padding: 18px 24px 22px;
+}
+
+.page-charts-lab .lab-meta {
+  font-size: 13px;
+  color: #4a4944;
+  line-height: 1.75;
+  margin: 0 0 6px;
+}
+
+.page-charts-lab .lab-meta strong {
+  color: #1c1c1a;
+}
+
+.page-charts-lab .lab-prompt {
+  font-size: 12.5px;
+  color: #4a4944;
+  background: #f6f5f0;
+  border-left: 3px solid #1c1c1a;
+  border-radius: 0 8px 8px 0;
+  padding: 10px 14px;
+  margin: 10px 0 16px;
+  line-height: 1.7;
+}
+
+.page-charts-lab .lab-prompt::before {
+  content: '你可以这样说';
+  display: block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: #8f8e88;
+  margin-bottom: 4px;
+}
+
+.page-charts-lab .lab-frame-wrap {
+  border: 1px solid #e5e4de;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f0efeb;
+}
+
+.page-charts-lab .lab-frame-wrap iframe {
+  display: block;
+  width: 100%;
+  height: 540px;
+  border: 0;
+}
+
+.page-charts-lab .lab-case-src {
+  font-size: 11px;
+  color: #a5a49e;
+  margin-top: 10px;
+  letter-spacing: 0.04em;
+}
+
+.page-charts-lab .lab-case-src a {
+  color: #6a6963;
+}
+
+.page-charts-lab .lab-case-src a:hover {
+  color: #1c1c1a;
+}
+
+/* ── 页脚注记 ── */
+.page-charts-lab .lab-foot {
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid #e5e4de;
+  font-size: 12px;
+  color: #8f8e88;
+  line-height: 1.8;
+}
