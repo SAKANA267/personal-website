@@ -1,8 +1,10 @@
 import 'dotenv/config'
 import express from 'express'
 import session from 'express-session'
+import MySQLStoreFactory from 'express-mysql-session'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { pool } from './db.js'
 import { messagesRouter } from './routes/messages.js'
 import { devlogRouter } from './routes/devlog.js'
 import { authRouter } from './routes/auth.js'
@@ -20,12 +22,19 @@ app.set('trust proxy', 1)
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 
+// 会话持久化：接入现有 mysql2 连接池（自动建 sessions 表），服务重启不再全员登出。
+// express-mysql-session 是 CJS 工厂，需传入 express-session 模块以取得 Store 基类。
+const createMysqlSessionStore = MySQLStoreFactory as unknown as (
+  sessionModule: typeof session
+) => new (options: object, db: unknown) => object
+const MySQLStore = createMysqlSessionStore(session)
 app.use(
   session({
     secret: process.env.SESSION_SECRET || 'dev-secret-change-me',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production' },
+    store: new MySQLStore({}, pool) as any,
+    cookie: { secure: process.env.NODE_ENV === 'production', sameSite: 'lax' },
   })
 )
 

@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import https from 'node:https'
 import { WebSocket, WebSocketServer } from 'ws'
 import { pool } from '../db.js'
+import { consumeWsToken } from '../wsTokens.js'
 
 // 写入聊天日志表（对应原 socket_node.js 的 logToDatabase）
 function logToDatabase(sender: string, message: string) {
@@ -54,16 +55,16 @@ export function startChatServer() {
     })
   }
 
-  // 处理屏幕转播信令（已确认是合法 RTC 帧）
-  function handleSignaling(ws: WebSocket, peerId: string, ip: string, frame: any) {
+  // 处理屏幕转播信令（已确认是合法 RTC 帧）；label 为该连接的展示名（用户名或 IP）
+  function handleSignaling(ws: WebSocket, peerId: string, label: string, frame: any) {
     switch (frame.t) {
       case 'start': {
         if (currentHost) {
           sendTo(ws, { t: 'denied', reason: 'busy' })
           return
         }
-        currentHost = { id: peerId, label: ip }
-        broadcastSignaling({ t: 'started', from: peerId, label: ip }, ws)
+        currentHost = { id: peerId, label }
+        broadcastSignaling({ t: 'started', from: peerId, label }, ws)
         return
       }
       case 'stop': {
@@ -96,17 +97,31 @@ export function startChatServer() {
 
   wss.on('connection', (ws, req) => {
     const clientIP = req.socket.remoteAddress || 'unknown'
+    // 登录适配：握手 URL 携带一次性 token（Express 签发）换取用户名，游客保持 IP 标识（原行为）
+    let username: string | null = null
+    try {
+      const query = new URL(req.url || '/', 'http://localhost')
+      username = consumeWsToken(query.searchParams.get('token'))
+    } catch {
+      username = null
+    }
+    // 展示名 = 用户名（登录）或 IP（游客）；clients 键加 @ 前缀避免用户名与 IP 字符串碰撞
+    const clientKey = username ? `@${username}` : clientIP
+    const display = username || clientIP
     const peerId = `p${++nextPeerId}`
-    clients.set(clientIP, ws)
+    clients.set(clientKey, ws)
     peers.set(peerId, ws)
     console.log('客户端已连接，IP 地址: %s', clientIP)
-    logToDatabase('系统', `客户端已连接，IP 地址: ${clientIP}`)
+    logToDatabase(
+      '系统',
+      `客户端已连接，${username ? `用户 ${username}` : `IP 地址: ${clientIP}`}`
+    )
     // 下发其 peer id 与当前直播状态，晚加入者由此得知有人转播中
     sendTo(ws, { t: 'welcome', id: peerId, host: currentHost })
 
     ws.on('message', (message) => {
       const msg = message.toString()
-      console.log(`收到消息: ${clientIP}, 内容: ${msg}`)
+      console.log(`收到消息: ${display}, 内容: ${msg}`)
 
       if (msg.startsWith(RTC_PREFIX)) {
         let frame: any = null
@@ -117,25 +132,28 @@ export function startChatServer() {
         }
         // 合法信令帧只做路由，不广播、不写库；解析失败回落为普通聊天
         if (frame && typeof frame.t === 'string') {
-          handleSignaling(ws, peerId, clientIP, frame)
+          handleSignaling(ws, peerId, display, frame)
           return
         }
       }
 
-      logToDatabase(clientIP, msg)
-      // 广播给除自己外的所有就绪客户端，格式严格保留 "<ip>: <message>"
+      logToDatabase(display, msg)
+      // 广播给除自己外的所有就绪客户端，格式保留 "<展示名>: <message>"（登录=用户名，游客=IP）
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN && client !== ws) {
-          client.send(`${clientIP}: ${msg}`)
+          client.send(`${display}: ${msg}`)
         }
       })
     })
 
     ws.on('close', () => {
-      clients.delete(clientIP)
+      clients.delete(clientKey)
       peers.delete(peerId)
       console.log('客户端已断开连接，IP 地址: %s', clientIP)
-      logToDatabase('系统', `客户端已断开连接，IP 地址: ${clientIP}`)
+      logToDatabase(
+        '系统',
+        `客户端已断开连接，${username ? `用户 ${username}` : `IP 地址: ${clientIP}`}`
+      )
       // 主播断线：释放直播间并通知其余客户端
       if (currentHost && currentHost.id === peerId) {
         currentHost = null

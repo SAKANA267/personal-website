@@ -1,17 +1,24 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import TitleCardHero from '../components/TitleCardHero.vue'
 import WriterByline from '../components/WriterByline.vue'
 import ContactPanel from '../components/ContactPanel.vue'
 import MessageCard from '../components/MessageCard.vue'
 import { api } from '../composables/useApi'
+import { useAuth } from '../stores/auth'
 import type { Message } from '../types'
 
 const router = useRouter()
 const messages = ref<Message[]>([])
 const name = ref('')
 const message = ref('')
+// 登录适配：留言姓名预填登录用户名（只读）；管理员可隐藏/恢复留言
+const { username, isAdmin, logout } = useAuth()
+
+async function logoutHere() {
+  await logout()
+}
 
 // 标题卡：仅本会话首次进入站点时作为首屏封面显示
 const TITLE_CARD_FLAG = 'titleCardSeen'
@@ -58,6 +65,20 @@ async function submitMessage() {
   }
 }
 
+// 登录状态变化时同步姓名框：登录 → 预填用户名；退出 → 清空回手动输入
+watch(username, (u) => {
+  name.value = u ?? ''
+})
+if (username.value) name.value = username.value
+
+// 管理员隐藏/恢复一条留言（服务端 PATCH，成功后刷新列表）
+async function toggleDisplayed(msg: Message) {
+  if (msg.id == null) return
+  const next: 0 | 1 = msg.is_displayed === 0 ? 1 : 0
+  const res = await api.setMessageDisplayed(msg.id, next)
+  if (res.ok) fetchMessages()
+}
+
 onMounted(fetchMessages)
 </script>
 
@@ -81,6 +102,12 @@ onMounted(fetchMessages)
         <p class="btn" @click="router.push('/dev-log')">Dev log</p>
         <p class="btn" @click="router.push('/blog')">Blog</p>
         <p class="btn" @click="router.push('/share')">二维码分享</p>
+        <!-- 登录适配：未登录给登录入口，已登录给账号中心 + 退出 -->
+        <p v-if="!username" class="btn" @click="router.push('/login')">登录</p>
+        <template v-else>
+          <p class="btn" @click="router.push('/account')">账号</p>
+          <p class="btn" @click="logoutHere">退出</p>
+        </template>
       </div>
 
       <h2>Contact Me</h2>
@@ -91,7 +118,15 @@ onMounted(fetchMessages)
         <form id="message-form" @submit.prevent="submitMessage">
           <div class="form-group">
             <label for="name">姓名:</label>
-            <input type="text" id="name" v-model="name" required />
+            <!-- 登录适配：已登录预填用户名并锁定，未登录保持手动输入 -->
+            <input
+              type="text"
+              id="name"
+              v-model="name"
+              :readonly="!!username"
+              :title="username ? '已登录，以 ' + username + ' 身份留言' : undefined"
+              required
+            />
           </div>
           <div class="form-group">
             <label for="message">留言内容:</label>
@@ -110,7 +145,18 @@ onMounted(fetchMessages)
           :message="msg.message"
           :timestamp="msg.timestamp"
           :index="index"
-        />
+        >
+          <!-- 登录适配：管理员的隐藏/恢复操作，通过插槽挂在卡片内（不影响普通渲染） -->
+          <template v-if="isAdmin" #actions>
+            <p
+              v-if="msg.id != null"
+              class="message-admin-toggle"
+              @click="toggleDisplayed(msg)"
+            >
+              {{ msg.is_displayed === 0 ? '恢复显示' : '隐藏' }}
+            </p>
+          </template>
+        </MessageCard>
       </div>
     </div>
   </div>

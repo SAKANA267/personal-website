@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import TopNav from '../components/TopNav.vue'
 import WriterByline from '../components/WriterByline.vue'
 import CodeBlock from '../components/CodeBlock.vue'
 import QuizItem from '../components/QuizItem.vue'
+import { useAuth } from '../stores/auth'
 import type { Question } from '../types'
 
 const seed: Question = {
@@ -12,9 +13,16 @@ const seed: Question = {
   answer: 'Paris',
 }
 
-// 从 localStorage 加载（键名 "questions" 与原项目一致）
+// 登录适配：题库按用户隔离——登录用 questions:<username>，游客沿用原键 questions
+// （保留游客原有数据，不迁移）；登录/退出时切换键并重载列表
+const { username } = useAuth()
+
+function storageKey(): string {
+  return username.value ? `questions:${username.value}` : 'questions'
+}
+
 function loadQuestionsFromLocalStorage(): Question[] {
-  const stored = localStorage.getItem('questions')
+  const stored = localStorage.getItem(storageKey())
   if (stored) {
     try {
       return JSON.parse(stored)
@@ -31,8 +39,13 @@ if (Array.isArray(storedQuestions)) {
   questions.value = questions.value.concat(storedQuestions)
 }
 
+// 登录态切换 → 读取对应用户的题库
+watch(username, () => {
+  questions.value = [seed].concat(loadQuestionsFromLocalStorage())
+})
+
 function saveQuestionsToLocalStorage() {
-  localStorage.setItem('questions', JSON.stringify(questions.value))
+  localStorage.setItem(storageKey(), JSON.stringify(questions.value))
 }
 
 function addQuestion() {
@@ -57,11 +70,11 @@ function addQuestion() {
 }
 
 function viewStorage() {
-  alert(localStorage.getItem('questions'))
+  alert(localStorage.getItem(storageKey()))
 }
 
 function clearStorage() {
-  localStorage.removeItem('questions')
+  localStorage.removeItem(storageKey())
   questions.value = questions.value.slice(0, 3) // 保留实例题目
 }
 

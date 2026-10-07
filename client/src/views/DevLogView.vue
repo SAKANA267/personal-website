@@ -3,10 +3,13 @@ import { onMounted, ref } from 'vue'
 import TopNav from '../components/TopNav.vue'
 import WriterByline from '../components/WriterByline.vue'
 import { api } from '../composables/useApi'
+import { useAuth } from '../stores/auth'
 import type { DevLogEntry } from '../types'
 
 const logs = ref<DevLogEntry[]>([])
 const content = ref('')
+// 登录适配：写入改为管理员专属（服务端 401/403 门禁，前端隐藏表单）
+const { isAdmin } = useAuth()
 
 async function fetchMessages() {
   try {
@@ -48,7 +51,7 @@ onMounted(fetchMessages)
       <WriterByline />
     </div>
 
-    <div>
+    <div v-if="isAdmin">
       <form id="message-form" @submit.prevent="submit">
         <div class="form-group">
           <label for="content">修改内容:</label>

@@ -41,7 +41,7 @@ Production serves under nginx subpath `/web/` (nginx strips the prefix before pr
 ## Client rules
 
 - **Vue 3 + TS + Vite + Vue Router.** All views lazy-loaded except `TitleCardView` (eager). Unknown paths redirect to `/`.
-- **No Pinia.** "Stores" under `client/src/stores/` are plain reactive modules exposing shared `ref`s via composable-style functions (`useLoading`, `useAuth`). Auth state = username in `localStorage`; real auth = server-side session cookie.
+- **No Pinia.** "Stores" under `client/src/stores/` are plain reactive modules exposing shared `ref`s via composable-style functions (`useLoading`, `useAuth`). Auth = server-side session cookie as source of truth + `localStorage` as first-paint cache; `useAuth()` exposes `username`, `isAdmin`, `restored`. `App.vue` calls `initAuth()` on mount (reconciles cache against `GET /api/auth/me`, clears on 401). Router guards (declared after the cover guard): logged-in → `/login`/`/signup` redirect to `/`; `/account` requires login. `TopNav` swaps the `登录` item for username (→ `/account`) + `退出` when logged in. `/account` view = change password + logout.
 - **Loading overlay mechanic (do not break timings).** `LOADING_COVER_MS = 600` (in `stores/loading.ts`). `covered` starts `true`; `App.vue` reveals on mount; router `beforeEach` calls `cover()` then waits 600ms before resolving (skipped on first nav and same-path); `afterEach` reveals. `goExternal(url)` covers 600ms before `window.location.href`. The overlay was redone as a **four-color-block** left-in/right-out animation; keep the cadence unified.
 - **Title card (`/welcome`):** shown once per session on first entry to `/` (guarded by `sessionStorage['titleCardSeen']`). On that first visit the loading overlay is **hidden entirely** (`hidden=true`) to avoid first-paint flicker; `cover()` clears that flag so subsequent transitions animate normally.
 - **Styles** are global CSS files imported in **both** `main.ts` and `App.vue` (redundant by design — keep both in sync). Page CSS is isolated by page-wrapper class prefix, **not** `<style scoped>`. Follow the prefix convention for new pages.
@@ -49,16 +49,20 @@ Production serves under nginx subpath `/web/` (nginx strips the prefix before pr
 
 ## Server rules
 
-- **Express + mysql2/promise pool + express-session + bcryptjs + ws.** Entry `src/index.ts` mounts routers under `/api`, configures sessions, and in prod statically serves `client/dist` with SPA fallback (`GET *` → `index.html` unless path starts with `/api`).
+- **Express + mysql2/promise pool + express-session (MySQLStore on the shared pool, auto-creates `sessions` table) + bcryptjs + ws.** Entry `src/index.ts` mounts routers under `/api`, configures sessions, and in prod statically serves `client/dist` with SPA fallback (`GET *` → `index.html` unless path starts with `/api`).
 - **Import paths use `.js` extensions** even though sources are `.ts` (ESM + Bundler resolution). Add modules as Express `Router`s in `src/routes/`.
+- **Admin whitelist:** `server/src/admin.ts` — `sessionUsername(req)` / `isAdmin(req)`; admins = comma-separated `ADMIN_USERNAMES` in `.env` (unset → nobody is admin). Gates devlog writes, message moderation, share deletion.
+- **WS one-time tokens:** `server/src/wsTokens.ts` — `POST /api/auth/ws-token` issues a 60s single-use token (session required); the WS handshake URL `?token=` consumes it in-process to attach a username to the chat connection.
 - **DB:** shared `mysql2/promise` pool in `src/db.ts`, creds from `.env` (never hardcoded). Always **parameterized queries** (`pool.query(sql, [params])`).
-- **Schema** (`server/src/schema.sql`, 5 tables): `messages`, `devLog`, `users`, `logs`, `blog_posts`. Seed blog content via `server/src/seed_blog.sql`.
-- API surface (mirrors old PHP):
-  - `GET/POST /api/messages` — board. GET filters `is_displayed = 1`, orders `id DESC`. **Do not write `is_displayed` on insert** — it relies on the column default 1 or messages won't display.
-  - `GET/POST /api/devlog` — POST writes only `change_description` (timestamp is DB-generated).
+- **Schema** (`server/src/schema.sql`, 6 tables): `messages`, `devLog`, `users`, `logs`, `blog_posts`, `share_items`. Seed blog content via `server/src/seed_blog.sql`. Existing deployments upgrading to share ownership need `ALTER TABLE share_items ADD COLUMN uploader_user VARCHAR(255) NULL AFTER uploader_ip` (noted in schema.sql).
+- API surface (old PHP endpoints + login-adaptation additions):
+  - `GET/POST /api/messages` — board. GET filters `is_displayed = 1`, orders `id DESC` (admins see all rows incl. `id`/`is_displayed`). **Do not write `is_displayed` on insert** — it relies on the column default 1 or messages won't display. `PATCH /api/messages/:id` (`{is_displayed: 0|1}`) is admin-only moderation.
+  - `GET/POST /api/devlog` — POST writes only `change_description` (timestamp is DB-generated) and is **admin-only** (401 not logged in / 403 not whitelisted).
   - `GET /api/blog` — published posts (`is_published = 1`) ordered by `date DESC`. Field aliases must match frontend `BlogPost` types verbatim (`read_time AS readTime`). Blog **detail/body** is rendered client-side from Markdown under `client/src/content/posts` (`.md` files), not from the DB.
-  - `POST /api/auth/signup|login` — `bcrypt.hash` (salt 10) / `bcrypt.compare`. `ER_DUP_ENTRY` → 400. On success set `req.session.username`.
-- **WebSocket chat** (`src/ws/chatServer.ts`): separate `ws` server on its own port (9000 / `wss`+SSL), independent of Express. Preserve: clients keyed by IP (same IP overwrites), broadcast `<ip>: <message>` to everyone *except* sender, log connect/disconnect/message to `logs`.
+  - `POST /api/auth/signup|login` — `bcrypt.hash` (salt 10, signup enforces password ≥ 6 chars) / `bcrypt.compare`. `ER_DUP_ENTRY` → 400. On success set `req.session.username`; login responds `{username, isAdmin}`.
+  - `GET /api/auth/me` — session check → `{username, isAdmin}` or 401. `POST /api/auth/logout` — destroys session + cookie. `POST /api/auth/change-password` — logged-in + old-password check. `POST /api/auth/ws-token` — one-time WS handshake token.
+  - `GET /api/share/mine` (logged-in, own uploads) and `DELETE /api/share/:code` (owner or admin; `/mine` must stay registered before `/:code`) are login-adaptation additions; text/file uploads record `uploader_user` when logged in.
+- **WebSocket chat** (`src/ws/chatServer.ts`): separate `ws` server on its own port (9000 / `wss`+SSL), independent of Express. Identity: logged-in users connect with `?token=` (consumed via `wsTokens`) and are shown/keyed as `@username`; guests stay IP-keyed (same IP overwrites). Broadcast `<display>: <message>` to everyone *except* sender, log connect/disconnect/message to `logs` (sender = username or IP).
 
 ## Cross-cutting
 

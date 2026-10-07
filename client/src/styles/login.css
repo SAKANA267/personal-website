@@ -1,9 +1,8 @@
 /*
- * 登录/注册页样式（原 login.css 的页面相关部分，加 .page-auth 前缀）。
- * 原 login.css 是自包含超集（含加载动画、页脚、关键帧等），这些部分在本项目中由
- * 全局基础样式（loading_animation.css / defalut.css）统一提供；这里仅保留
- * 认证页特有的布局规则。注意：原 login.css 不含 label/input/button 规则，
- * 因此认证表单控件保持浏览器默认样式（与原项目一致）。
+ * 登录/注册/账号页样式（.page-auth 前缀）。
+ * 2026-10-07 表单重排：纳入设计系统（纸/墨/灰阶/发丝线/mono 标签/2px 半径），
+ * 签名元素为"书写线字段"——标签悬于发丝基线上方，聚焦时基线由灰转墨。
+ * 此前"表单控件保持浏览器默认"的约定自此作废（应用户要求优化 layout）。
  */
 .page-auth {
   min-height: 100vh;
@@ -30,6 +29,192 @@
     margin-left: 0;
 }
 
+/* ===== 内容窄栏：居中页头（h1 + 署名）→ 发丝线 → 左对齐表单 → 居中切换链接 ===== */
+.page-auth .auth-container {
+    width: 100%;
+    max-width: 380px;
+}
+
+.page-auth .auth-header {
+    padding-bottom: var(--space-5);
+    border-bottom: var(--divider-border-width) solid var(--divider-color);
+    margin-bottom: var(--space-8);
+}
+/* 署名自带 margin-bottom，页头内收紧一档 */
+.page-auth .auth-header #writer {
+    margin-bottom: var(--space-4);
+}
+
+/* ===== 书写线字段：纸上一条发丝基线，聚焦时转墨 ===== */
+.page-auth .auth-form .field {
+    margin-bottom: var(--space-6);
+}
+
+.page-auth .auth-form label {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gray-600);
+    margin-bottom: var(--space-2);
+}
+
+.page-auth .auth-form input {
+    width: 100%;
+    border: none;
+    border-bottom: var(--input-border-width) solid var(--gray-300);
+    border-radius: 0;
+    background: transparent;
+    padding: var(--space-2) 0;
+    font-size: var(--input-font-size);
+    color: var(--ink);
+    transition: border-color var(--duration-normal) var(--ease-out),
+        box-shadow var(--duration-normal) var(--ease-out);
+}
+
+.page-auth .auth-form input::placeholder {
+    color: var(--gray-500);
+}
+
+.page-auth .auth-form input:focus {
+    outline: none;
+    border-bottom-color: var(--ink);
+    /* 第二像素线用阴影补齐，避免 1px→2px 引起字段高度抖动 */
+    box-shadow: 0 1px 0 var(--ink);
+}
+
+/* 洗掉浏览器自动填充的黄底，保持纸面 */
+.page-auth .auth-form input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px var(--paper) inset;
+    -webkit-text-fill-color: var(--ink);
+    transition: background-color 9999s var(--ease-out) 0s;
+}
+
+.page-auth .field-hint {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    color: var(--gray-500);
+    margin: var(--space-2) 0 0;
+}
+
+/* ===== 主按钮：墨块（沿用站点 primary 按钮语言，2px 半径）===== */
+.page-auth .auth-submit {
+    width: 100%;
+    background: var(--ink);
+    color: var(--paper);
+    border: var(--btn-border-width) solid var(--ink);
+    border-radius: var(--btn-border-radius);
+    padding: var(--btn-padding-y) var(--btn-padding-x);
+    font-size: var(--btn-font-size);
+    letter-spacing: 0.04em;
+    transition: transform var(--btn-transition), box-shadow var(--btn-transition),
+        opacity var(--btn-transition);
+}
+
+.page-auth .auth-submit:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.page-auth .auth-submit:active:not(:disabled) {
+    background: var(--color-success);
+    border-color: var(--color-success);
+    transform: translateY(0);
+}
+
+.page-auth .auth-submit:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+/* ===== 反馈：错误是黑白世界里唯一的例外色 ===== */
+.page-auth .auth-error {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-danger, #c0392b);
+    margin: var(--space-4) 0 0;
+}
+
+.page-auth .auth-notice {
+    font-family: var(--font-mono);
+    font-size: var(--text-sm);
+    color: var(--color-success);
+    margin: var(--space-4) 0 0;
+}
+
+.page-auth .auth-status {
+    font-size: var(--text-sm);
+    color: var(--gray-500);
+    margin: 0 0 var(--space-6);
+}
+
+/* ===== 账号页身份条：当前用户与退出同组，上下发丝线围合 ===== */
+.page-auth .auth-session {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-3);
+    border-top: var(--divider-border-width) solid var(--divider-color);
+    border-bottom: var(--divider-border-width) solid var(--divider-color);
+    padding: var(--space-4) 0;
+    margin-bottom: var(--space-8);
+}
+
+.page-auth .auth-session-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gray-500);
+}
+
+.page-auth .auth-session-name {
+    font-family: var(--font-mono);
+    font-size: var(--text-base);
+    font-weight: var(--font-semibold);
+    color: var(--ink);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 退出是低频动作，用安静的文字按钮（不入墨块体系） */
+.page-auth .auth-session-out {
+    font-size: var(--text-sm);
+    color: var(--gray-500);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    padding: 0;
+    transition: color var(--duration-fast) var(--ease-out);
+}
+
+.page-auth .auth-session-out:hover {
+    color: var(--ink);
+}
+
+/* ===== 小节标签与底部切换链接 ===== */
+.page-auth .auth-section-label {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--gray-600);
+    margin: 0 0 var(--space-4);
+}
+
+.page-auth .auth-alt {
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--gray-500);
+    margin: var(--space-8) 0 0;
+}
+
+.page-auth .auth-alt a {
+    color: var(--ink);
+}
+
+/* ===== 顶部导航（保留既有样式）===== */
 .page-auth .topnav {
     width: 100%;
     max-width: var(--container-max-width);
@@ -73,27 +258,6 @@
     transform: translateY(0);
 }
 
-.page-auth .btn {
-    float: left;
-    color: black;
-    text-align: center;
-    padding: 10px;
-    border: 1px solid black;
-    font-size: 17px;
-    transition: background-color 0.2s ease, transform 0.2s ease;
-}
-
-.page-auth .btn:hover {
-    background-color: black;
-    color: #f0f0f0;
-    transform: scale(1.1);
-}
-
-.page-auth .btn:active {
-    background-color: #4CAF50;
-    color: white;
-}
-
 /* 顶部导航：窄屏改为纵向堆叠，与其它页面一致 */
 @media (max-width: 768px) {
     .page-auth .topnav {
@@ -105,5 +269,9 @@
     .page-auth .topnav .btn {
         flex: 1;
         min-width: 0;
+    }
+
+    .page-auth {
+        padding: var(--space-6) var(--container-padding);
     }
 }

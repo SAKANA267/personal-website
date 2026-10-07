@@ -1,14 +1,20 @@
 import { Router } from 'express'
 import { pool } from '../db.js'
+import { sessionUsername, isAdmin } from '../admin.js'
 
 export const messagesRouter = Router()
 
-// 对应 fetch_messages.php：仅返回 is_displayed=1 的留言，按 id 倒序
-messagesRouter.get('/', async (_req, res) => {
+// 对应 fetch_messages.php：普通访客仅返回 is_displayed=1 的留言，按 id 倒序；
+// 登录适配：管理员可看到全部（含已隐藏），并附带 is_displayed 供审核界面切换
+messagesRouter.get('/', async (req, res) => {
   try {
-    const [rows] = await pool.query(
-      'SELECT `name`, `message`, `timestamp` FROM messages WHERE `is_displayed` = 1 ORDER BY `id` DESC'
-    )
+    const [rows] = isAdmin(req)
+      ? await pool.query(
+          'SELECT `id`, `name`, `message`, `timestamp`, `is_displayed` FROM messages ORDER BY `id` DESC'
+        )
+      : await pool.query(
+          'SELECT `name`, `message`, `timestamp` FROM messages WHERE `is_displayed` = 1 ORDER BY `id` DESC'
+        )
     res.json(rows)
   } catch (e: any) {
     res.json({ error: e.message })
@@ -27,5 +33,35 @@ messagesRouter.post('/', async (req, res) => {
     res.json({ success: true })
   } catch (e: any) {
     res.json({ error: e.message })
+  }
+})
+
+// 登录适配：留言审核——管理员隐藏/恢复一条留言（is_displayed 置 0/1）
+messagesRouter.patch('/:id', async (req, res) => {
+  if (!sessionUsername(req)) {
+    res.status(401).json({ error: 'Login required' })
+    return
+  }
+  if (!isAdmin(req)) {
+    res.status(403).json({ error: 'Admin only' })
+    return
+  }
+  const displayed = req.body?.is_displayed
+  if (displayed !== 0 && displayed !== 1) {
+    res.status(400).json({ error: 'is_displayed must be 0 or 1' })
+    return
+  }
+  try {
+    const [result] = await pool.query('UPDATE messages SET is_displayed = ? WHERE id = ?', [
+      displayed,
+      req.params.id,
+    ])
+    if ((result as any).affectedRows === 0) {
+      res.status(404).json({ error: 'Message not found' })
+      return
+    }
+    res.json({ success: true })
+  } catch (e: any) {
+    res.status(500).json({ error: e.message })
   }
 })

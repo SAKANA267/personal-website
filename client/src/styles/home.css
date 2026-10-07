@@ -464,3 +464,19 @@ body:has(.page-title-card:not(.is-leaving)) {
     transform: none !important;
   }
 }
+
+/* 登录适配：管理员留言审核操作（隐藏/恢复，挂在留言卡片底部） */
+.page-home .message .message-admin-toggle {
+  text-align: right;
+  font-size: var(--text-xs);
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+  margin: var(--space-2) 0 0;
+  cursor: pointer;
+  user-select: none;
+  transition: color var(--duration-normal) var(--ease-out);
+}
+
+.page-home .message .message-admin-toggle:hover {
+  color: var(--color-text);
+}

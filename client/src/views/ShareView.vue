@@ -6,11 +6,14 @@ import TopNav from '../components/TopNav.vue'
 import WriterByline from '../components/WriterByline.vue'
 import { api } from '../composables/useApi'
 import { useCopyText } from '../composables/useCopyText'
+import { useAuth } from '../stores/auth'
 import type { ShareItem } from '../types'
 
 const route = useRoute()
 const router = useRouter()
 const { tooltip, copy } = useCopyText()
+// Login adaptation: after login, show the "My Shares" management list
+const { username } = useAuth()
 
 // 与 server 端 SHARE_MAX_MB（默认 20）一致的提示文案
 const MAX_MB_LABEL = '20MB'
@@ -134,6 +137,7 @@ async function submit() {
     if (res.ok && res.data?.item) {
       result.value = res.data.item
       await makeQr(res.data.item)
+      if (username.value) fetchMyShares() // 登录状态下新分享计入"我的分享"
     } else {
       error.value = res.data?.error || '分享失败，请稍后再试。'
     }
@@ -166,6 +170,34 @@ function shareAnother() {
   textContent.value = ''
   pickedFile.value = null
   error.value = ''
+}
+
+// ===== My Shares (login adaptation) =====
+const myShares = ref<ShareItem[]>([])
+const myLoading = ref(false)
+
+async function fetchMyShares() {
+  if (!username.value) {
+    myShares.value = []
+    return
+  }
+  myLoading.value = true
+  try {
+    const data = await api.getMyShares()
+    myShares.value = Array.isArray(data) ? data : []
+  } catch {
+    myShares.value = []
+  } finally {
+    myLoading.value = false
+  }
+}
+
+// Show/hide with login state; refresh the list after successful upload
+watch(username, fetchMyShares, { immediate: true })
+
+async function removeShare(code: string) {
+  const res = await api.deleteShare(code)
+  if (res.ok) fetchMyShares()
 }
 
 // ===== 结果面板交互 =====
@@ -336,6 +368,26 @@ function extLabel(target: ShareItem) {
         </div>
 
         <p v-if="error" class="share-error">{{ error }}</p>
+      </section>
+
+      <!-- ===== 我的分享（登录适配）：本人分享记录与删除 ===== -->
+      <section v-if="username" class="share-panel share-mine">
+        <h2>我的分享</h2>
+        <p v-if="myLoading" class="mine-state">加载中…</p>
+        <p v-else-if="myShares.length === 0" class="mine-state">还没有分享记录</p>
+        <div v-else class="mine-list">
+          <div v-for="s in myShares" :key="s.code" class="mine-item">
+            <span class="mine-code">{{ s.code }}</span>
+            <span class="mine-title">{{ s.title }}</span>
+            <span class="mine-meta">
+              {{ typeLabel(s) }} · {{ formatDate(s.createdAt) }}<template v-if="s.expiresAt"> · {{ remainText(s.expiresAt) }}</template>
+            </span>
+            <span class="mine-actions">
+              <span class="action-btn" @click="router.push(`/share/${s.code}`)">查看</span>
+              <span class="action-btn danger" @click="removeShare(s.code)">删除</span>
+            </span>
+          </div>
+        </div>
       </section>
     </template>
 

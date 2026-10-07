@@ -60,6 +60,10 @@ CREATE TABLE IF NOT EXISTS share_items (
   views INT NOT NULL DEFAULT 0,               -- 取件页打开次数
   downloads INT NOT NULL DEFAULT 0,           -- 下载次数
   uploader_ip VARCHAR(64) NULL,
+  uploader_user VARCHAR(255) NULL,             -- 登录适配：上传者用户名（游客为 NULL）
   expires_at DATETIME NULL,                   -- 过期时间，NULL = 永久；过期后访问即惰性删除
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- 已有部署升级到"分享归属"时执行（新库由上面的建表语句直接包含）：
+-- ALTER TABLE share_items ADD COLUMN uploader_user VARCHAR(255) NULL AFTER uploader_ip;

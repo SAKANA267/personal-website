@@ -8,13 +8,21 @@ import { api } from '../composables/useApi'
 const router = useRouter()
 const username = ref('')
 const password = ref('')
+const error = ref('')
+const pending = ref(false)
 
 async function submit() {
-  const res = await api.signup({ username: username.value, password: password.value })
-  if (res.ok) {
-    router.push('/login')
-  } else {
-    alert((res.data as any)?.error || 'Sign up failed')
+  error.value = ''
+  pending.value = true
+  try {
+    const res = await api.signup({ username: username.value, password: password.value })
+    if (res.ok) {
+      router.push('/login')
+    } else {
+      error.value = res.data?.error || 'Sign up failed'
+    }
+  } finally {
+    pending.value = false
   }
 }
 </script>
@@ -23,18 +31,29 @@ async function submit() {
   <div class="page-auth">
     <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }, { label: 'Blog', to: '/blog' }]" />
 
-    <div class="container">
-      <h1>Sign Up</h1>
-      <WriterByline />
+    <div class="container auth-container">
+      <header class="auth-header">
+        <h1>Sign Up</h1>
+        <WriterByline />
+      </header>
 
-      <form @submit.prevent="submit">
-        <label for="username">Username:</label>
-        <input type="text" id="username" v-model="username" required /><br /><br />
-        <label for="password">Password:</label>
-        <input type="password" id="password" v-model="password" required /><br /><br />
-        <input type="submit" value="Sign Up" />
-        <p>Already have an account? <router-link to="/login">Login here</router-link></p>
+      <form class="auth-form" @submit.prevent="submit">
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" v-model="username" autocomplete="username" required />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" v-model="password" autocomplete="new-password" required minlength="6" />
+          <p class="field-hint">At least 6 characters</p>
+        </div>
+        <button type="submit" class="auth-submit" :disabled="pending">
+          {{ pending ? 'Signing up…' : 'Sign Up' }}
+        </button>
+        <p v-if="error" class="auth-error">{{ error }}</p>
       </form>
+
+      <p class="auth-alt">Already have an account? <router-link to="/login">Login here</router-link></p>
     </div>
   </div>
 </template>

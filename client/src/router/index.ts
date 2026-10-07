@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useLoading, LOADING_COVER_MS } from '../stores/loading'
+import { useAuth } from '../stores/auth'
 
 const router = createRouter({
   // base 跟随 vite 的 base（生产 /web/），保证子路径下刷新不 404
@@ -13,6 +14,8 @@ const router = createRouter({
     { path: '/blog/:slug', component: () => import('../views/BlogDetailView.vue') },
     { path: '/login', component: () => import('../views/LoginView.vue') },
     { path: '/signup', component: () => import('../views/SignUpView.vue') },
+    // 账号中心：改密/退出（登录适配新增，复用 .page-auth 认证页样式）
+    { path: '/account', component: () => import('../views/AccountView.vue') },
     // 二维码分享：/share 上传，/share/:code 扫码取件（同一视图按参数切换模式）
     { path: '/share', component: () => import('../views/ShareView.vue') },
     { path: '/share/:code', component: () => import('../views/ShareView.vue') },
@@ -42,6 +45,14 @@ router.beforeEach((to, from) => {
 
 router.afterEach(() => {
   loading.reveal()
+})
+
+// 登录态路由守卫：已登录访问登录/注册页 → 回首页；未登录访问账号页 → 回登录页。
+// username 由 localStorage 即时水合，守卫在 initAuth 对账前也能工作（后续响应式纠正）。
+router.beforeEach((to) => {
+  const { username } = useAuth()
+  if ((to.path === '/login' || to.path === '/signup') && username.value) return '/'
+  if (to.path === '/account' && !username.value) return '/login'
 })
 
 export default router

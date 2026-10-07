@@ -5,6 +5,7 @@ import LoadingOverlay from './components/LoadingOverlay.vue'
 import AppFooter from './components/AppFooter.vue'
 import AshParticles from './components/AshParticles.vue'
 import { useLoading, LOADING_COVER_MS } from './stores/loading'
+import { useAuth } from './stores/auth'
 
 // 导入设计系统
 import './styles/design-system.css'
@@ -41,7 +42,9 @@ const showFooter = computed(() => (route.path === '/' ? titleCardRevealed.value 
 
 // 首屏也播放四色块入场动画：等入场走完再揭示，节奏与路由切换的遮罩一致
 // 例外：会话首次进入时标题卡在首页内首屏展示——store 初始化已置 hidden，跳过遮罩
+// 登录态对账不阻塞揭示，结果回来后导航/页面会响应式更新
 onMounted(() => {
+  void useAuth().initAuth()
   if (loading.hidden.value) {
     // 标题卡首屏：store 已置 hidden=true，直接揭示（实际无遮罩渲染）
     loading.reveal()

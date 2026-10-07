@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { pool } from '../db.js'
+import { sessionUsername, isAdmin } from '../admin.js'
 
 export const shareRouter = Router()
 
@@ -113,9 +114,11 @@ shareRouter.post('/text', async (req, res) => {
 
     const code = await createUniqueCode()
     const expiresAt = expiryDate(req.body?.expiresIn)
+    // 登录适配：登录用户的分享记录归属（uploader_user），游客保持 NULL
+    const uploader = sessionUsername(req)
     await pool.query(
-      'INSERT INTO share_items (code, type, title, content, uploader_ip, expires_at) VALUES (?, ?, ?, ?, ?, ?)',
-      [code, 'text', textTitle(content), content, req.ip, expiresAt]
+      'INSERT INTO share_items (code, type, title, content, uploader_ip, uploader_user, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [code, 'text', textTitle(content), content, req.ip, uploader, expiresAt]
     )
     const [rows] = await pool.query('SELECT * FROM share_items WHERE code = ?', [code])
     res.json({ success: true, item: toMeta((rows as any[])[0]) })
@@ -145,9 +148,11 @@ shareRouter.post('/file', (req, res) => {
 
       const code = await createUniqueCode()
       const expiresAt = expiryDate(req.body?.expiresIn)
+      // 登录适配：登录用户的分享记录归属（uploader_user），游客保持 NULL
+      const uploader = sessionUsername(req)
       await pool.query(
-        'INSERT INTO share_items (code, type, title, stored_name, mime_type, size, uploader_ip, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [code, kind, file.originalname || '未命名文件', file.filename, file.mimetype, file.size, req.ip, expiresAt]
+        'INSERT INTO share_items (code, type, title, stored_name, mime_type, size, uploader_ip, uploader_user, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [code, kind, file.originalname || '未命名文件', file.filename, file.mimetype, file.size, req.ip, uploader, expiresAt]
       )
       const [rows] = await pool.query('SELECT * FROM share_items WHERE code = ?', [code])
       res.json({ success: true, item: toMeta((rows as any[])[0]) })
@@ -157,6 +162,50 @@ shareRouter.post('/file', (req, res) => {
       res.status(500).json({ error: e.message })
     }
   })
+})
+
+// 登录适配：我的分享列表（仅本人，按创建倒序）。
+// 注意必须注册在 GET /:code 之前，否则 "mine" 会被当成取件码。
+shareRouter.get('/mine', async (req, res) => {
+  const username = sessionUsername(req)
+  if (!username) {
+    res.status(401).json({ error: 'Not logged in' })
+    return
+  }
+  try {
+    const [rows] = await pool.query(
+      'SELECT * FROM share_items WHERE uploader_user = ? ORDER BY id DESC',
+      [username]
+    )
+    res.json((rows as any[]).map(toMeta))
+  } catch (e: any) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// 登录适配：删除自己的分享（管理员可删任意），同时清理磁盘文件
+shareRouter.delete('/:code', async (req, res) => {
+  const username = sessionUsername(req)
+  if (!username) {
+    res.status(401).json({ error: 'Not logged in' })
+    return
+  }
+  try {
+    const [rows] = await pool.query('SELECT * FROM share_items WHERE code = ?', [req.params.code])
+    const item = (rows as any[])[0]
+    if (!item) {
+      res.status(404).json({ error: '分享不存在' })
+      return
+    }
+    if (item.uploader_user !== username && !isAdmin(req)) {
+      res.status(403).json({ error: '只能删除自己的分享' })
+      return
+    }
+    await deleteShareItem(item)
+    res.json({ success: true })
+  } catch (e: any) {
+    res.status(500).json({ error: e.message })
+  }
 })
 
 // 取件元数据：文字类型附带正文；已过期 → 410 并惰性清理

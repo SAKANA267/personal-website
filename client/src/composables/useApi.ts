@@ -17,6 +17,16 @@ async function post<T = unknown>(path: string, body: unknown) {
   return { ok: res.ok, status: res.status, data: data as T }
 }
 
+async function request<T = unknown>(method: 'PATCH' | 'DELETE', path: string, body?: unknown) {
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+  const data = await res.json().catch(() => ({}))
+  return { ok: res.ok, status: res.status, data: data as T }
+}
+
 // 文件上传走 XHR：fetch 拿不到上传进度，这里用 onprogress 回调驱动进度条
 function postForm<T = unknown>(
   path: string,
@@ -48,8 +58,24 @@ export const api = {
   postMessage: (data: { name: string; message: string }) => post('/messages', data),
   getDevLogs: () => getJson<DevLogEntry[]>('/devlog'),
   postDevLog: (data: { content: string }) => post('/devlog', data),
-  signup: (data: User) => post('/auth/signup', data),
-  login: (data: User) => post('/auth/login', data),
+  signup: (data: User) => post<{ success?: boolean; error?: string }>('/auth/signup', data),
+  login: (data: User) =>
+    post<{ success?: boolean; username?: string; isAdmin?: boolean; error?: string }>('/auth/login', data),
+  // 会话校验要区分 401（未登录）与网络失败，getJson 拿不到状态码，按 getShare 的方式自带 fetch
+  me: async () => {
+    const res = await fetch(`${BASE}/auth/me`)
+    const data = await res.json().catch(() => ({}))
+    return { ok: res.ok, status: res.status, data: data as { username?: string; isAdmin?: boolean; error?: string } }
+  },
+  logout: () => post('/auth/logout', {}),
+  // 账号中心：修改密码（需已登录 + 旧密码校验）
+  changePassword: (data: { oldPassword: string; newPassword: string }) =>
+    post<{ success?: boolean; error?: string }>('/auth/change-password', data),
+  // 聊天 WS 一次性握手令牌（登录后连接聊天时换取）
+  wsToken: () => post<{ token?: string; error?: string }>('/auth/ws-token', {}),
+  // 留言审核：管理员隐藏/恢复留言
+  setMessageDisplayed: (id: number, isDisplayed: 0 | 1) =>
+    request<{ success?: boolean; error?: string }>('PATCH', `/messages/${id}`, { is_displayed: isDisplayed }),
   // 二维码分享：文字走 JSON，图片/文件走 multipart（带进度条），取件/下载直接给 URL
   createTextShare: (data: { content: string; expiresIn: string | null }) =>
     post<{ success?: boolean; item?: ShareItem; error?: string }>('/share/text', data),
@@ -76,4 +102,8 @@ export const api = {
   },
   shareFileUrl: (code: string) => `${BASE}/share/${encodeURIComponent(code)}/file`,
   shareDownloadUrl: (code: string) => `${BASE}/share/${encodeURIComponent(code)}/download`,
+  // 登录适配：我的分享列表 / 删除自己的分享
+  getMyShares: () => getJson<ShareItem[]>('/share/mine'),
+  deleteShare: (code: string) =>
+    request<{ success?: boolean; error?: string }>('DELETE', `/share/${encodeURIComponent(code)}`),
 }

@@ -18,5 +18,7 @@ defineProps<{
     </div>
     <div class="message-content">{{ message }}</div>
     <p v-if="timestamp" class="timestamp">{{ timestamp }}</p>
+    <!-- 登录适配：管理员审核操作插槽（首页留言板隐藏/恢复），默认不渲染 -->
+    <slot name="actions"></slot>
   </div>
 </template>

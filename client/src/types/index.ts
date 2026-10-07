@@ -1,8 +1,10 @@
-// 留言板消息
+// 留言板消息（id/is_displayed 为管理员审核用：管理员 GET 返回，普通列表不含）
 export interface Message {
   name: string
   message: string
   timestamp: string
+  id?: number
+  is_displayed?: number
 }
 
 // 开发日志条目
