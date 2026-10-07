@@ -2,6 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import TitleCardHero from '../components/TitleCardHero.vue'
+import AccountMenu from '../components/AccountMenu.vue'
 import WriterByline from '../components/WriterByline.vue'
 import ContactPanel from '../components/ContactPanel.vue'
 import MessageCard from '../components/MessageCard.vue'
@@ -13,12 +14,9 @@ const router = useRouter()
 const messages = ref<Message[]>([])
 const name = ref('')
 const message = ref('')
-// 登录适配：留言姓名预填登录用户名（只读）；管理员可隐藏/恢复留言
-const { username, isAdmin, logout } = useAuth()
-
-async function logoutHere() {
-  await logout()
-}
+// 登录适配：留言姓名预填登录用户名（只读）；管理员可隐藏/恢复留言。
+// 登录/账号入口在右上角 AccountMenu（icon + 下拉），不再放 Links 区。
+const { username, isAdmin } = useAuth()
 
 // 标题卡：仅本会话首次进入站点时作为首屏封面显示
 const TITLE_CARD_FLAG = 'titleCardSeen'
@@ -87,6 +85,9 @@ onMounted(fetchMessages)
     <!-- 首页顶部封面：标题卡英雄区（仅会话首次显示） -->
     <TitleCardHero v-if="showTitleCard" :active="showTitleCard" @enter="onHeroEnter" />
 
+    <!-- 右上角账号入口（登录态 icon + 下拉菜单）；标题卡收起揭示后才出现 -->
+    <AccountMenu v-if="contentRevealed" />
+
     <!-- 主页内容：标题卡存在时先隐藏（避免滚动条 / 占位），收起后升起揭示 -->
     <div class="home-body" :class="{ 'is-revealed': contentRevealed }">
       <div class="header-section">
@@ -102,12 +103,6 @@ onMounted(fetchMessages)
         <p class="btn" @click="router.push('/dev-log')">Dev log</p>
         <p class="btn" @click="router.push('/blog')">Blog</p>
         <p class="btn" @click="router.push('/share')">二维码分享</p>
-        <!-- 登录适配：未登录给登录入口，已登录给账号中心 + 退出 -->
-        <p v-if="!username" class="btn" @click="router.push('/login')">登录</p>
-        <template v-else>
-          <p class="btn" @click="router.push('/account')">账号</p>
-          <p class="btn" @click="logoutHere">退出</p>
-        </template>
       </div>
 
       <h2>Contact Me</h2>
