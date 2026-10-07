@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import QRCode from 'qrcode'
-import TopNav from '../components/TopNav.vue'
 import WriterByline from '../components/WriterByline.vue'
 import { api } from '../composables/useApi'
 import { useCopyText } from '../composables/useCopyText'
@@ -274,7 +273,6 @@ function extLabel(target: ShareItem) {
 
 <template>
   <div class="page-share">
-    <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }, { label: 'Blog', to: '/blog' }]" />
 
     <div class="container">
       <h1>二维码分享</h1>

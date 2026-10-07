@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import TopNav from '../components/TopNav.vue'
 import WriterByline from '../components/WriterByline.vue'
 import { getAllPosts } from '../composables/useBlogPosts'
 import type { BlogPost } from '../types'
@@ -66,7 +65,6 @@ function goToPage(n: number) {
 
 <template>
   <div class="page-blog">
-    <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }]" />
 
     <!-- 刊头 Masthead -->
     <header class="masthead">

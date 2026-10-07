@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
-import TopNav from '../components/TopNav.vue'
 import WriterByline from '../components/WriterByline.vue'
 import MessageCard from '../components/MessageCard.vue'
 import { useWebSocket } from '../composables/useWebSocket'
@@ -82,7 +81,6 @@ onUnmounted(() => {
 
 <template>
   <div class="page-chat">
-    <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }, { label: 'Blog', to: '/blog' }]" />
 
     <div class="container">
       <h1>Online Chat</h1>

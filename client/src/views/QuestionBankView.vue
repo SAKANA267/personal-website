@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import TopNav from '../components/TopNav.vue'
 import WriterByline from '../components/WriterByline.vue'
 import CodeBlock from '../components/CodeBlock.vue'
 import QuizItem from '../components/QuizItem.vue'
@@ -96,7 +95,6 @@ function convertToJSON() {
 
 <template>
   <div class="page-bank">
-    <TopNav :items="[{ label: 'Index', to: '/' }, { label: '登录', to: '/login' }, { label: 'Blog', to: '/blog' }]" />
 
     <div class="container">
       <h1>自定义题库</h1>

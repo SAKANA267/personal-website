@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import TopNav from '../components/TopNav.vue'
 
 interface ChartCase {
   id: string
@@ -99,7 +98,6 @@ const cases: ChartCase[] = [
 
 <template>
   <div class="page-charts-lab">
-    <TopNav :items="[{ label: 'Index', to: '/' }, { label: 'Blog', to: '/blog' }, { label: '登录', to: '/login' }]" />
 
     <div class="lab-container">
       <header class="lab-header">

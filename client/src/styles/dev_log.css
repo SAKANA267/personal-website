@@ -23,12 +23,6 @@
   margin: 0 auto;
 }
 
-.page-devlog > .topnav {
-  width: 100%;
-  max-width: var(--container-max-width);
-  margin: 0 auto var(--space-8);
-}
-
 /* ============================================
    2. 标题区域 (Header Section)
    ============================================ */
@@ -60,47 +54,6 @@
 /* ============================================
    3. 顶部导航栏 (Top Navigation)
    ============================================ */
-
-.page-devlog .topnav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background-color: var(--paper);
-  box-shadow: var(--card-shadow);
-  padding: var(--space-4) var(--space-6);
-  margin-bottom: var(--space-8);
-  border-bottom: var(--divider-border-width) solid var(--divider-color);
-  animation: slideDown var(--duration-normal) var(--ease-out) backwards;
-}
-
-.page-devlog .topnav .btn {
-  margin: 0;
-  float: none;
-  color: var(--color-text);
-  text-align: center;
-  padding: var(--space-3) var(--space-6);
-  border: 1px solid var(--gray-300);
-  border-radius: var(--space-1);
-  font-size: var(--text-base);
-  background-color: var(--paper);
-  transition: all var(--btn-transition) var(--ease-out);
-}
-
-.page-devlog .topnav .btn:hover {
-  background-color: var(--color-text);
-  color: var(--paper);
-  border-color: var(--color-text);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
-}
-
-.page-devlog .topnav .btn:active {
-  background-color: var(--color-success);
-  color: var(--paper);
-  border-color: var(--color-success);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
-  transform: translateY(0);
-}
 
 /* ============================================
    4. 日志表格 (Dev Log Table)
@@ -375,17 +328,6 @@
     font-size: var(--text-lg);
   }
 
-  .page-devlog .topnav {
-    flex-direction: column;
-    gap: var(--space-4);
-    padding: var(--space-4);
-  }
-
-  .page-devlog .topnav .btn {
-    flex: 1;
-    min-width: 0;
-  }
-
   .page-devlog .table-container {
     margin: var(--space-6) var(--space-2);
   }
@@ -471,7 +413,6 @@
   .page-devlog,
   .page-devlog h1,
   .page-devlog h2,
-  .page-devlog .topnav,
   .page-devlog .table-container,
   .page-devlog .log-card,
   .page-devlog #userTable tbody tr {
@@ -489,7 +430,6 @@
    ============================================ */
 
 @media print {
-  .page-devlog .topnav,
   .page-devlog .search-section,
   .page-devlog .pagination,
   .page-devlog .form-section {

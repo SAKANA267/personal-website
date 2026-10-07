@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 import LoadingOverlay from './components/LoadingOverlay.vue'
 import AppFooter from './components/AppFooter.vue'
 import AshParticles from './components/AshParticles.vue'
+import CornerNav from './components/CornerNav.vue'
 import { useLoading, LOADING_COVER_MS } from './stores/loading'
 import { useAuth } from './stores/auth'
 
@@ -56,6 +57,9 @@ onMounted(() => {
 
 <template>
   <LoadingOverlay />
+  <!-- 全站角落导航：左上返回主页（首页除外）+ 右上账号入口；
+       首页标题卡在场期间（titleCardRevealed=false）右上 icon 也不出现 -->
+  <CornerNav :show-home="route.path !== '/'" :show-account="route.path !== '/' || titleCardRevealed" />
   <AshParticles v-if="route.path === '/' && titleCardRevealed" />
   <RouterView />
   <AppFooter v-if="showFooter" />

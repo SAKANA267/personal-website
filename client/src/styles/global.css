@@ -373,3 +373,148 @@ label {
     display: none;
   }
 }
+
+/* ============================================
+   12. 角落导航 (Corner Navigation)
+   全站统一的固定角落 icon 导航（App 级 CornerNav / AccountMenu）：
+   左上角「返回主页」house icon（首页自身不显示）；
+   右上角账号 icon——未登录点击直跳 /login，已登录展开下拉
+   （账号主页 / 退出登录），展开时按钮反转为墨块（呼应 .auth-submit）。
+   z-index 高于正文与粒子（10），低于 tooltip（10000）与加载遮罩。
+   ============================================ */
+
+.account-entry,
+.corner-nav-home {
+  position: fixed;
+  z-index: 100;
+  /* 与各页内容区的上 gutter(32px)/左右 gutter(24px) 对齐 */
+  top: var(--space-8);
+  animation: accountEntryIn var(--duration-slower) var(--ease-out) backwards;
+}
+
+.account-entry { right: var(--space-6); }
+.corner-nav-home { left: var(--space-6); animation-name: cornerHomeIn; }
+
+@keyframes accountEntryIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cornerHomeIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.account-entry-btn,
+.corner-nav-home {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--btn-border-radius);
+  color: var(--ink);
+  background-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.corner-nav-home:hover,
+.account-entry-btn:hover {
+  background-color: var(--gray-100);
+}
+
+/* 展开态：反转为墨块（同 specificity，须写在 :hover 之后） */
+.account-entry-btn.is-open {
+  background-color: var(--ink);
+  color: var(--paper);
+}
+
+.account-entry-btn svg,
+.corner-nav-home svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* 下拉面板：纸面 + 发丝线边框，右对齐悬于按钮下方 */
+.account-entry-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 176px;
+  background-color: var(--paper);
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-radius: var(--btn-border-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  animation: accountMenuIn var(--duration-normal) var(--ease-out);
+}
+
+@keyframes accountMenuIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.account-entry-head {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+}
+
+.account-entry-eyebrow {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+}
+
+.account-entry-name {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-entry-items {
+  display: flex;
+  flex-direction: column;
+  border-top: var(--divider-border-width) solid var(--divider-color);
+  padding: var(--space-1) 0;
+  margin: 0;
+}
+
+.account-entry-item {
+  text-align: left;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--ink);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.account-entry-item:hover {
+  background-color: var(--gray-100);
+}
+
+@media (max-width: 768px) {
+  .account-entry,
+  .corner-nav-home {
+    top: var(--space-4);
+  }
+
+  .account-entry { right: var(--space-4); }
+  .corner-nav-home { left: var(--space-4); }
+
+  .account-entry-btn,
+  .corner-nav-home {
+    width: 36px;
+    height: 36px;
+  }
+
+  .account-entry-btn svg,
+  .corner-nav-home svg {
+    width: 18px;
+    height: 18px;
+  }
+}

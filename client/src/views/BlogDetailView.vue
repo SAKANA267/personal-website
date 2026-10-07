@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import TopNav from '../components/TopNav.vue'
 import WriterByline from '../components/WriterByline.vue'
 import { getAllPosts, getPost } from '../composables/useBlogPosts'
 import { renderMarkdown } from '../composables/useMarkdown'
@@ -95,14 +94,6 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 
 <template>
   <div class="page-blog-detail">
-    <TopNav
-      :items="[
-        { label: 'Index', to: '/' },
-        { label: 'Blog', to: '/blog' },
-        { label: '登录', to: '/login' },
-      ]"
-    />
-
     <template v-if="post">
       <!-- 刊头 -->
       <header class="masthead">
