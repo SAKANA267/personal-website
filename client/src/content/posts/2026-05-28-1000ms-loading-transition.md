@@ -3,7 +3,7 @@ title: 1000 毫秒的等待：复刻加载过渡
 date: 2026-05-28
 category: 随笔
 tags: [animation, ux]
-excerpt: 原站每次跳转会先盖一层遮罩、停 1 秒再切换。这个节奏成了站点气质的一部分，于是在路由守卫里用 beforeEach + setTimeout(1000) 一比一还原，首屏和同路径跳转除外。
+excerpt: 原站每次跳转都先盖一层遮罩、停 1 秒再切换，这个节奏后来成了站点气质的一部分。路由守卫里用 beforeEach + setTimeout(1000) 一比一还原，首屏和同路径跳转除外。
 readTime: 3
 ---
 
@@ -11,6 +11,6 @@ readTime: 3
 
 ## 一比一还原
 
-在路由守卫里，`beforeEach` 先 `cover()` 盖上遮罩，`setTimeout(1000)` 后再放行，`afterEach` 揭示。首屏和同路径跳转除外，避免无谓的等待。
+路由守卫里，`beforeEach` 先 `cover()` 盖上遮罩，`setTimeout(1000)` 后再放行，`afterEach` 揭示。首屏和同路径跳转除外——这两种等待没有意义。
 
-节奏是有意为之的——它让每一次换页都有「翻篇」的仪式感。
+节奏是故意保留下来的。换页时多出一拍「翻篇」的间隔，不急着切。
