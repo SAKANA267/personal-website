@@ -190,6 +190,8 @@
   width: 100%;
   height: 540px;
   border: 0;
+  /* 替代已废弃的 scrolling="no"：桌面端图表按 540px 设计高度裁切 */
+  overflow: hidden;
 }
 
 .page-charts-lab .lab-case-src {
@@ -215,4 +217,63 @@
   font-size: 12px;
   color: #8f8e88;
   line-height: 1.8;
+}
+
+/* ── 响应式（1024 / 768 / 480，desktop-first，同全站断点体系）── */
+@media (max-width: 768px) {
+  .page-charts-lab .lab-container {
+    padding: 0 16px;
+  }
+
+  .page-charts-lab .lab-header {
+    padding: 36px 0 22px;
+  }
+
+  .page-charts-lab .lab-header h1 {
+    font-size: 24px;
+  }
+
+  .page-charts-lab .lab-section-title {
+    font-size: 17px;
+    margin-top: 32px;
+  }
+
+  .page-charts-lab .lab-case-head {
+    padding: 16px 16px 14px;
+  }
+
+  .page-charts-lab .lab-case-body {
+    padding: 14px 16px 18px;
+  }
+
+  /* 窄屏下图表内容变高：iframe 内允许滚动，内容可达而不再被裁掉 */
+  .page-charts-lab .lab-frame-wrap iframe {
+    overflow: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-charts-lab .lab-container {
+    padding: 0 12px;
+  }
+
+  .page-charts-lab .lab-header h1 {
+    font-size: 21px;
+  }
+
+  .page-charts-lab .lab-rules {
+    gap: 12px;
+  }
+
+  .page-charts-lab .lab-rule {
+    padding: 14px 16px;
+  }
+
+  .page-charts-lab .lab-case-name {
+    font-size: 15px;
+  }
+
+  .page-charts-lab .lab-case {
+    margin-bottom: 22px;
+  }
 }

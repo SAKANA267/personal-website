@@ -5,6 +5,7 @@
     left: 0;
     width: 100%;
     height: 100vh;
+    height: 100dvh; /* 动态视口，移动端地址栏伸缩时铺满不变 */
     z-index: 100000000;
     pointer-events: none; /* 容器透传点击，由各色块自身遮挡 */
 }

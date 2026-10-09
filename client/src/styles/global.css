@@ -351,7 +351,11 @@ label {
     gap: var(--space-1);
   }
 
+  /* 固定定位的提示不允许挂出屏幕右缘 */
   .tooltip {
+    max-width: calc(100vw - var(--space-6));
+    white-space: normal;
+    overflow-wrap: anywhere;
     font-size: 0.7rem;
     padding: var(--space-1) var(--space-2);
   }

@@ -430,7 +430,45 @@ main {
 
 /* ============================================
    7. 响应式基础 (Responsive Foundation)
+   断点体系：1024 / 768 / 480（desktop-first，详见 AGENTS.md「Responsive pattern」）
    ============================================ */
+
+/* —— 响应式基线：全局溢出防线，任何页面不得出现横向页面溢出 —— */
+
+/* 媒体元素永远不超出内容列 */
+img,
+svg,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+/* 行内代码 / 长 token（如 {…} 标记、URL）允许任意位置断行；
+   pre > code 不受影响，代码块保持横向滚动 */
+:not(pre) > code,
+:not(pre) > kbd,
+:not(pre) > samp {
+  overflow-wrap: anywhere;
+}
+
+/* textarea 的 cols 属性不得把页面撑宽 */
+textarea {
+  max-width: 100%;
+}
+
+/* 宽内容（表格等）的标准滚动容器：内容超出时在自身盒内横向滚动 */
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* 动态视口单位：移动端地址栏伸缩时高度跟随（旧浏览器回落到 vh） */
+body,
+#app {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
 
 @media (max-width: 768px) {
   :root {

@@ -441,6 +441,14 @@
     align-items: stretch;
   }
 
+  /* 发送行：输入框与按钮纵向堆叠并留出间距（桌面端行内并排不变） */
+  .page-chat .chat-input-bar {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-3);
+  }
+
   .page-chat .input-group button {
     width: 100%;
   }

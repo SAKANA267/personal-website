@@ -221,3 +221,11 @@
         padding: var(--space-6) var(--container-padding);
     }
 }
+
+/* 手机：左右留白收到 12px，380px 窄栏在 375px 视口内完整可见 */
+@media (max-width: 480px) {
+
+    .page-auth {
+        padding: var(--space-4) var(--space-3);
+    }
+}

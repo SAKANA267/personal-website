@@ -23,6 +23,13 @@
   margin: 0 auto;
 }
 
+/* 日志列表区块：占满列宽，否则在居中 flex 列里按内容收缩，
+   会带着 .table-scroll 一起被 min-width:500px 的表格撑出屏外 */
+.page-devlog .devlog-list {
+  width: 100%;
+  max-width: var(--content-max-width);
+}
+
 /* ============================================
    2. 标题区域 (Header Section)
    ============================================ */

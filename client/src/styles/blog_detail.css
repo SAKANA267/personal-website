@@ -471,6 +471,13 @@
     padding: var(--space-3) var(--space-4);
   }
 
+  /* v-html 的 markdown 表格无法包滚动容器：窄屏就地转为块级滚动盒，
+     单元格照常换行，超宽表格在自身盒内横向滚动而不撑破正文列 */
+  .page-blog-detail .markdown-body table {
+    display: block;
+    overflow-x: auto;
+  }
+
 }
 
 @media (max-width: 480px) {
@@ -506,6 +513,13 @@
 @media (prefers-reduced-motion: reduce) {
   .page-blog-detail,
   .page-blog-detail .masthead,
+  .page-blog-detail .rule,
+  .page-blog-detail .post-meta-strip,
+  .page-blog-detail .nav-row,
+  .page-blog-detail .comment-submit {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 @media print {

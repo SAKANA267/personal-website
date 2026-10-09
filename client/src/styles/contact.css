@@ -95,6 +95,9 @@
   -webkit-user-select: all;
   -moz-user-select: all;
   -ms-user-select: all;
+  /* 长标识（邮箱/用户名）在窄屏两列布局里允许断行，不撑破单元格 */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .contact-item:hover .label {

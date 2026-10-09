@@ -568,6 +568,7 @@
 .page-compose .compose-actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap; /* 窄屏三按钮放不下时换行，不挤压也不溢出 */
   gap: var(--space-4);
 }
 
@@ -616,6 +617,12 @@
 @media (max-width: 768px) {
   .page-compose .compose-row {
     grid-template-columns: 1fr;
+  }
+
+  /* 预览的 markdown 表格与阅读页同一策略：窄屏就地滚动，不撑破栏宽 */
+  .page-compose .compose-preview .markdown-body :where(table) {
+    display: block;
+    overflow-x: auto;
   }
 }
 
