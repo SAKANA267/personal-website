@@ -3,8 +3,10 @@ import { onMounted, ref } from 'vue'
 import WriterByline from '../components/WriterByline.vue'
 import { api } from '../composables/useApi'
 import { useAuth } from '../stores/auth'
+import { useLocale } from '../stores/locale'
 import type { DevLogEntry } from '../types'
 
+const { t } = useLocale()
 const logs = ref<DevLogEntry[]>([])
 const content = ref('')
 // 登录适配：写入改为管理员专属（服务端 401/403 门禁，前端隐藏表单）
@@ -27,14 +29,14 @@ async function submit() {
   try {
     const res = await api.postDevLog({ content: content.value })
     if (res.ok) {
-      alert('日志提交成功！')
+      alert(t('devlog.ok'))
       content.value = ''
       fetchMessages()
     } else {
-      alert('日志提交失败，请稍后再试。')
+      alert(t('devlog.fail'))
     }
   } catch (e) {
-    alert('日志提交失败，请稍后再试。')
+    alert(t('devlog.fail'))
   }
 }
 
@@ -45,42 +47,45 @@ onMounted(fetchMessages)
   <div class="page-devlog">
 
     <div class="container">
-      <h1>Dev log</h1>
+      <h1>{{ t('devlog.title') }}</h1>
       <WriterByline />
     </div>
 
     <div v-if="isAdmin">
       <form id="message-form" @submit.prevent="submit">
         <div class="form-group">
-          <label for="content">修改内容:</label>
+          <label for="content">{{ t('devlog.label') }}</label>
           <textarea id="content" v-model="content" required></textarea>
         </div>
-        <button type="submit">提交</button>
+        <button type="submit">{{ t('devlog.submit') }}</button>
       </form>
     </div>
 
-    <div>
-      <h2>日志列表</h2>
+    <div class="devlog-list">
+      <h2>{{ t('devlog.listTitle') }}</h2>
 
-      <table id="userTable">
-        <thead>
-          <tr>
-            <th>日期</th>
-            <th>修改内容</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(log, index) in logs"
-            :key="index"
-            class="userTableFadeIn"
-            :style="{ animationDelay: (index + 1) * 0.15 + 's' }"
-          >
-            <td>{{ log.timestamp }}</td>
-            <td>{{ log.change_description }}</td>
-          </tr>
-        </tbody>
-      </table>
+      <!-- 宽表格的标准滚动容器：移动端（≤480px 表格 min-width 500px）在盒内横向滚动 -->
+      <div class="table-scroll">
+        <table id="userTable">
+          <thead>
+            <tr>
+              <th>{{ t('devlog.thDate') }}</th>
+              <th>{{ t('devlog.thDesc') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(log, index) in logs"
+              :key="index"
+              class="userTableFadeIn"
+              :style="{ animationDelay: (index + 1) * 0.15 + 's' }"
+            >
+              <td>{{ log.timestamp }}</td>
+              <td>{{ log.change_description }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </template>

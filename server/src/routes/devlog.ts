@@ -20,11 +20,11 @@ devlogRouter.get('/', async (_req, res) => {
 // 登录适配：写入改为管理员专属（登录 + ADMIN_USERNAMES 白名单），未登录 401 / 非管理员 403
 devlogRouter.post('/', async (req, res) => {
   if (!sessionUsername(req)) {
-    res.status(401).json({ error: 'Login required' })
+    res.status(401).json({ error: 'LOGIN_REQUIRED' })
     return
   }
   if (!isAdmin(req)) {
-    res.status(403).json({ error: 'Admin only' })
+    res.status(403).json({ error: 'ADMIN_ONLY' })
     return
   }
   try {

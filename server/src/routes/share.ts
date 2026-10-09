@@ -109,8 +109,8 @@ async function findActiveShare(code: string): Promise<any | null | 'expired'> {
 shareRouter.post('/text', async (req, res) => {
   try {
     const content = typeof req.body?.content === 'string' ? req.body.content : ''
-    if (!content.trim()) return res.status(400).json({ error: '分享内容不能为空' })
-    if (content.length > 500_000) return res.status(400).json({ error: '文字内容过长' })
+    if (!content.trim()) return res.status(400).json({ error: 'SHARE_TEXT_EMPTY' })
+    if (content.length > 500_000) return res.status(400).json({ error: 'SHARE_TEXT_TOO_LONG' })
 
     const code = await createUniqueCode()
     const expiresAt = expiryDate(req.body?.expiresIn)
@@ -123,7 +123,7 @@ shareRouter.post('/text', async (req, res) => {
     const [rows] = await pool.query('SELECT * FROM share_items WHERE code = ?', [code])
     res.json({ success: true, item: toMeta((rows as any[])[0]) })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -131,19 +131,19 @@ shareRouter.post('/text', async (req, res) => {
 shareRouter.post('/file', (req, res) => {
   upload.single('file')(req, res, async (err) => {
     if (err) {
-      const msg =
-        err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE'
-          ? `文件超过大小上限（${MAX_MB}MB）`
-          : '文件上传失败'
-      return res.status(400).json({ error: msg })
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(400).json({ error: 'SHARE_FILE_TOO_LARGE', maxMb: MAX_MB })
+      }
+      console.error('share upload failed:', err)
+      return res.status(400).json({ error: 'SHARE_UPLOAD_FAILED' })
     }
     try {
       const file = req.file
-      if (!file) return res.status(400).json({ error: '未收到文件' })
+      if (!file) return res.status(400).json({ error: 'SHARE_NO_FILE' })
       const kind = req.body?.kind === 'image' ? 'image' : 'file'
       if (kind === 'image' && !file.mimetype.startsWith('image/')) {
         fs.promises.unlink(file.path).catch(() => {})
-        return res.status(400).json({ error: '所选文件不是图片' })
+        return res.status(400).json({ error: 'SHARE_NOT_IMAGE' })
       }
 
       const code = await createUniqueCode()
@@ -159,7 +159,7 @@ shareRouter.post('/file', (req, res) => {
     } catch (e: any) {
       // DB 写入失败时清理已落盘的文件，避免孤儿文件
       if (req.file) fs.promises.unlink(req.file.path).catch(() => {})
-      res.status(500).json({ error: e.message })
+      console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
     }
   })
 })
@@ -169,7 +169,7 @@ shareRouter.post('/file', (req, res) => {
 shareRouter.get('/mine', async (req, res) => {
   const username = sessionUsername(req)
   if (!username) {
-    res.status(401).json({ error: 'Not logged in' })
+    res.status(401).json({ error: 'AUTH_NOT_LOGGED_IN' })
     return
   }
   try {
@@ -179,7 +179,7 @@ shareRouter.get('/mine', async (req, res) => {
     )
     res.json((rows as any[]).map(toMeta))
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -187,24 +187,24 @@ shareRouter.get('/mine', async (req, res) => {
 shareRouter.delete('/:code', async (req, res) => {
   const username = sessionUsername(req)
   if (!username) {
-    res.status(401).json({ error: 'Not logged in' })
+    res.status(401).json({ error: 'AUTH_NOT_LOGGED_IN' })
     return
   }
   try {
     const [rows] = await pool.query('SELECT * FROM share_items WHERE code = ?', [req.params.code])
     const item = (rows as any[])[0]
     if (!item) {
-      res.status(404).json({ error: '分享不存在' })
+      res.status(404).json({ error: 'SHARE_NOT_FOUND' })
       return
     }
     if (item.uploader_user !== username && !isAdmin(req)) {
-      res.status(403).json({ error: '只能删除自己的分享' })
+      res.status(403).json({ error: 'SHARE_DELETE_FORBIDDEN' })
       return
     }
     await deleteShareItem(item)
     res.json({ success: true })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -212,12 +212,12 @@ shareRouter.delete('/:code', async (req, res) => {
 shareRouter.get('/:code', async (req, res) => {
   try {
     const item = await findActiveShare(req.params.code)
-    if (item === null) return res.status(404).json({ error: '分享不存在' })
-    if (item === 'expired') return res.status(410).json({ error: '分享已过期' })
+    if (item === null) return res.status(404).json({ error: 'SHARE_NOT_FOUND' })
+    if (item === 'expired') return res.status(410).json({ error: 'SHARE_EXPIRED' })
     await pool.query('UPDATE share_items SET views = views + 1 WHERE id = ?', [item.id])
     res.json(toMeta(item))
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -225,15 +225,15 @@ shareRouter.get('/:code', async (req, res) => {
 shareRouter.get('/:code/file', async (req, res) => {
   try {
     const item = await findActiveShare(req.params.code)
-    if (item === null) return res.status(404).json({ error: '分享不存在' })
-    if (item === 'expired') return res.status(410).json({ error: '分享已过期' })
+    if (item === null) return res.status(404).json({ error: 'SHARE_NOT_FOUND' })
+    if (item === 'expired') return res.status(410).json({ error: 'SHARE_EXPIRED' })
     if (item.type !== 'image' || !item.stored_name) {
-      return res.status(400).json({ error: '该分享不支持在线预览' })
+      return res.status(400).json({ error: 'SHARE_NO_PREVIEW' })
     }
     const abs = path.join(UPLOAD_DIR, path.basename(String(item.stored_name)))
     if (!fs.existsSync(abs)) {
       await deleteShareItem(item)
-      return res.status(404).json({ error: '文件已不存在' })
+      return res.status(404).json({ error: 'SHARE_FILE_GONE' })
     }
     res.sendFile(abs, {
       headers: {
@@ -242,7 +242,7 @@ shareRouter.get('/:code/file', async (req, res) => {
       },
     })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -250,8 +250,8 @@ shareRouter.get('/:code/file', async (req, res) => {
 shareRouter.get('/:code/download', async (req, res) => {
   try {
     const item = await findActiveShare(req.params.code)
-    if (item === null) return res.status(404).json({ error: '分享不存在' })
-    if (item === 'expired') return res.status(410).json({ error: '分享已过期' })
+    if (item === null) return res.status(404).json({ error: 'SHARE_NOT_FOUND' })
+    if (item === 'expired') return res.status(410).json({ error: 'SHARE_EXPIRED' })
 
     await pool.query('UPDATE share_items SET downloads = downloads + 1 WHERE id = ?', [item.id])
 
@@ -259,14 +259,14 @@ shareRouter.get('/:code/download', async (req, res) => {
       res.attachment(`${item.title}.txt`)
       return res.type('text/plain; charset=utf-8').send(item.content)
     }
-    if (!item.stored_name) return res.status(404).json({ error: '文件已不存在' })
+    if (!item.stored_name) return res.status(404).json({ error: 'SHARE_FILE_GONE' })
     const abs = path.join(UPLOAD_DIR, path.basename(String(item.stored_name)))
     if (!fs.existsSync(abs)) {
       await deleteShareItem(item)
-      return res.status(404).json({ error: '文件已不存在' })
+      return res.status(404).json({ error: 'SHARE_FILE_GONE' })
     }
     res.download(abs, item.title)
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })

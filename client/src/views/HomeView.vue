@@ -7,9 +7,11 @@ import ContactPanel from '../components/ContactPanel.vue'
 import MessageCard from '../components/MessageCard.vue'
 import { api } from '../composables/useApi'
 import { useAuth } from '../stores/auth'
+import { useLocale } from '../stores/locale'
 import type { Message } from '../types'
 
 const router = useRouter()
+const { t } = useLocale()
 const messages = ref<Message[]>([])
 const name = ref('')
 const message = ref('')
@@ -50,15 +52,15 @@ async function submitMessage() {
   try {
     const res = await api.postMessage({ name: name.value, message: message.value })
     if (res.ok) {
-      alert('留言提交成功！')
+      alert(t('home.msgOk'))
       name.value = ''
       message.value = ''
       fetchMessages()
     } else {
-      alert('留言提交失败，请稍后再试。')
+      alert(t('home.msgFail'))
     }
   } catch (e) {
-    alert('留言提交失败，请稍后再试。')
+    alert(t('home.msgFail'))
   }
 }
 
@@ -87,47 +89,47 @@ onMounted(fetchMessages)
     <!-- 主页内容：标题卡存在时先隐藏（避免滚动条 / 占位），收起后升起揭示 -->
     <div class="home-body" :class="{ 'is-revealed': contentRevealed }">
       <div class="header-section">
-        <h1>Welcome!</h1>
-        <h1>Homepage of SAKANA</h1>
+        <h1>{{ t('home.welcome') }}</h1>
+        <h1>{{ t('home.pageTitle') }}</h1>
         <WriterByline />
       </div>
 
-      <h2>Links</h2>
+      <h2>{{ t('home.links') }}</h2>
       <div class="container">
-        <p class="btn" @click="router.push('/online-chat')">Online chat</p>
-        <p class="btn" @click="router.push('/question-bank')">Question bank</p>
-        <p class="btn" @click="router.push('/dev-log')">Dev log</p>
-        <p class="btn" @click="router.push('/blog')">Blog</p>
-        <p class="btn" @click="router.push('/share')">二维码分享</p>
+        <p class="btn" @click="router.push('/online-chat')">{{ t('home.linkChat') }}</p>
+        <p class="btn" @click="router.push('/question-bank')">{{ t('home.linkBank') }}</p>
+        <p class="btn" @click="router.push('/dev-log')">{{ t('home.linkLog') }}</p>
+        <p class="btn" @click="router.push('/blog')">{{ t('home.linkBlog') }}</p>
+        <p class="btn" @click="router.push('/share')">{{ t('home.linkShare') }}</p>
       </div>
 
-      <h2>Contact Me</h2>
+      <h2>{{ t('home.contact') }}</h2>
       <ContactPanel />
 
-      <h2>Chat</h2>
+      <h2>{{ t('home.chat') }}</h2>
       <div class="chat-section">
         <form id="message-form" @submit.prevent="submitMessage">
           <div class="form-group">
-            <label for="name">姓名:</label>
+            <label for="name">{{ t('home.nameLabel') }}</label>
             <!-- 登录适配：已登录预填用户名并锁定，未登录保持手动输入 -->
             <input
               type="text"
               id="name"
               v-model="name"
               :readonly="!!username"
-              :title="username ? '已登录，以 ' + username + ' 身份留言' : undefined"
+              :title="username ? t('home.nameTitle', { name: username }) : undefined"
               required
             />
           </div>
           <div class="form-group">
-            <label for="message">留言内容:</label>
+            <label for="message">{{ t('home.msgLabel') }}</label>
             <textarea id="message" v-model="message" required></textarea>
           </div>
-          <button type="submit">提交</button>
+          <button type="submit">{{ t('home.submit') }}</button>
         </form>
       </div>
 
-      <h2>Chat board</h2>
+      <h2>{{ t('home.board') }}</h2>
       <div id="messages">
         <MessageCard
           v-for="(msg, index) in messages"
@@ -144,7 +146,7 @@ onMounted(fetchMessages)
               class="message-admin-toggle"
               @click="toggleDisplayed(msg)"
             >
-              {{ msg.is_displayed === 0 ? '恢复显示' : '隐藏' }}
+              {{ msg.is_displayed === 0 ? t('home.restore') : t('home.hide') }}
             </p>
           </template>
         </MessageCard>

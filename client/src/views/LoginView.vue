@@ -4,8 +4,10 @@ import { useRouter } from 'vue-router'
 import WriterByline from '../components/WriterByline.vue'
 import { api } from '../composables/useApi'
 import { useAuth } from '../stores/auth'
+import { useLocale } from '../stores/locale'
 
 const router = useRouter()
+const { t, apiError } = useLocale()
 const { username: loggedInAs, setLoggedIn } = useAuth()
 const username = ref('')
 const password = ref('')
@@ -22,7 +24,7 @@ async function submit() {
       setLoggedIn(res.data?.username || username.value, !!res.data?.isAdmin)
       router.push('/')
     } else {
-      error.value = res.data?.error || 'Invalid username or password'
+      error.value = apiError(res.data, 'api.AUTH_INVALID_CREDENTIALS')
     }
   } finally {
     pending.value = false
@@ -35,27 +37,27 @@ async function submit() {
 
     <div class="container auth-container">
       <header class="auth-header">
-        <h1>Login</h1>
+        <h1>{{ t('login.title') }}</h1>
         <WriterByline />
       </header>
 
       <form class="auth-form" @submit.prevent="submit">
-        <p v-if="loggedInAs" class="auth-status">当前已登录：{{ loggedInAs }}</p>
+        <p v-if="loggedInAs" class="auth-status">{{ t('login.loggedInAs', { name: loggedInAs }) }}</p>
         <div class="field">
-          <label for="username">Username</label>
+          <label for="username">{{ t('login.username') }}</label>
           <input type="text" id="username" v-model="username" autocomplete="username" required />
         </div>
         <div class="field">
-          <label for="password">Password</label>
+          <label for="password">{{ t('login.password') }}</label>
           <input type="password" id="password" v-model="password" autocomplete="current-password" required />
         </div>
         <button type="submit" class="auth-submit" :disabled="pending">
-          {{ pending ? 'Logging in…' : 'Login' }}
+          {{ pending ? t('login.pending') : t('login.submit') }}
         </button>
         <p v-if="error" class="auth-error">{{ error }}</p>
       </form>
 
-      <p class="auth-alt">Don't have an account? <router-link to="/signup">Sign up here</router-link></p>
+      <p class="auth-alt">{{ t('login.altText') }} <router-link to="/signup">{{ t('login.altLink') }}</router-link></p>
     </div>
   </div>
 </template>

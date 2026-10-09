@@ -6,11 +6,13 @@ import WriterByline from '../components/WriterByline.vue'
 import { api } from '../composables/useApi'
 import { useCopyText } from '../composables/useCopyText'
 import { useAuth } from '../stores/auth'
+import { useLocale } from '../stores/locale'
 import type { ShareItem } from '../types'
 
 const route = useRoute()
 const router = useRouter()
 const { tooltip, copy } = useCopyText()
+const { t, apiError } = useLocale()
 // Login adaptation: after login, show the "My Shares" management list
 const { username } = useAuth()
 
@@ -37,12 +39,13 @@ const result = ref<ShareItem | null>(null)
 const shareUrl = ref('')
 const qrDataUrl = ref('')
 
+// 有效期选项：value 送服务端，label 走 i18n 词条
 const EXPIRY_OPTIONS = [
-  { value: '1h', label: '1 小时' },
-  { value: '1d', label: '24 小时' },
-  { value: '7d', label: '7 天' },
-  { value: '', label: '永久' },
-]
+  { value: '1h', labelKey: 'share.expiry1h' },
+  { value: '1d', labelKey: 'share.expiry1d' },
+  { value: '7d', labelKey: 'share.expiry7d' },
+  { value: '', labelKey: 'share.expiryForever' },
+] as const
 
 const canSubmit = computed(() =>
   tab.value === 'text' ? textContent.value.trim().length > 0 : pickedFile.value !== null
@@ -88,7 +91,7 @@ function acceptType() {
 }
 
 function validatePicked(file: File): string | null {
-  if (tab.value === 'image' && !file.type.startsWith('image/')) return '所选文件不是图片'
+  if (tab.value === 'image' && !file.type.startsWith('image/')) return t('share.notImage')
   return null
 }
 
@@ -138,10 +141,10 @@ async function submit() {
       await makeQr(res.data.item)
       if (username.value) fetchMyShares() // 登录状态下新分享计入"我的分享"
     } else {
-      error.value = res.data?.error || '分享失败，请稍后再试。'
+      error.value = apiError(res.data, 'share.fail')
     }
   } catch (e: any) {
-    error.value = e?.message || '分享失败，请稍后再试。'
+    error.value = e?.message || t('share.fail')
   } finally {
     uploading.value = false
   }
@@ -233,7 +236,7 @@ function downloadItem() {
 
 // ===== 展示辅助 =====
 function typeLabel(target: ShareItem) {
-  return target.type === 'text' ? '文字' : target.type === 'image' ? '图片' : '文件'
+  return target.type === 'text' ? t('share.typeText') : target.type === 'image' ? t('share.typeImage') : t('share.typeFile')
 }
 
 function formatSize(bytes: number | null) {
@@ -253,16 +256,17 @@ function formatDate(iso: string | null) {
 
 function remainText(iso: string) {
   const diff = new Date(iso).getTime() - Date.now()
-  if (diff <= 0) return '已过期'
+  if (diff <= 0) return t('share.expired')
   const minutes = Math.floor(diff / 60000)
-  if (minutes < 60) return `剩 ${minutes} 分钟`
+  if (minutes < 60) return t('share.leftMinutes', { n: minutes })
   const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `剩 ${hours} 小时`
-  return `剩 ${Math.floor(hours / 24)} 天`
+  if (hours < 24) return t('share.leftHours', { n: hours })
+  return t('share.leftDays', { n: Math.floor(hours / 24) })
 }
 
 function expiryLabel() {
-  return EXPIRY_OPTIONS.find((o) => o.value === expiresIn.value)?.label ?? '永久'
+  const opt = EXPIRY_OPTIONS.find((o) => o.value === expiresIn.value)
+  return opt ? t(opt.labelKey) : t('share.expiryForever')
 }
 
 function extLabel(target: ShareItem) {
@@ -275,7 +279,7 @@ function extLabel(target: ShareItem) {
   <div class="page-share">
 
     <div class="container">
-      <h1>二维码分享</h1>
+      <h1>{{ t('share.title') }}</h1>
       <WriterByline />
     </div>
 
@@ -283,42 +287,42 @@ function extLabel(target: ShareItem) {
     <template v-if="!code">
       <!-- 生成结果：二维码 + 链接 -->
       <section v-if="result" class="share-panel share-result">
-        <h2>分享已生成</h2>
+        <h2>{{ t('share.resultTitle') }}</h2>
         <div class="result-grid">
           <div class="result-qr-box">
-            <img v-if="qrDataUrl" class="result-qr" :src="qrDataUrl" alt="分享二维码" />
-            <p v-else class="result-qr-fallback">二维码生成失败，可直接复制下方链接</p>
+            <img v-if="qrDataUrl" class="result-qr" :src="qrDataUrl" :alt="t('share.qrAlt')" />
+            <p v-else class="result-qr-fallback">{{ t('share.qrFail') }}</p>
           </div>
           <div class="result-info">
-            <p class="result-code">取件码：{{ result.code }}</p>
+            <p class="result-code">{{ t('share.codeLabel', { code: result.code }) }}</p>
             <p class="result-title">{{ result.title }}</p>
             <p class="result-meta">
-              {{ typeLabel(result) }}<template v-if="result.size != null"> · {{ formatSize(result.size) }}</template> · 有效期：{{ expiryLabel() }}
+              {{ typeLabel(result) }}<template v-if="result.size != null"> · {{ formatSize(result.size) }}</template> · {{ t('share.validUntil', { label: expiryLabel() }) }}
             </p>
-            <p class="result-link" title="点击复制链接" @click="copyLink">{{ shareUrl }}</p>
+            <p class="result-link" :title="t('share.copyTitle')" @click="copyLink">{{ shareUrl }}</p>
             <div class="result-actions">
-              <p class="action-btn" @click="copyLink">复制链接</p>
-              <p class="action-btn primary" @click="openReceive">打开取件页</p>
-              <p class="action-btn" @click="downloadQr">保存二维码</p>
+              <p class="action-btn" @click="copyLink">{{ t('share.copyLink') }}</p>
+              <p class="action-btn primary" @click="openReceive">{{ t('share.openReceive') }}</p>
+              <p class="action-btn" @click="downloadQr">{{ t('share.downloadQr') }}</p>
             </div>
           </div>
         </div>
-        <p class="share-again" @click="shareAnother">← 再分享一个</p>
+        <p class="share-again" @click="shareAnother">{{ t('share.again') }}</p>
       </section>
 
       <!-- 上传表单 -->
       <section v-else class="share-panel">
         <div class="share-tabs">
-          <p class="share-tab" :class="{ active: tab === 'text' }" @click="switchTab('text')">文字</p>
-          <p class="share-tab" :class="{ active: tab === 'image' }" @click="switchTab('image')">图片</p>
-          <p class="share-tab" :class="{ active: tab === 'file' }" @click="switchTab('file')">文件</p>
+          <p class="share-tab" :class="{ active: tab === 'text' }" @click="switchTab('text')">{{ t('share.tabText') }}</p>
+          <p class="share-tab" :class="{ active: tab === 'image' }" @click="switchTab('image')">{{ t('share.tabImage') }}</p>
+          <p class="share-tab" :class="{ active: tab === 'file' }" @click="switchTab('file')">{{ t('share.tabFile') }}</p>
         </div>
 
         <div v-if="tab === 'text'" class="share-body">
           <textarea
             v-model="textContent"
             class="share-textarea"
-            placeholder="粘贴或输入要分享的文字…"
+            :placeholder="t('share.textPlaceholder')"
           ></textarea>
         </div>
 
@@ -331,13 +335,13 @@ function extLabel(target: ShareItem) {
             @dragleave.prevent="dragover = false"
             @drop.prevent="onDrop"
           >
-            <p class="dropzone-main">{{ tab === 'image' ? '点击或拖入图片' : '点击或拖入文件' }}</p>
-            <p class="dropzone-sub">单个文件不超过 {{ MAX_MB_LABEL }}</p>
+            <p class="dropzone-main">{{ tab === 'image' ? t('share.dropImage') : t('share.dropFile') }}</p>
+            <p class="dropzone-sub">{{ t('share.maxSize', { max: MAX_MB_LABEL }) }}</p>
           </div>
           <div v-if="pickedFile" class="picked-file">
             <span class="picked-name">{{ pickedFile.name }}</span>
             <span class="picked-size">{{ formatSize(pickedFile.size) }}</span>
-            <span class="picked-remove" @click="clearFile">移除</span>
+            <span class="picked-remove" @click="clearFile">{{ t('share.remove') }}</span>
           </div>
           <input
             id="share-file-input"
@@ -349,12 +353,12 @@ function extLabel(target: ShareItem) {
         </div>
 
         <div class="share-options">
-          <label for="share-expiry">有效期</label>
+          <label for="share-expiry">{{ t('share.expiryLabel') }}</label>
           <select id="share-expiry" v-model="expiresIn">
-            <option v-for="opt in EXPIRY_OPTIONS" :key="opt.label" :value="opt.value">{{ opt.label }}</option>
+            <option v-for="opt in EXPIRY_OPTIONS" :key="opt.labelKey" :value="opt.value">{{ t(opt.labelKey) }}</option>
           </select>
           <p class="action-btn primary share-submit" :class="{ disabled: uploading || !canSubmit }" @click="submit">
-            {{ uploading ? '上传中…' : '生成二维码' }}
+            {{ uploading ? t('share.uploading') : t('share.generate') }}
           </p>
         </div>
 
@@ -370,9 +374,9 @@ function extLabel(target: ShareItem) {
 
       <!-- ===== 我的分享（登录适配）：本人分享记录与删除 ===== -->
       <section v-if="username" class="share-panel share-mine">
-        <h2>我的分享</h2>
-        <p v-if="myLoading" class="mine-state">加载中…</p>
-        <p v-else-if="myShares.length === 0" class="mine-state">还没有分享记录</p>
+        <h2>{{ t('share.mineTitle') }}</h2>
+        <p v-if="myLoading" class="mine-state">{{ t('share.loading') }}</p>
+        <p v-else-if="myShares.length === 0" class="mine-state">{{ t('share.mineEmpty') }}</p>
         <div v-else class="mine-list">
           <div v-for="s in myShares" :key="s.code" class="mine-item">
             <span class="mine-code">{{ s.code }}</span>
@@ -381,8 +385,8 @@ function extLabel(target: ShareItem) {
               {{ typeLabel(s) }} · {{ formatDate(s.createdAt) }}<template v-if="s.expiresAt"> · {{ remainText(s.expiresAt) }}</template>
             </span>
             <span class="mine-actions">
-              <span class="action-btn" @click="router.push(`/share/${s.code}`)">查看</span>
-              <span class="action-btn danger" @click="removeShare(s.code)">删除</span>
+              <span class="action-btn" @click="router.push(`/share/${s.code}`)">{{ t('share.view') }}</span>
+              <span class="action-btn danger" @click="removeShare(s.code)">{{ t('share.delete') }}</span>
             </span>
           </div>
         </div>
@@ -391,16 +395,16 @@ function extLabel(target: ShareItem) {
 
     <!-- ===== 取件模式 ===== -->
     <section v-else class="share-panel share-receive">
-      <div v-if="loadState === 'loading'" class="receive-state">加载中…</div>
+      <div v-if="loadState === 'loading'" class="receive-state">{{ t('share.loading') }}</div>
 
       <div v-else-if="loadState === 'missing'" class="receive-state">
-        <p class="state-main">分享不存在</p>
-        <p class="state-sub">链接可能有误，或内容已被删除</p>
+        <p class="state-main">{{ t('share.missingMain') }}</p>
+        <p class="state-sub">{{ t('share.missingSub') }}</p>
       </div>
 
       <div v-else-if="loadState === 'expired'" class="receive-state">
-        <p class="state-main">分享已过期</p>
-        <p class="state-sub">该内容超出有效期，已被清理</p>
+        <p class="state-main">{{ t('share.expiredMain') }}</p>
+        <p class="state-sub">{{ t('share.expiredSub') }}</p>
       </div>
 
       <template v-else-if="item">
@@ -423,7 +427,7 @@ function extLabel(target: ShareItem) {
             :alt="item.title"
             @error="imgFailed = true"
           />
-          <p v-else class="state-sub">图片加载失败，可尝试下方下载</p>
+          <p v-else class="state-sub">{{ t('share.imgFail') }}</p>
         </div>
 
         <!-- 文件：扩展名徽标 -->
@@ -432,13 +436,13 @@ function extLabel(target: ShareItem) {
         </div>
 
         <div class="receive-actions">
-          <p v-if="item.type === 'text'" class="action-btn" @click="copyContent">复制内容</p>
+          <p v-if="item.type === 'text'" class="action-btn" @click="copyContent">{{ t('share.copyContent') }}</p>
           <p class="action-btn primary" @click="downloadItem">
-            下载{{ item.type === 'text' ? '为 TXT' : item.type === 'image' ? '图片' : '文件' }}
+            {{ item.type === 'text' ? t('share.downloadTxt') : item.type === 'image' ? t('share.downloadImage') : t('share.downloadFile') }}
           </p>
         </div>
 
-        <p class="receive-counts">已被查看 {{ item.views }} 次 · 下载 {{ item.downloads }} 次</p>
+        <p class="receive-counts">{{ t('share.counts', { views: item.views, downloads: item.downloads }) }}</p>
       </template>
     </section>
 
@@ -448,7 +452,7 @@ function extLabel(target: ShareItem) {
       :class="{ show: tooltip.show }"
       :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
     >
-      已复制
+      {{ t('common.copied') }}
     </div>
   </div>
 </template>

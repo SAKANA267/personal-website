@@ -2,6 +2,7 @@ import { ref } from 'vue'
 import type { ChatMessage, RtcClientMessage, RtcServerMessage } from '../types'
 import { api } from './useApi'
 import { useAuth } from '../stores/auth'
+import { useLocale } from '../stores/locale'
 
 /**
  * 聊天 WebSocket，忠实移植原 online_chat.js：
@@ -23,12 +24,14 @@ export function useWebSocket(onAppend?: () => void) {
   let socket: WebSocket | null = null
   const signalingHandlers = new Set<(msg: RtcServerMessage) => void>()
   const { username: authUsername } = useAuth()
+  const { locale, t } = useLocale()
 
   function appendMessage(name: string, message: string) {
     messages.value.push({
       sender: name,
       message,
-      timestamp: new Date().toLocaleString(),
+      // 时间戳随当前语言走本地化格式
+      timestamp: new Date().toLocaleString(locale.value === 'en' ? 'en-US' : 'zh-CN'),
     })
     onAppend?.()
   }
@@ -76,7 +79,7 @@ export function useWebSocket(onAppend?: () => void) {
 
     socket.onopen = () => {
       console.log('WebSocket 连接已打开')
-      appendMessage('系统', '连接已打开')
+      appendMessage(t('chat.sys'), t('chat.connected'))
     }
 
     socket.onmessage = (event) => {
@@ -95,14 +98,14 @@ export function useWebSocket(onAppend?: () => void) {
 
     socket.onclose = () => {
       console.log('WebSocket 连接已关闭')
-      appendMessage('系统', '连接已关闭')
+      appendMessage(t('chat.sys'), t('chat.disconnected'))
     }
   }
 
   function sendMessage(text: string) {
     if (!socket) return
     socket.send(text)
-    appendMessage(authUsername.value || '你', text)
+    appendMessage(authUsername.value || t('chat.you'), text)
   }
 
   function onSignaling(cb: (msg: RtcServerMessage) => void) {

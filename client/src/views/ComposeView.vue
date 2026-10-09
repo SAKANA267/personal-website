@@ -5,6 +5,7 @@ import { api } from '../composables/useApi'
 import { renderMarkdown } from '../composables/useMarkdown'
 import { refreshDbPosts, mergedPosts } from '../composables/useBlogPosts'
 import { useAuth } from '../stores/auth'
+import { useLocale } from '../stores/locale'
 import type { BlogPost } from '../types'
 
 // 博客撰写页（登录联动）：新建或编辑自己的文章（?slug=u-xxx）。
@@ -13,6 +14,7 @@ import type { BlogPost } from '../types'
 const route = useRoute()
 const router = useRouter()
 const { username, isAdmin } = useAuth()
+const { t, apiError } = useLocale()
 
 const editSlug = computed(() => {
   const s = String(route.query.slug ?? '')
@@ -37,7 +39,7 @@ onMounted(async () => {
     const p = res.data as BlogPost
     // 已发布文章的详情接口对所有人开放，这里客户端先挡一道：非作者/管理员不预填
     if (p.author && p.author !== username.value && !isAdmin.value) {
-      error.value = '只能编辑自己的文章'
+      error.value = t('compose.notOwner')
     } else {
       editing.value = p
       title.value = p.title
@@ -46,7 +48,7 @@ onMounted(async () => {
       body.value = p.body ?? ''
     }
   } else {
-    error.value = res.data?.error || '文章不存在或无权编辑'
+    error.value = apiError(res.data, 'compose.notFoundOrForbidden')
   }
   loaded.value = true
 })
@@ -68,21 +70,21 @@ const bodyStats = computed(() => {
   const cjk = (text.match(/\p{Script=Han}/gu) || []).length
   const words = (text.replace(/\p{Script=Han}/gu, ' ').match(/[A-Za-z0-9]+/g) || []).length
   const minutes = Math.max(1, Math.round(cjk / 400 + words / 200))
-  return `${text.length} 字符 · 约 ${minutes} min`
+  return t('compose.stats', { chars: text.length, minutes })
 })
 
 async function save(publish: 0 | 1) {
   if (pending.value) return
   error.value = ''
   if (!title.value.trim() || !body.value.trim()) {
-    error.value = '标题与正文不能为空'
+    error.value = t('compose.emptyError')
     return
   }
   pending.value = true
   const payload = {
     title: title.value.trim(),
-    category: category.value.trim() || '随笔',
-    tags: tagsInput.value.split(/[,，]/).map((t) => t.trim()).filter(Boolean).slice(0, 8),
+    category: category.value.trim() || t('compose.defaultCategory'),
+    tags: tagsInput.value.split(/[,，]/).map((tag) => tag.trim()).filter(Boolean).slice(0, 8),
     body: body.value,
     is_published: publish,
   }
@@ -94,7 +96,8 @@ async function save(publish: 0 | 1) {
     await refreshDbPosts()
     router.push(`/blog/${res.data.post.slug}`)
   } else {
-    error.value = res.data?.error || (res.status === 403 ? '无权修改这篇文章' : '保存失败，请稍后再试')
+    error.value =
+      res.status === 403 ? t('compose.forbidden') : apiError(res.data, 'compose.saveFail')
   }
 }
 
@@ -106,45 +109,45 @@ function cancel() {
 <template>
   <div class="page-compose">
     <header class="compose-head">
-      <p class="masthead-eyebrow">{{ editSlug ? 'EDIT POST' : 'NEW POST' }}</p>
-      <h1 class="masthead-title">{{ editSlug ? '编辑文章' : '写文章' }}</h1>
+      <p class="masthead-eyebrow">{{ editSlug ? t('compose.eyebrowEdit') : t('compose.eyebrowNew') }}</p>
+      <h1 class="masthead-title">{{ editSlug ? t('compose.titleEdit') : t('compose.titleNew') }}</h1>
     </header>
 
     <hr class="rule" />
 
-    <p v-if="!loaded" class="compose-status">载入中…</p>
+    <p v-if="!loaded" class="compose-status">{{ t('compose.loading') }}</p>
 
     <!-- 编辑他人文章 / 文章不存在：只显示错误与返回，不给误存为新文章的机会 -->
     <div v-else-if="error && editSlug" class="compose-status">
       <p class="compose-error">{{ error }}</p>
-      <button type="button" class="compose-btn-ghost" @click="router.push('/blog')">← 返回博客</button>
+      <button type="button" class="compose-btn-ghost" @click="router.push('/blog')">{{ t('compose.back') }}</button>
     </div>
 
     <form v-else class="compose-form" @submit.prevent="save(1)">
       <div class="compose-field">
-        <label class="compose-label" for="compose-title">标题</label>
-        <input id="compose-title" v-model="title" type="text" maxlength="120" placeholder="文章标题" required />
+        <label class="compose-label" for="compose-title">{{ t('compose.titleLabel') }}</label>
+        <input id="compose-title" v-model="title" type="text" maxlength="120" :placeholder="t('compose.titlePlaceholder')" required />
       </div>
 
       <div class="compose-row">
         <div class="compose-field">
-          <label class="compose-label" for="compose-category">分类</label>
-          <input id="compose-category" v-model="category" type="text" maxlength="32" list="category-options" placeholder="随笔" />
+          <label class="compose-label" for="compose-category">{{ t('compose.categoryLabel') }}</label>
+          <input id="compose-category" v-model="category" type="text" maxlength="32" list="category-options" :placeholder="t('compose.categoryPlaceholder')" />
           <datalist id="category-options">
             <option v-for="c in categoryOptions" :key="c" :value="c" />
           </datalist>
         </div>
         <div class="compose-field">
-          <label class="compose-label" for="compose-tags">标签（逗号分隔，最多 8 个）</label>
-          <input id="compose-tags" v-model="tagsInput" type="text" placeholder="vue, design" />
+          <label class="compose-label" for="compose-tags">{{ t('compose.tagsLabel') }}</label>
+          <input id="compose-tags" v-model="tagsInput" type="text" :placeholder="t('compose.tagsPlaceholder')" />
         </div>
       </div>
 
       <div class="compose-field">
         <div class="compose-body-toolbar">
-          <label class="compose-label" for="compose-body">正文（Markdown）</label>
+          <label class="compose-label" for="compose-body">{{ t('compose.bodyLabel') }}</label>
           <button type="button" class="compose-preview-toggle" :class="{ active: showPreview }" @click="showPreview = !showPreview">
-            {{ showPreview ? '编辑' : '预览' }}
+            {{ showPreview ? t('compose.edit') : t('compose.preview') }}
           </button>
         </div>
         <textarea
@@ -152,13 +155,13 @@ function cancel() {
           id="compose-body"
           v-model="body"
           rows="18"
-          placeholder="用 Markdown 写下正文…"
+          :placeholder="t('compose.bodyPlaceholder')"
           required
         ></textarea>
         <!-- 稿面计数：与服务端派生逻辑同源（中文 400 字/分 + 英文 200 词/分） -->
         <p v-show="!showPreview" class="compose-stats">{{ bodyStats }}</p>
         <div v-if="showPreview" class="compose-preview">
-          <p class="compose-preview-eyebrow">PREVIEW</p>
+          <p class="compose-preview-eyebrow">{{ t('compose.previewEyebrow') }}</p>
           <div class="markdown-body" v-html="previewHtml"></div>
         </div>
       </div>
@@ -166,13 +169,13 @@ function cancel() {
       <p v-if="error" class="compose-error">{{ error }}</p>
 
       <div class="compose-actions">
-        <button type="button" class="compose-btn-ghost" :disabled="pending" @click="cancel">取消</button>
-        <button type="button" class="compose-btn-ghost" :disabled="pending" @click="save(0)">存草稿</button>
+        <button type="button" class="compose-btn-ghost" :disabled="pending" @click="cancel">{{ t('compose.cancel') }}</button>
+        <button type="button" class="compose-btn-ghost" :disabled="pending" @click="save(0)">{{ t('compose.saveDraft') }}</button>
         <button type="submit" class="compose-btn-submit" :disabled="pending">
-          {{ pending ? '保存中…' : (editSlug ? '保存修改' : '发布') }}
+          {{ pending ? t('compose.saving') : (editSlug ? t('compose.saveEdit') : t('compose.publish')) }}
         </button>
       </div>
-      <p class="compose-hint">草稿仅自己可见；摘要与阅读时长由服务端自动生成。</p>
+      <p class="compose-hint">{{ t('compose.hint') }}</p>
     </form>
   </div>
 </template>

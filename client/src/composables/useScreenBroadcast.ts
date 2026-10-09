@@ -1,5 +1,6 @@
 import { ref, shallowRef } from 'vue'
 import type { RtcClientMessage, RtcServerMessage } from '../types'
+import { useLocale } from '../stores/locale'
 
 /**
  * 屏幕转播（WebRTC mesh P2P）：
@@ -22,6 +23,7 @@ export function useScreenBroadcast(api: {
   appendMessage: (name: string, message: string) => void
 }) {
   const { onSignaling, sendSignaling, appendMessage } = api
+  const { t } = useLocale()
 
   const myId = ref('')
   // 当前直播间：别人的转播（id + 展示用 IP）
@@ -40,7 +42,7 @@ export function useScreenBroadcast(api: {
   let displayStream: MediaStream | null = null
 
   function notice(text: string) {
-    appendMessage('系统', text)
+    appendMessage(t('chat.sys'), text)
   }
 
   function updateViewerCount() {
@@ -67,7 +69,7 @@ export function useScreenBroadcast(api: {
   async function startBroadcast() {
     if (isBroadcasting.value) return
     if (activeBroadcast.value) {
-      notice('已有人正在转播，无法开始新的转播')
+      notice(t('chat.sysBusy'))
       return
     }
     try {
@@ -78,9 +80,9 @@ export function useScreenBroadcast(api: {
       stream.getVideoTracks()[0]?.addEventListener('ended', () => stopBroadcast())
       sendSignaling({ t: 'start' })
       isBroadcasting.value = true
-      notice('转播已开始，等待观众接入')
+      notice(t('chat.started'))
     } catch {
-      notice('未获得屏幕共享权限，转播取消')
+      notice(t('chat.permDenied'))
     }
   }
 
@@ -106,7 +108,7 @@ export function useScreenBroadcast(api: {
     if (!isBroadcasting.value) return
     sendSignaling({ t: 'stop' })
     cleanupHost()
-    notice('转播已结束')
+    notice(t('chat.ended'))
   }
 
   async function handleWatch(viewerId: string) {
@@ -203,20 +205,20 @@ export function useScreenBroadcast(api: {
       case 'started':
         if (!isBroadcasting.value) {
           activeBroadcast.value = { id: msg.from, label: msg.label }
-          notice(`${msg.label} 开始了屏幕转播，点击「观看直播」收看`)
+          notice(t('chat.someoneStarted', { label: msg.label }))
         }
         break
       case 'stopped':
         if (activeBroadcast.value?.id === msg.from) {
           activeBroadcast.value = null
           if (isWatching.value) cleanupViewer()
-          notice('转播已结束')
+          notice(t('chat.ended'))
         }
         break
       case 'denied':
         if (isBroadcasting.value) {
           cleanupHost()
-          notice('已有人正在转播，本次开始请求被拒绝')
+          notice(t('chat.startDenied'))
         }
         break
       case 'watch':

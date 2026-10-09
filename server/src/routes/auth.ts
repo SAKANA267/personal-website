@@ -11,11 +11,12 @@ const PASSWORD_MIN = 6
 
 // 输入防护：用户名不超过 users.username 列宽；密码不超过 bcrypt 的 72 字节截断上限
 // （超出会被 bcrypt 静默截断，与其让用户用"半个密码"登录，不如直接拒绝）
-function invalidCredentials(username: unknown, password: unknown): string | null {
-  if (typeof username !== 'string' || username.trim() === '') return 'Username is required'
-  if (username.length > 255) return 'Username is too long'
-  if (typeof password !== 'string' || password === '') return 'Password is required'
-  if (Buffer.byteLength(password, 'utf8') > 72) return 'Password is too long'
+// i18n 适配：错误一律返回机器码，由前端按语言查表展示；带参数的码附在同级字段
+function invalidCredentials(username: unknown, password: unknown): { code: string; min?: number } | null {
+  if (typeof username !== 'string' || username.trim() === '') return { code: 'AUTH_USERNAME_REQUIRED' }
+  if (username.length > 255) return { code: 'AUTH_USERNAME_TOO_LONG' }
+  if (typeof password !== 'string' || password === '') return { code: 'AUTH_PASSWORD_REQUIRED' }
+  if (Buffer.byteLength(password, 'utf8') > 72) return { code: 'AUTH_PASSWORD_TOO_LONG' }
   return null
 }
 
@@ -26,11 +27,11 @@ authRouter.post('/signup', async (req, res) => {
     const password = req.body?.password
     const invalid = invalidCredentials(username, password)
     if (invalid) {
-      res.status(400).json({ error: invalid })
+      res.status(400).json({ error: invalid.code })
       return
     }
     if (password.length < PASSWORD_MIN) {
-      res.status(400).json({ error: `Password must be at least ${PASSWORD_MIN} characters` })
+      res.status(400).json({ error: 'AUTH_PASSWORD_MIN', min: PASSWORD_MIN })
       return
     }
     const hashed = await bcrypt.hash(password, 10)
@@ -39,9 +40,10 @@ authRouter.post('/signup', async (req, res) => {
   } catch (e: any) {
     // 用户名唯一约束冲突 → 友好提示
     if (e.code === 'ER_DUP_ENTRY') {
-      res.status(400).json({ error: 'Username already exists' })
+      res.status(400).json({ error: 'AUTH_USERNAME_EXISTS' })
     } else {
-      res.status(500).json({ error: e.message })
+      console.error('signup failed:', e)
+      res.status(500).json({ error: 'SERVER_ERROR' })
     }
   }
 })
@@ -53,7 +55,7 @@ authRouter.post('/login', async (req, res) => {
     const password = req.body?.password
     const invalid = invalidCredentials(username, password)
     if (invalid) {
-      res.status(400).json({ error: invalid })
+      res.status(400).json({ error: invalid.code })
       return
     }
     const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username])
@@ -62,10 +64,11 @@ authRouter.post('/login', async (req, res) => {
       ;(req.session as any).username = username
       res.json({ success: true, username, isAdmin: isAdmin(req) })
     } else {
-      res.status(401).json({ error: 'Invalid username or password' })
+      res.status(401).json({ error: 'AUTH_INVALID_CREDENTIALS' })
     }
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error('login failed:', e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -75,7 +78,7 @@ authRouter.get('/me', (req, res) => {
   if (typeof username === 'string' && username !== '') {
     res.json({ username, isAdmin: isAdmin(req) })
   } else {
-    res.status(401).json({ error: 'Not logged in' })
+    res.status(401).json({ error: 'AUTH_NOT_LOGGED_IN' })
   }
 })
 
@@ -90,35 +93,36 @@ authRouter.post('/logout', (req, res) => {
 authRouter.post('/change-password', async (req, res) => {
   const username = sessionUsername(req)
   if (!username) {
-    res.status(401).json({ error: 'Not logged in' })
+    res.status(401).json({ error: 'AUTH_NOT_LOGGED_IN' })
     return
   }
   try {
     const oldPassword = req.body?.oldPassword
     const newPassword = req.body?.newPassword
     if (typeof oldPassword !== 'string' || oldPassword === '') {
-      res.status(400).json({ error: 'Old password is required' })
+      res.status(400).json({ error: 'AUTH_OLD_PASSWORD_REQUIRED' })
       return
     }
     if (typeof newPassword !== 'string' || newPassword.length < PASSWORD_MIN) {
-      res.status(400).json({ error: `New password must be at least ${PASSWORD_MIN} characters` })
+      res.status(400).json({ error: 'AUTH_PASSWORD_MIN', min: PASSWORD_MIN })
       return
     }
     if (Buffer.byteLength(newPassword, 'utf8') > 72) {
-      res.status(400).json({ error: 'New password is too long' })
+      res.status(400).json({ error: 'AUTH_PASSWORD_TOO_LONG' })
       return
     }
     const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username])
     const user = (rows as any[])[0]
     if (!user || !(await bcrypt.compare(oldPassword, user.password))) {
-      res.status(401).json({ error: 'Old password is incorrect' })
+      res.status(401).json({ error: 'AUTH_OLD_PASSWORD_WRONG' })
       return
     }
     const hashed = await bcrypt.hash(newPassword, 10)
     await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashed, user.id])
     res.json({ success: true })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error('change-password failed:', e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -126,7 +130,7 @@ authRouter.post('/change-password', async (req, res) => {
 authRouter.post('/ws-token', (req, res) => {
   const username = sessionUsername(req)
   if (!username) {
-    res.status(401).json({ error: 'Not logged in' })
+    res.status(401).json({ error: 'AUTH_NOT_LOGGED_IN' })
     return
   }
   res.json({ token: issueWsToken(username) })

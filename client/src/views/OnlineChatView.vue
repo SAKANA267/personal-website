@@ -4,7 +4,9 @@ import WriterByline from '../components/WriterByline.vue'
 import MessageCard from '../components/MessageCard.vue'
 import { useWebSocket } from '../composables/useWebSocket'
 import { useScreenBroadcast } from '../composables/useScreenBroadcast'
+import { useLocale } from '../stores/locale'
 
+const { t } = useLocale()
 const container = ref<HTMLElement | null>(null)
 const input = ref('')
 
@@ -83,21 +85,21 @@ onUnmounted(() => {
   <div class="page-chat">
 
     <div class="container">
-      <h1>Online Chat</h1>
+      <h1>{{ t('chat.title') }}</h1>
       <WriterByline />
 
       <section id="broadcastPanel">
         <!-- 空闲：可发起转播 -->
         <div v-if="!isBroadcasting && !activeBroadcast" class="broadcast-controls">
-          <span class="broadcast-status">当前无人转播，可分享你的屏幕 / 应用窗口</span>
-          <button class="btn" @click="startBroadcast">开始转播屏幕</button>
+          <span class="broadcast-status">{{ t('chat.idle') }}</span>
+          <button class="btn" @click="startBroadcast">{{ t('chat.startBroadcast') }}</button>
         </div>
 
         <!-- 我是主播：本地预览 + 观看人数 -->
         <div v-else-if="isBroadcasting">
           <div class="broadcast-controls">
-            <span class="broadcast-status"><span class="live-dot"></span>转播中 · {{ viewerCount }} 人观看</span>
-            <button class="btn" @click="stopBroadcast">停止转播</button>
+            <span class="broadcast-status"><span class="live-dot"></span>{{ t('chat.broadcasting', { n: viewerCount }) }}</span>
+            <button class="btn" @click="stopBroadcast">{{ t('chat.stopBroadcast') }}</button>
           </div>
           <video ref="localVideo" class="broadcast-video" autoplay muted playsinline></video>
         </div>
@@ -106,22 +108,22 @@ onUnmounted(() => {
         <div v-else>
           <div class="broadcast-controls">
             <span class="broadcast-status">
-              <span class="live-dot"></span>正在转播 · 来自 {{ activeBroadcast?.label }}
+              <span class="live-dot"></span>{{ t('chat.liveFrom', { label: activeBroadcast?.label }) }}
             </span>
-            <button v-if="!isWatching" class="btn" @click="watchBroadcast">观看直播</button>
+            <button v-if="!isWatching" class="btn" @click="watchBroadcast">{{ t('chat.watch') }}</button>
             <template v-else>
-              <button class="btn" @click="toggleMute">{{ remoteMuted ? '取消静音' : '静音' }}</button>
-              <button class="btn" @click="stopWatching">停止观看</button>
+              <button class="btn" @click="toggleMute">{{ remoteMuted ? t('chat.unmute') : t('chat.mute') }}</button>
+              <button class="btn" @click="stopWatching">{{ t('chat.stopWatch') }}</button>
             </template>
           </div>
           <template v-if="isWatching">
             <video ref="remoteVideo" class="broadcast-video" autoplay playsinline></video>
-            <p v-if="!remoteStream" class="broadcast-hint">正在接入直播间…</p>
+            <p v-if="!remoteStream" class="broadcast-hint">{{ t('chat.connecting') }}</p>
           </template>
         </div>
       </section>
 
-      <h2>消息日志：</h2>
+      <h2>{{ t('chat.logTitle') }}</h2>
       <div id="messageContainer" ref="container">
         <MessageCard
           v-for="(msg, index) in messages"
@@ -132,9 +134,9 @@ onUnmounted(() => {
         />
       </div>
 
-      <div>
-        <input type="text" id="messageInput" v-model="input" placeholder="请输入文本" />
-        <button class="btn" @click="sendMessage">发送</button>
+      <div class="chat-input-bar">
+        <input type="text" id="messageInput" v-model="input" :placeholder="t('chat.placeholder')" />
+        <button class="btn" @click="sendMessage">{{ t('chat.send') }}</button>
       </div>
     </div>
   </div>

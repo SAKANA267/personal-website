@@ -39,16 +39,16 @@ messagesRouter.post('/', async (req, res) => {
 // 登录适配：留言审核——管理员隐藏/恢复一条留言（is_displayed 置 0/1）
 messagesRouter.patch('/:id', async (req, res) => {
   if (!sessionUsername(req)) {
-    res.status(401).json({ error: 'Login required' })
+    res.status(401).json({ error: 'LOGIN_REQUIRED' })
     return
   }
   if (!isAdmin(req)) {
-    res.status(403).json({ error: 'Admin only' })
+    res.status(403).json({ error: 'ADMIN_ONLY' })
     return
   }
   const displayed = req.body?.is_displayed
   if (displayed !== 0 && displayed !== 1) {
-    res.status(400).json({ error: 'is_displayed must be 0 or 1' })
+    res.status(400).json({ error: 'MESSAGE_BAD_DISPLAYED' })
     return
   }
   try {
@@ -57,11 +57,12 @@ messagesRouter.patch('/:id', async (req, res) => {
       req.params.id,
     ])
     if ((result as any).affectedRows === 0) {
-      res.status(404).json({ error: 'Message not found' })
+      res.status(404).json({ error: 'MESSAGE_NOT_FOUND' })
       return
     }
     res.json({ success: true })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })

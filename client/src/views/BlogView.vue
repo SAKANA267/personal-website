@@ -5,9 +5,11 @@ import WriterByline from '../components/WriterByline.vue'
 import { mergedPosts, useDbPosts, refreshDbPosts } from '../composables/useBlogPosts'
 import { api } from '../composables/useApi'
 import { useAuth } from '../stores/auth'
+import { useLocale } from '../stores/locale'
 import type { BlogPost } from '../types'
 
 const router = useRouter()
+const { t } = useLocale()
 const query = ref('')
 const activeCategory = ref('All')
 const currentPage = ref(1)
@@ -34,7 +36,7 @@ function canManage(post: BlogPost): boolean {
 
 async function removePost(post: BlogPost) {
   if (post.id == null) return
-  if (!window.confirm(`删除文章「${post.title}」？评论与点赞将一并删除。`)) return
+  if (!window.confirm(t('blog.confirmDelete', { title: post.title }))) return
   const res = await api.deletePost(post.id)
   if (res.ok) refreshDbPosts()
 }
@@ -90,8 +92,8 @@ function goToPage(n: number) {
 
     <!-- 刊头 Masthead -->
     <header class="masthead">
-      <p class="masthead-eyebrow">WRITINGS · 2026</p>
-      <h1 class="masthead-title">Blog</h1>
+      <p class="masthead-eyebrow">{{ t('blog.eyebrow') }}</p>
+      <h1 class="masthead-title">{{ t('blog.title') }}</h1>
       <WriterByline />
     </header>
 
@@ -99,7 +101,7 @@ function goToPage(n: number) {
 
     <!-- 分类 + 搜索 + 写作入口 -->
     <div class="toolbar">
-      <nav class="filters" aria-label="文章分类">
+      <nav class="filters" :aria-label="t('blog.filtersAria')">
         <button
           v-for="c in categories"
           :key="c"
@@ -108,7 +110,7 @@ function goToPage(n: number) {
           :class="{ active: activeCategory === c }"
           @click="setCategory(c)"
         >
-          {{ c }}
+          {{ c === 'All' ? t('blog.all') : c }}
         </button>
       </nav>
       <div class="toolbar-right">
@@ -117,14 +119,14 @@ function goToPage(n: number) {
             v-model="query"
             class="blog-search"
             type="search"
-            placeholder="搜索文章…"
-            aria-label="搜索文章"
+            :placeholder="t('blog.searchPlaceholder')"
+            :aria-label="t('blog.searchAria')"
             @input="onSearch"
           />
         </div>
         <!-- 登录联动：登录用户可撰写文章 -->
         <button v-if="username" type="button" class="compose-btn" @click="router.push('/blog/compose')">
-          写文章
+          {{ t('blog.compose') }}
         </button>
       </div>
     </div>
@@ -138,7 +140,7 @@ function goToPage(n: number) {
         :style="{ animationDelay: (index + 1) * 0.12 + 's' }"
         tabindex="0"
         role="link"
-        :aria-label="`阅读文章：${post.title}`"
+        :aria-label="t('blog.readAria', { title: post.title })"
         @click="openPost(post.slug)"
         @keydown.enter="openPost(post.slug)"
       >
@@ -152,10 +154,10 @@ function goToPage(n: number) {
               <span class="meta-sep">·</span>
               <span class="post-author">{{ post.author }}</span>
             </template>
-            <span v-if="post.isPublished === 0" class="post-draft-badge">草稿</span>
+            <span v-if="post.isPublished === 0" class="post-draft-badge">{{ t('blog.draft') }}</span>
             <template v-if="post.readTime">
               <span class="meta-sep">·</span>
-              <span class="post-read">{{ post.readTime }} min</span>
+              <span class="post-read">{{ t('blog.readTime', { n: post.readTime }) }}</span>
             </template>
           </p>
           <h2 class="post-title">{{ post.title }}</h2>
@@ -166,10 +168,10 @@ function goToPage(n: number) {
           <!-- 作者/管理员：编辑与删除（不触发打开文章） -->
           <div v-if="canManage(post)" class="post-manage" @click.stop>
             <button type="button" class="post-manage-btn" @click.stop="router.push(`/blog/compose?slug=${post.slug}`)">
-              编辑
+              {{ t('blog.edit') }}
             </button>
             <button type="button" class="post-manage-btn post-manage-danger" @click.stop="removePost(post)">
-              删除
+              {{ t('blog.delete') }}
             </button>
           </div>
         </div>
@@ -178,12 +180,12 @@ function goToPage(n: number) {
 
       <!-- 空状态 -->
       <p v-if="filtered.length === 0" class="empty-state">
-        没有匹配「{{ query || activeCategory }}」的文章
+        {{ t('blog.empty', { q: query || (activeCategory === 'All' ? t('blog.all') : activeCategory) }) }}
       </p>
     </main>
 
     <!-- 分页 -->
-    <nav v-if="totalPages > 1" class="blog-pagination" aria-label="分页">
+    <nav v-if="totalPages > 1" class="blog-pagination" :aria-label="t('blog.paginationAria')">
       <button
         type="button"
         class="page-btn"

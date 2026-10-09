@@ -6,10 +6,12 @@ import { getPost, mergedPosts, refreshDbPosts } from '../composables/useBlogPost
 import { renderMarkdown } from '../composables/useMarkdown'
 import { api } from '../composables/useApi'
 import { useAuth } from '../stores/auth'
+import { useLocale } from '../stores/locale'
 import type { BlogPost, PostComment } from '../types'
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useLocale()
 
 const slug = computed(() => String(route.params.slug ?? ''))
 
@@ -65,7 +67,7 @@ const canManage = computed(() =>
 
 async function deleteThisPost() {
   if (post.value?.id == null) return
-  if (!window.confirm(`删除文章「${post.value.title}」？评论与点赞将一并删除。`)) return
+  if (!window.confirm(t('blog.confirmDelete', { title: post.value.title }))) return
   const res = await api.deletePost(post.value.id)
   if (res.ok) {
     await refreshDbPosts()
@@ -200,7 +202,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
   <div class="page-blog-detail">
     <!-- DB 文章正文加载中 -->
     <div v-if="dbLoading" class="db-post-loading">
-      <p class="nf-title">载入中…</p>
+      <p class="nf-title">{{ t('blogDetail.loading') }}</p>
     </div>
 
     <template v-else-if="post">
@@ -208,7 +210,7 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       <header class="masthead">
         <p class="masthead-eyebrow">
           {{ post.category }} · {{ post.date }}
-          <span v-if="post.isPublished === 0" class="post-draft-badge">草稿</span>
+          <span v-if="post.isPublished === 0" class="post-draft-badge">{{ t('blog.draft') }}</span>
         </p>
         <h1 class="masthead-title">{{ post.title }}</h1>
         <WriterByline :author="post.author" />
@@ -219,34 +221,34 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       <!-- 元数据条 -->
       <div class="post-meta-strip">
         <span class="meta-item">
-          <span class="meta-k">DATE</span>
+          <span class="meta-k">{{ t('blogDetail.dateK') }}</span>
           <span class="meta-v">{{ post.date }}</span>
         </span>
         <span class="meta-item">
-          <span class="meta-k">CATEGORY</span>
+          <span class="meta-k">{{ t('blogDetail.categoryK') }}</span>
           <span class="meta-v">{{ post.category }}</span>
         </span>
         <span v-if="post.author" class="meta-item">
-          <span class="meta-k">AUTHOR</span>
+          <span class="meta-k">{{ t('blogDetail.authorK') }}</span>
           <span class="meta-v">{{ post.author }}</span>
         </span>
         <span v-if="post.readTime" class="meta-item">
-          <span class="meta-k">READ</span>
-          <span class="meta-v">{{ post.readTime }} min</span>
+          <span class="meta-k">{{ t('blogDetail.readK') }}</span>
+          <span class="meta-v">{{ t('blog.readTime', { n: post.readTime }) }}</span>
         </span>
         <span v-if="post.tags.length" class="meta-item meta-tags">
-          <span class="meta-k">TAGS</span>
+          <span class="meta-k">{{ t('blogDetail.tagsK') }}</span>
           <span class="meta-v">
-            <span v-for="t in post.tags" :key="t" class="tag">#{{ t }}</span>
+            <span v-for="tag in post.tags" :key="tag" class="tag">#{{ tag }}</span>
           </span>
         </span>
         <!-- 作者/管理员：编辑与删除 -->
         <span v-if="canManage" class="meta-item meta-manage">
           <button type="button" class="post-manage-btn" @click="router.push(`/blog/compose?slug=${slug}`)">
-            编辑
+            {{ t('blog.edit') }}
           </button>
           <button type="button" class="post-manage-btn post-manage-danger" @click="deleteThisPost">
-            删除
+            {{ t('blog.delete') }}
           </button>
         </span>
       </div>
@@ -257,13 +259,13 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
           <article class="markdown-body" v-html="articleHtml"></article>
 
           <!-- 登录联动：文章尾部的互动带（点赞 + 评论区），与正文同 measure 的"落款带" -->
-          <section class="post-engagement" aria-label="点赞与评论">
+          <section class="post-engagement" :aria-label="t('blogDetail.engagementAria')">
             <div class="engagement-row">
               <button
                 type="button"
                 class="like-btn"
                 :class="{ liked: likes.liked }"
-                :aria-label="likes.liked ? '取消点赞' : '点赞'"
+                :aria-label="likes.liked ? t('blogDetail.unlike') : t('blogDetail.like')"
                 :aria-pressed="likes.liked"
                 @click="toggleLike"
               >
@@ -272,8 +274,8 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
                 </svg>
                 <span class="like-count">{{ likes.count }}</span>
               </button>
-              <span v-if="!username" class="like-hint">登录后可点赞</span>
-              <p class="comments-title">COMMENTS · {{ comments.length }}</p>
+              <span v-if="!username" class="like-hint">{{ t('blogDetail.likeHint') }}</span>
+              <p class="comments-title">{{ t('blogDetail.commentsTitle', { n: comments.length }) }}</p>
             </div>
 
             <div v-if="comments.length" class="comments-list">
@@ -287,36 +289,36 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
                     class="comment-delete"
                     @click="removeComment(c)"
                   >
-                    删除
+                    {{ t('blogDetail.commentDelete') }}
                   </button>
                 </p>
                 <p class="comment-content">{{ c.content }}</p>
               </div>
             </div>
-            <p v-else class="comments-empty">还没有评论。</p>
+            <p v-else class="comments-empty">{{ t('blogDetail.noComments') }}</p>
 
             <form v-if="username" class="comment-form" @submit.prevent="submitComment">
-              <label class="comment-label" for="comment-input">以 {{ username }} 发表评论</label>
+              <label class="comment-label" for="comment-input">{{ t('blogDetail.commentLabel', { name: username }) }}</label>
               <textarea
                 id="comment-input"
                 v-model="commentText"
                 rows="3"
                 maxlength="2000"
-                placeholder="说点什么…"
+                :placeholder="t('blogDetail.commentPlaceholder')"
                 required
               ></textarea>
               <button type="submit" class="comment-submit" :disabled="commentPending || !commentText.trim()">
-                {{ commentPending ? '发送中…' : '发表评论' }}
+                {{ commentPending ? t('blogDetail.commentPending') : t('blogDetail.commentSubmit') }}
               </button>
             </form>
             <p v-else class="comments-login-hint">
-              <router-link to="/login">登录</router-link> 后参与评论
+              <router-link to="/login">{{ t('blogDetail.loginHintLead') }}</router-link>{{ t('blogDetail.loginHintTail') }}
             </p>
           </section>
         </div>
 
-        <aside v-if="toc.length" class="toc" aria-label="本页目录">
-          <p class="toc-title">ON THIS PAGE</p>
+        <aside v-if="toc.length" class="toc" :aria-label="t('blogDetail.tocAria')">
+          <p class="toc-title">{{ t('blogDetail.tocTitle') }}</p>
           <nav>
             <ul>
               <li
@@ -332,14 +334,14 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
       </div>
 
       <!-- 上一篇 / 下一篇 -->
-      <nav class="post-nav" aria-label="文章导航">
+      <nav class="post-nav" :aria-label="t('blogDetail.navAria')">
         <button
           v-if="neighbours.prev"
           type="button"
           class="nav-row"
           @click="go(neighbours.prev.slug)"
         >
-          <span class="nav-dir">← 上一篇</span>
+          <span class="nav-dir">{{ t('blogDetail.prev') }}</span>
           <span class="nav-title">{{ neighbours.prev.title }}</span>
         </button>
         <span v-else class="nav-row nav-empty" aria-hidden="true"></span>
@@ -350,22 +352,22 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
           class="nav-row nav-right"
           @click="go(neighbours.next.slug)"
         >
-          <span class="nav-dir">下一篇 →</span>
+          <span class="nav-dir">{{ t('blogDetail.next') }}</span>
           <span class="nav-title">{{ neighbours.next.title }}</span>
         </button>
         <span v-else class="nav-row nav-empty" aria-hidden="true"></span>
       </nav>
 
       <p class="back-link">
-        <button type="button" class="back-btn" @click="back">← 返回博客</button>
+        <button type="button" class="back-btn" @click="back">{{ t('blogDetail.back') }}</button>
       </p>
     </template>
 
     <!-- 文章不存在 -->
     <div v-else class="not-found">
-      <p class="nf-title">文章不存在</p>
-      <p class="nf-desc">没有找到「{{ slug }}」对应的文章。</p>
-      <button type="button" class="back-btn" @click="back">← 返回博客</button>
+      <p class="nf-title">{{ t('blogDetail.nfTitle') }}</p>
+      <p class="nf-desc">{{ t('blogDetail.nfDesc', { slug }) }}</p>
+      <button type="button" class="back-btn" @click="back">{{ t('blogDetail.back') }}</button>
     </div>
   </div>
 </template>

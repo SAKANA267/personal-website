@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useLocale } from '../stores/locale'
+
+const { t } = useLocale()
 
 interface ChartCase {
   id: string
@@ -101,34 +104,32 @@ const cases: ChartCase[] = [
 
     <div class="lab-container">
       <header class="lab-header">
-        <div class="lab-kicker">Charts Lab · 学习测试页</div>
-        <h1>图表实验室 — Lieflat Charts</h1>
+        <div class="lab-kicker">{{ t('chartsLab.kicker') }}</div>
+        <h1>{{ t('chartsLab.title') }}</h1>
         <p>
-          本页用例由 <strong>Lieflat Charts</strong> skill 生成：一套模板驱动的数据可视化 skill（63 种图型 + 12 套整页报告模板），
-          输出无需构建、双击可打开的单文件 HTML 图表。它已安装在
-          <code>~/.zcode/skills/lieflat-charts</code>，把数据和场合用一句人话告诉 AI 即可触发，不需要说图型名。
-          本页数据均为演示数据。
+          {{ t('chartsLab.introLead') }} <strong>Lieflat Charts</strong>{{ t('chartsLab.introMid') }}
+          <code>~/.zcode/skills/lieflat-charts</code>{{ t('chartsLab.introTail') }}
         </p>
       </header>
 
       <section class="lab-rules">
         <div class="lab-rule">
-          <h3><span class="rule-no">01</span>选型有固定顺序</h3>
-          <p>默认先审计 Lupi Editorial（L1–L15），再 Lupi Basics（F1–F13）；两组都不适配、或你明确要 dashboard / 三秒快读，才降级到 Glance。地图必须明确要求才启用。</p>
+          <h3><span class="rule-no">01</span>{{ t('chartsLab.rule1Title') }}</h3>
+          <p>{{ t('chartsLab.rule1Body') }}</p>
         </div>
         <div class="lab-rule">
-          <h3><span class="rule-no">02</span>一份交付锁定一种色彩系统</h3>
-          <p>默认 Mono 灰阶（明度即数据：最重要 = 最黑）；数据语义合适时自动换 porcelain / palm / wire 彩色预设，但同一组图不混用色系。</p>
+          <h3><span class="rule-no">02</span>{{ t('chartsLab.rule2Title') }}</h3>
+          <p>{{ t('chartsLab.rule2Body') }}</p>
         </div>
         <div class="lab-rule">
-          <h3><span class="rule-no">03</span>默认输出图表，不是报告</h3>
-          <p>只给数据或说「可视化一下」就是图表模式；只有明确要求「报告 / 年报 / 白皮书 / 调研一页纸」时才进入 12 套整页报告模板。</p>
+          <h3><span class="rule-no">03</span>{{ t('chartsLab.rule3Title') }}</h3>
+          <p>{{ t('chartsLab.rule3Body') }}</p>
         </div>
       </section>
 
-      <h2 class="lab-section-title">七个用例</h2>
+      <h2 class="lab-section-title">{{ t('chartsLab.sectionTitle') }}</h2>
       <p class="lab-section-sub">
-        覆盖七种常见数据形状与三个风格系。图表滚入视野时播放入场动画，点击图内可重播。
+        {{ t('chartsLab.sectionSub') }}
       </p>
 
       <article v-for="c in cases" :key="c.id" class="lab-case">
@@ -138,23 +139,25 @@ const cases: ChartCase[] = [
           <span class="lab-case-family">{{ c.family }}</span>
         </div>
         <div class="lab-case-body">
-          <p class="lab-meta"><strong>数据形状：</strong>{{ c.shape }}</p>
+          <p class="lab-meta"><strong>{{ t('chartsLab.shapeLabel') }}</strong>{{ c.shape }}</p>
           <p class="lab-meta">{{ c.summary }}</p>
-          <div class="lab-prompt">{{ c.prompt }}</div>
+          <!-- 伪元素标签文字经 data-label 提供（CSS content: attr()），可被 i18n 切换 -->
+          <div class="lab-prompt" :data-label="t('chartsLab.promptLabel')">{{ c.prompt }}</div>
           <div class="lab-frame-wrap">
-            <iframe :src="base + 'charts-lab/' + c.file" :title="c.name" loading="lazy" scrolling="no"></iframe>
+            <!-- 滚动由 CSS 控制（.lab-frame-wrap iframe）：桌面裁切、窄屏可滚，废弃的 scrolling 属性不再使用 -->
+            <iframe :src="base + 'charts-lab/' + c.file" :title="c.name" loading="lazy"></iframe>
           </div>
           <p class="lab-case-src">
-            模板出处：{{ c.source }} · {{ c.note }} ·
-            <a :href="base + 'charts-lab/' + c.file" target="_blank" rel="noopener">新标签页打开单文件 ↗</a>
+            {{ t('chartsLab.sourceLabel') }}{{ c.source }} · {{ c.note }} ·
+            <a :href="base + 'charts-lab/' + c.file" target="_blank" rel="noopener">{{ t('chartsLab.openNewTab') }}</a>
           </p>
         </div>
       </article>
 
       <footer class="lab-foot">
-        学习提示：让 AI 重新生成时，只要替换「数据 + 场合 + 读者是谁」，它会按 catalog 自动选型并在回复里写出候选比较；
-        也可以直接点名图型（如「用 F1 画」）。本 skill 由「躺在废墟里」开发，若公开分发生成的图表内容请署名或 @ 开发者。
-        图表内联的 Inter 字体经 Google Fonts 加载，离线时回退系统字体。
+        {{ t('chartsLab.foot1') }}
+        {{ t('chartsLab.foot2') }}
+        {{ t('chartsLab.foot3') }}
       </footer>
     </div>
   </div>

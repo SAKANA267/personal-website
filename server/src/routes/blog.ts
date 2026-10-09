@@ -108,26 +108,26 @@ blogRouter.get('/', async (req, res) => {
         )
     res.json((rows as any[]).map(normalizeRow))
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
 // 输入校验：标题/分类/标签/正文/发布位
 function validatePostInput(body: any) {
   const title = typeof body?.title === 'string' ? body.title.trim() : ''
-  if (!title || title.length > 120) return { error: '标题须为 1-120 字' }
+  if (!title || title.length > 120) return { error: 'POST_TITLE_INVALID' }
   const category =
     typeof body?.category === 'string' && body.category.trim() ? body.category.trim() : '随笔'
-  if (category.length > 32) return { error: '分类过长（≤32 字）' }
+  if (category.length > 32) return { error: 'POST_CATEGORY_TOO_LONG' }
   let tags: string[] = []
   if (body?.tags !== undefined) {
-    if (!Array.isArray(body.tags)) return { error: 'tags 须为数组' }
+    if (!Array.isArray(body.tags)) return { error: 'POST_TAGS_INVALID' }
     tags = body.tags.map((t: any) => String(t).trim()).filter(Boolean)
-    if (tags.length > 8) return { error: '标签最多 8 个' }
-    if (tags.some((t) => t.length > 32)) return { error: '单个标签 ≤32 字' }
+    if (tags.length > 8) return { error: 'POST_TAGS_TOO_MANY' }
+    if (tags.some((t) => t.length > 32)) return { error: 'POST_TAG_TOO_LONG' }
   }
   const content = typeof body?.body === 'string' ? body.body : ''
-  if (!content.trim() || content.length > 50000) return { error: '正文须为 1-50000 字' }
+  if (!content.trim() || content.length > 50000) return { error: 'POST_BODY_INVALID' }
   const isPublished = body?.is_published === 0 ? 0 : 1
   return { title, category, tags, body: content, isPublished }
 }
@@ -136,7 +136,7 @@ function validatePostInput(body: any) {
 blogRouter.post('/', async (req, res) => {
   try {
     const user = sessionUsername(req)
-    if (!user) return res.status(401).json({ error: 'Login required' })
+    if (!user) return res.status(401).json({ error: 'LOGIN_REQUIRED' })
     const v = validatePostInput(req.body)
     if ('error' in v) return res.status(400).json({ error: v.error })
 
@@ -152,7 +152,7 @@ blogRouter.post('/', async (req, res) => {
     ])) as any[]
     res.json({ success: true, post: normalizeRow(rows[0]) })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -164,15 +164,15 @@ blogRouter.get('/:slug', async (req, res) => {
       `SELECT ${POST_FIELDS}, body FROM blog_posts WHERE slug = ? AND author_username IS NOT NULL`,
       [slug]
     )) as any[]
-    if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ error: 'Not found' })
+    if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ error: 'NOT_FOUND' })
     const post = normalizeRow(rows[0])
     if (post.isPublished !== 1) {
       const user = sessionUsername(req)
-      if (user !== post.author && !isAdmin(req)) return res.status(404).json({ error: 'Not found' })
+      if (user !== post.author && !isAdmin(req)) return res.status(404).json({ error: 'NOT_FOUND' })
     }
     res.json(post)
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -180,15 +180,15 @@ blogRouter.get('/:slug', async (req, res) => {
 blogRouter.put('/:id', async (req, res) => {
   try {
     const user = sessionUsername(req)
-    if (!user) return res.status(401).json({ error: 'Login required' })
+    if (!user) return res.status(401).json({ error: 'LOGIN_REQUIRED' })
     const id = Number(req.params.id)
     const [rows] = (await pool.query(
       'SELECT id, author_username FROM blog_posts WHERE id = ? AND author_username IS NOT NULL',
       [id]
     )) as any[]
-    if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ error: 'Not found' })
+    if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ error: 'NOT_FOUND' })
     if (rows[0].author_username !== user && !isAdmin(req))
-      return res.status(403).json({ error: 'Not allowed' })
+      return res.status(403).json({ error: 'NOT_ALLOWED' })
 
     const v = validatePostInput(req.body)
     if ('error' in v) return res.status(400).json({ error: v.error })
@@ -201,7 +201,7 @@ blogRouter.put('/:id', async (req, res) => {
     const [after] = (await pool.query(`SELECT ${POST_FIELDS}, body FROM blog_posts WHERE id = ?`, [id])) as any[]
     res.json({ success: true, post: normalizeRow(after[0]) })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -209,15 +209,15 @@ blogRouter.put('/:id', async (req, res) => {
 blogRouter.delete('/:id', async (req, res) => {
   try {
     const user = sessionUsername(req)
-    if (!user) return res.status(401).json({ error: 'Login required' })
+    if (!user) return res.status(401).json({ error: 'LOGIN_REQUIRED' })
     const id = Number(req.params.id)
     const [rows] = (await pool.query(
       'SELECT id, slug, author_username FROM blog_posts WHERE id = ? AND author_username IS NOT NULL',
       [id]
     )) as any[]
-    if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ error: 'Not found' })
+    if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ error: 'NOT_FOUND' })
     if (rows[0].author_username !== user && !isAdmin(req))
-      return res.status(403).json({ error: 'Not allowed' })
+      return res.status(403).json({ error: 'NOT_ALLOWED' })
 
     const slug = rows[0].slug
     await pool.query('DELETE FROM post_comments WHERE post_slug = ?', [slug])
@@ -225,7 +225,7 @@ blogRouter.delete('/:id', async (req, res) => {
     await pool.query('DELETE FROM blog_posts WHERE id = ?', [id])
     res.json({ success: true })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -241,7 +241,7 @@ blogRouter.get('/:slug/comments', async (req, res) => {
     )) as any[]
     res.json(rows)
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -249,10 +249,10 @@ blogRouter.get('/:slug/comments', async (req, res) => {
 blogRouter.post('/:slug/comments', async (req, res) => {
   try {
     const user = sessionUsername(req)
-    if (!user) return res.status(401).json({ error: 'Login required' })
+    if (!user) return res.status(401).json({ error: 'LOGIN_REQUIRED' })
     const slug = String(req.params.slug)
     const content = typeof req.body?.content === 'string' ? req.body.content.trim() : ''
-    if (!content || content.length > 2000) return res.status(400).json({ error: '评论须为 1-2000 字' })
+    if (!content || content.length > 2000) return res.status(400).json({ error: 'COMMENT_INVALID' })
 
     // 用户文章须存在且已发布（草稿不可被评论）；静态 .md 文章没有库行，直接放行
     const [posts] = (await pool.query(
@@ -260,7 +260,7 @@ blogRouter.post('/:slug/comments', async (req, res) => {
       [slug]
     )) as any[]
     if (Array.isArray(posts) && posts.length > 0 && posts[0].author_username && posts[0].is_published !== 1)
-      return res.status(404).json({ error: 'Not found' })
+      return res.status(404).json({ error: 'NOT_FOUND' })
 
     const [result] = (await pool.query(
       'INSERT INTO post_comments (post_slug, username, content) VALUES (?, ?, ?)',
@@ -273,7 +273,7 @@ blogRouter.post('/:slug/comments', async (req, res) => {
     )) as any[]
     res.json({ success: true, comment: rows[0] })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -281,16 +281,16 @@ blogRouter.post('/:slug/comments', async (req, res) => {
 blogRouter.delete('/comments/:id', async (req, res) => {
   try {
     const user = sessionUsername(req)
-    if (!user) return res.status(401).json({ error: 'Login required' })
+    if (!user) return res.status(401).json({ error: 'LOGIN_REQUIRED' })
     const id = Number(req.params.id)
     const [rows] = (await pool.query('SELECT id, username FROM post_comments WHERE id = ?', [id])) as any[]
-    if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ error: 'Not found' })
+    if (!Array.isArray(rows) || rows.length === 0) return res.status(404).json({ error: 'NOT_FOUND' })
     if (rows[0].username !== user && !isAdmin(req))
-      return res.status(403).json({ error: 'Not allowed' })
+      return res.status(403).json({ error: 'NOT_ALLOWED' })
     await pool.query('DELETE FROM post_comments WHERE id = ?', [id])
     res.json({ success: true })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -315,7 +315,7 @@ blogRouter.get('/:slug/likes', async (req, res) => {
     }
     res.json({ count: row?.count ?? 0, liked })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
 
@@ -323,7 +323,7 @@ blogRouter.get('/:slug/likes', async (req, res) => {
 blogRouter.post('/:slug/likes', async (req, res) => {
   try {
     const user = sessionUsername(req)
-    if (!user) return res.status(401).json({ error: 'Login required' })
+    if (!user) return res.status(401).json({ error: 'LOGIN_REQUIRED' })
     const slug = String(req.params.slug)
 
     const [existing] = (await pool.query(
@@ -342,6 +342,6 @@ blogRouter.post('/:slug/likes', async (req, res) => {
     )) as any[]
     res.json({ count: row?.count ?? 0, liked: !(existing && existing.length > 0) })
   } catch (e: any) {
-    res.status(500).json({ error: e.message })
+    console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })

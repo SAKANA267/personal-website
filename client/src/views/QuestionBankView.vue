@@ -4,7 +4,10 @@ import WriterByline from '../components/WriterByline.vue'
 import CodeBlock from '../components/CodeBlock.vue'
 import QuizItem from '../components/QuizItem.vue'
 import { useAuth } from '../stores/auth'
+import { useLocale } from '../stores/locale'
 import type { Question } from '../types'
+
+const { t } = useLocale()
 
 const seed: Question = {
   question: 'What is the capital of France?',
@@ -48,23 +51,19 @@ function saveQuestionsToLocalStorage() {
 }
 
 function addQuestion() {
-  const json = prompt(
-    'Enter the questions JSON string (multiple JSON objects separated by commas):'
-  )
+  const json = prompt(t('quiz.promptJson'))
   try {
     const parsed = JSON.parse(`[${json}]`) as any[]
     parsed.forEach((q: any) => {
       if (q.question && q.options && q.answer) {
         questions.value.push(q)
       } else {
-        alert(
-          "Invalid question format. Please ensure each question includes 'question', 'options', and 'answer'."
-        )
+        alert(t('quiz.invalidQuestion'))
       }
     })
     saveQuestionsToLocalStorage()
   } catch (e) {
-    alert('Invalid JSON format. Please enter valid JSON strings.')
+    alert(t('quiz.invalidJson'))
   }
 }
 
@@ -83,7 +82,7 @@ const output = ref('')
 function convertToJSON() {
   const lines = questionText.value.split('\n').map((l) => l.trim()).filter((l) => l)
   if (lines.length < 6) {
-    alert('Please enter a valid question with at least 4 options and an answer.')
+    alert(t('quiz.needLines'))
     return
   }
   const question = lines[0]
@@ -97,35 +96,35 @@ function convertToJSON() {
   <div class="page-bank">
 
     <div class="container">
-      <h1>自定义题库</h1>
+      <h1>{{ t('quiz.title') }}</h1>
       <WriterByline />
 
       <!-- 注意事项 -->
-      <p>题目由JavaScript读取json字符串</p>
-      <p>例如</p>
+      <p>{{ t('quiz.note') }}</p>
+      <p>{{ t('quiz.example') }}</p>
       <CodeBlock />
 
-      <button id="add-question-btn" @click="addQuestion">Add Question</button>
+      <button id="add-question-btn" @click="addQuestion">{{ t('quiz.add') }}</button>
 
       <!-- 管理按钮 -->
       <div class="container">
-        <button id="view-storage-btn" @click="viewStorage">View Storage</button>
-        <button id="clear-storage-btn" @click="clearStorage">Clear Storage</button>
+        <button id="view-storage-btn" @click="viewStorage">{{ t('quiz.view') }}</button>
+        <button id="clear-storage-btn" @click="clearStorage">{{ t('quiz.clear') }}</button>
       </div>
 
       <div class="container">
-        <h2>1.2JSON 转换</h2>
+        <h2>{{ t('quiz.convertTitle') }}</h2>
         <label class="input-field">
-          Paste your question here:
+          {{ t('quiz.pasteLabel') }}
           <textarea
             id="question-text"
             rows="10"
             cols="50"
             v-model="questionText"
-            placeholder="Enter the question, options, and answer"
+            :placeholder="t('quiz.placeholder')"
           ></textarea>
         </label>
-        <button id="convert-btn" @click="convertToJSON">Convert to JSON</button>
+        <button id="convert-btn" @click="convertToJSON">{{ t('quiz.convert') }}</button>
         <div class="output" id="output">{{ output }}</div>
       </div>
 

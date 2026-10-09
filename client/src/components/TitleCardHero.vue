@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import { useLocale } from '../stores/locale'
+
+const { t } = useLocale()
 
 /**
  * 标题卡英雄区（首页顶部封面）。
@@ -129,7 +132,7 @@ defineExpose({ phase })
     v-if="active"
     class="page-title-card"
     :class="[`is-${phase}`]"
-    aria-label="站点标题卡"
+    :aria-label="t('titleCard.aria')"
     @click="enter"
   >
     <div
@@ -160,12 +163,12 @@ defineExpose({ phase })
 
       <!-- 主内容 -->
       <div ref="contentRef" class="content">
-        <div class="subtitle">Personal Website</div>
+        <div class="subtitle">{{ t('titleCard.subtitle') }}</div>
         <div ref="titleWrapperRef" class="title-wrapper" data-text="SAKANA">
           <h1 class="title">SAKANA</h1>
         </div>
         <div class="dot"></div>
-        <div class="enter-hint">scroll or click to enter</div>
+        <div class="enter-hint">{{ t('titleCard.hint') }}</div>
       </div>
 
       <!-- 角标 -->

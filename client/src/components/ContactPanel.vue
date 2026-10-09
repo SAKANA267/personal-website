@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { useCopyText } from '../composables/useCopyText'
 import { goExternal } from '../stores/loading'
+import { useLocale } from '../stores/locale'
 
 const { tooltip, copy } = useCopyText()
+const { t } = useLocale()
 
 // 子路径部署：资源路径需带 base 前缀
 const BASE_URL = import.meta.env.BASE_URL
@@ -16,7 +18,7 @@ const BASE_URL = import.meta.env.BASE_URL
       :class="{ show: tooltip.show }"
       :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
     >
-      已复制
+      {{ t('common.copied') }}
     </div>
 
     <div class="contact-container">
