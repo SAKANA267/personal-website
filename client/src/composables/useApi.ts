@@ -1,4 +1,4 @@
-import type { Message, DevLogEntry, User, ShareItem } from '../types'
+import type { Message, DevLogEntry, User, ShareItem, BlogPost, PostComment, PostLikes } from '../types'
 
 const BASE = import.meta.env.VITE_API_BASE || '/api'
 
@@ -106,4 +106,30 @@ export const api = {
   getMyShares: () => getJson<ShareItem[]>('/share/mine'),
   deleteShare: (code: string) =>
     request<{ success?: boolean; error?: string }>('DELETE', `/share/${encodeURIComponent(code)}`),
+  // 博客登录联动：用户文章（DB）与评论/点赞
+  getDbPosts: () => getJson<BlogPost[]>('/blog'),
+  getDbPost: async (slug: string) => {
+    const res = await fetch(`${BASE}/blog/${encodeURIComponent(slug)}`)
+    const data = await res.json().catch(() => ({}))
+    return { ok: res.ok, status: res.status, data: data as BlogPost & { error?: string } }
+  },
+  createPost: (data: { title: string; category: string; tags: string[]; body: string; is_published: 0 | 1 }) =>
+    post<{ success?: boolean; post?: BlogPost; error?: string }>('/blog', data),
+  updatePost: (id: number, data: { title: string; category: string; tags: string[]; body: string; is_published: 0 | 1 }) =>
+    fetch(`${BASE}/blog/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+      .then(async (res) => ({ ok: res.ok, status: res.status, data: (await res.json().catch(() => ({}))) as { success?: boolean; post?: BlogPost; error?: string } })),
+  deletePost: (id: number) =>
+    request<{ success?: boolean; error?: string }>('DELETE', `/blog/${id}`),
+  getComments: (slug: string) => getJson<PostComment[]>(`/blog/${encodeURIComponent(slug)}/comments`),
+  addComment: (slug: string, content: string) =>
+    post<{ success?: boolean; comment?: PostComment; error?: string }>(`/blog/${encodeURIComponent(slug)}/comments`, { content }),
+  deleteComment: (id: number) =>
+    request<{ success?: boolean; error?: string }>('DELETE', `/blog/comments/${id}`),
+  getLikes: (slug: string) => getJson<PostLikes>(`/blog/${encodeURIComponent(slug)}/likes`),
+  toggleLike: (slug: string) =>
+    post<PostLikes & { error?: string }>(`/blog/${encodeURIComponent(slug)}/likes`, {}),
 }

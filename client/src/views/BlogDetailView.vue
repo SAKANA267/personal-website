@@ -2,34 +2,137 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import WriterByline from '../components/WriterByline.vue'
-import { getAllPosts, getPost } from '../composables/useBlogPosts'
+import { getPost, mergedPosts, refreshDbPosts } from '../composables/useBlogPosts'
 import { renderMarkdown } from '../composables/useMarkdown'
-import type { BlogPost } from '../types'
+import { api } from '../composables/useApi'
+import { useAuth } from '../stores/auth'
+import type { BlogPost, PostComment } from '../types'
 
 const route = useRoute()
 const router = useRouter()
 
 const slug = computed(() => String(route.params.slug ?? ''))
 
-const found = computed(() => getPost(slug.value))
-const post = computed<BlogPost | undefined>(() => found.value?.post)
-const body = computed(() => found.value?.body ?? '')
+// ---------- 文章解析：静态 .md 同步取；DB 用户文章（u- 前缀）异步拉 ----------
+const staticFound = computed(() => getPost(slug.value))
+const dbDetail = ref<BlogPost | null>(null)
+const dbLoading = ref(false)
+const dbMissing = ref(false)
 
-// 解析正文为 HTML + 目录（带 h2/h3 锚点 id）
+async function loadDbPost(s: string) {
+  if (!s.startsWith('u-')) return
+  dbLoading.value = true
+  dbMissing.value = false
+  const res = await api.getDbPost(s)
+  dbLoading.value = false
+  if (res.ok && res.data?.slug) {
+    dbDetail.value = res.data
+  } else {
+    dbDetail.value = null
+    dbMissing.value = true
+  }
+}
+watch(slug, (s) => {
+  dbDetail.value = null
+  loadDbPost(s)
+}, { immediate: true })
+
+const post = computed<BlogPost | undefined>(() => staticFound.value?.post ?? dbDetail.value ?? undefined)
+const body = computed(() => staticFound.value?.body ?? dbDetail.value?.body ?? '')
+
+// 解析正文为 HTML + 目录（带 h2/h3 锚点 id；DOMPurify 净化，正文可能来自用户撰写）
 const rendered = computed(() =>
   body.value ? renderMarkdown(body.value) : { html: '', toc: [] },
 )
 const articleHtml = computed(() => rendered.value.html)
 const toc = computed(() => rendered.value.toc)
 
-// 上一篇 / 下一篇：getAllPosts 已按日期倒序（最新在前）。
-// 列表从上往下读即「新→旧」，因此 ←上一篇 = 更新的一篇（索引更小），下一篇→ = 更早的一篇。
+// 上一篇 / 下一篇：mergedPosts 已按日期倒序（最新在前）。
 const neighbours = computed(() => {
-  const all = getAllPosts()
+  const all = mergedPosts()
   const i = all.findIndex((p) => p.slug === slug.value)
   return {
     prev: i > 0 ? all[i - 1] : undefined, // 更新
     next: i >= 0 && i < all.length - 1 ? all[i + 1] : undefined, // 更早
+  }
+})
+
+// ---------- 登录联动：作者/管理员管理、点赞、评论 ----------
+const { username, isAdmin } = useAuth()
+const canManage = computed(() =>
+  !!post.value?.id && (post.value?.author === username.value || isAdmin.value)
+)
+
+async function deleteThisPost() {
+  if (post.value?.id == null) return
+  if (!window.confirm(`删除文章「${post.value.title}」？评论与点赞将一并删除。`)) return
+  const res = await api.deletePost(post.value.id)
+  if (res.ok) {
+    await refreshDbPosts()
+    router.push('/blog')
+  }
+}
+
+// 点赞：总数 + 当前用户是否已赞；游客点击去登录
+const likes = ref({ count: 0, liked: false })
+const likePending = ref(false)
+
+async function loadLikes(s: string) {
+  try {
+    likes.value = await api.getLikes(s)
+  } catch {
+    likes.value = { count: 0, liked: false }
+  }
+}
+async function toggleLike() {
+  if (!username.value) {
+    router.push('/login')
+    return
+  }
+  if (likePending.value) return
+  likePending.value = true
+  const res = await api.toggleLike(slug.value)
+  likePending.value = false
+  if (res.ok && typeof res.data.count === 'number') likes.value = res.data
+}
+
+// 评论：时间正序列表；登录发表；本人/管理员可删
+const comments = ref<PostComment[]>([])
+const commentText = ref('')
+const commentPending = ref(false)
+
+async function loadComments(s: string) {
+  try {
+    const rows = await api.getComments(s)
+    if (Array.isArray(rows)) comments.value = rows
+  } catch {
+    comments.value = []
+  }
+}
+async function submitComment() {
+  const content = commentText.value.trim()
+  if (!content || commentPending.value) return
+  commentPending.value = true
+  const res = await api.addComment(slug.value, content)
+  commentPending.value = false
+  if (res.ok && res.data.comment) {
+    comments.value.push(res.data.comment)
+    commentText.value = ''
+  }
+}
+function canDeleteComment(c: PostComment): boolean {
+  return c.username === username.value || isAdmin.value
+}
+async function removeComment(c: PostComment) {
+  const res = await api.deleteComment(c.id)
+  if (res.ok) comments.value = comments.value.filter((x) => x.id !== c.id)
+}
+
+// 文章就绪（静态或 DB 均可）后拉点赞与评论
+watch(post, (p) => {
+  if (p) {
+    loadLikes(slug.value)
+    loadComments(slug.value)
   }
 })
 
@@ -78,6 +181,7 @@ function onScroll() {
 onMounted(async () => {
   window.scrollTo({ top: 0 })
   window.addEventListener('scroll', onScroll, { passive: true })
+  refreshDbPosts()
   await nextTick()
   updateActive()
 })
@@ -94,12 +198,20 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 
 <template>
   <div class="page-blog-detail">
-    <template v-if="post">
+    <!-- DB 文章正文加载中 -->
+    <div v-if="dbLoading" class="db-post-loading">
+      <p class="nf-title">载入中…</p>
+    </div>
+
+    <template v-else-if="post">
       <!-- 刊头 -->
       <header class="masthead">
-        <p class="masthead-eyebrow">{{ post.category }} · {{ post.date }}</p>
+        <p class="masthead-eyebrow">
+          {{ post.category }} · {{ post.date }}
+          <span v-if="post.isPublished === 0" class="post-draft-badge">草稿</span>
+        </p>
         <h1 class="masthead-title">{{ post.title }}</h1>
-        <WriterByline />
+        <WriterByline :author="post.author" />
       </header>
 
       <hr class="rule" />
@@ -114,6 +226,10 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
           <span class="meta-k">CATEGORY</span>
           <span class="meta-v">{{ post.category }}</span>
         </span>
+        <span v-if="post.author" class="meta-item">
+          <span class="meta-k">AUTHOR</span>
+          <span class="meta-v">{{ post.author }}</span>
+        </span>
         <span v-if="post.readTime" class="meta-item">
           <span class="meta-k">READ</span>
           <span class="meta-v">{{ post.readTime }} min</span>
@@ -124,11 +240,80 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
             <span v-for="t in post.tags" :key="t" class="tag">#{{ t }}</span>
           </span>
         </span>
+        <!-- 作者/管理员：编辑与删除 -->
+        <span v-if="canManage" class="meta-item meta-manage">
+          <button type="button" class="post-manage-btn" @click="router.push(`/blog/compose?slug=${slug}`)">
+            编辑
+          </button>
+          <button type="button" class="post-manage-btn post-manage-danger" @click="deleteThisPost">
+            删除
+          </button>
+        </span>
       </div>
 
-      <!-- 正文 + 右侧目录 -->
+      <!-- 正文 + 右侧目录：正文与互动带共住同一阅读列（同宽同左缘），目录随右 -->
       <div class="article-layout">
-        <article class="markdown-body" v-html="articleHtml"></article>
+        <div class="article-column">
+          <article class="markdown-body" v-html="articleHtml"></article>
+
+          <!-- 登录联动：文章尾部的互动带（点赞 + 评论区），与正文同 measure 的"落款带" -->
+          <section class="post-engagement" aria-label="点赞与评论">
+            <div class="engagement-row">
+              <button
+                type="button"
+                class="like-btn"
+                :class="{ liked: likes.liked }"
+                :aria-label="likes.liked ? '取消点赞' : '点赞'"
+                :aria-pressed="likes.liked"
+                @click="toggleLike"
+              >
+                <svg viewBox="0 0 24 24" :fill="likes.liked ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                  <path d="M12 20.25S4.5 15.5 4.5 10.1A4.1 4.1 0 0 1 12 7.6a4.1 4.1 0 0 1 7.5 2.5c0 5.4-7.5 10.15-7.5 10.15z" />
+                </svg>
+                <span class="like-count">{{ likes.count }}</span>
+              </button>
+              <span v-if="!username" class="like-hint">登录后可点赞</span>
+              <p class="comments-title">COMMENTS · {{ comments.length }}</p>
+            </div>
+
+            <div v-if="comments.length" class="comments-list">
+              <div v-for="c in comments" :key="c.id" class="comment-item">
+                <p class="comment-head">
+                  <span class="comment-user">{{ c.username }}</span>
+                  <span class="comment-time">{{ c.createdAt }}</span>
+                  <button
+                    v-if="canDeleteComment(c)"
+                    type="button"
+                    class="comment-delete"
+                    @click="removeComment(c)"
+                  >
+                    删除
+                  </button>
+                </p>
+                <p class="comment-content">{{ c.content }}</p>
+              </div>
+            </div>
+            <p v-else class="comments-empty">还没有评论。</p>
+
+            <form v-if="username" class="comment-form" @submit.prevent="submitComment">
+              <label class="comment-label" for="comment-input">以 {{ username }} 发表评论</label>
+              <textarea
+                id="comment-input"
+                v-model="commentText"
+                rows="3"
+                maxlength="2000"
+                placeholder="说点什么…"
+                required
+              ></textarea>
+              <button type="submit" class="comment-submit" :disabled="commentPending || !commentText.trim()">
+                {{ commentPending ? '发送中…' : '发表评论' }}
+              </button>
+            </form>
+            <p v-else class="comments-login-hint">
+              <router-link to="/login">登录</router-link> 后参与评论
+            </p>
+          </section>
+        </div>
 
         <aside v-if="toc.length" class="toc" aria-label="本页目录">
           <p class="toc-title">ON THIS PAGE</p>

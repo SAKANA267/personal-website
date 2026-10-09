@@ -127,11 +127,15 @@
   gap: var(--space-10);
 }
 
-.page-blog-detail .markdown-body {
+/* 阅读列：正文与尾部互动带共住此列，天然同宽同左缘（正文 measure = 68ch） */
+.page-blog-detail .article-column {
   flex: 0 1 68ch;
-  min-width: 0;
   width: 100%;
-  max-width: 68ch;
+  min-width: 0;
+}
+
+.page-blog-detail .markdown-body {
+  width: 100%;
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: var(--leading-relaxed);
@@ -515,4 +519,208 @@
   .page-blog-detail .markdown-body table {
     box-shadow: none;
   }
+}
+
+/* ============================================
+   11. 登录联动：点赞条 / 评论区 / 草稿徽标 / 管理
+   ============================================ */
+
+.page-blog-detail .db-post-loading {
+  text-align: center;
+  padding: var(--space-16) 0;
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+}
+
+/* 草稿徽标（列表页同名样式，各自页面 CSS 持有） */
+.page-blog-detail .post-draft-badge {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 1px var(--space-2);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--btn-border-radius);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+  vertical-align: 1px;
+}
+
+/* 元数据条内的管理按钮 */
+.page-blog-detail .meta-manage {
+  margin-left: auto;
+  display: flex;
+  gap: var(--space-3);
+}
+.page-blog-detail .post-manage-btn {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  padding: var(--space-1);
+  border-bottom: 1px solid transparent;
+  transition: color var(--duration-fast) var(--ease-out),
+              border-color var(--duration-fast) var(--ease-out);
+}
+.page-blog-detail .post-manage-btn:hover {
+  color: var(--color-text);
+  border-bottom-color: var(--ink);
+}
+.page-blog-detail .post-manage-btn.post-manage-danger:hover {
+  color: #c0392b;
+  border-bottom-color: #c0392b;
+}
+
+/* 文章尾部互动带：与正文同列同宽的"落款带"，一条顶部发丝线开栏；
+   底部间隙交给随后的 post-nav 上边距（flex 无边距合并，无需自带 margin-bottom） */
+.page-blog-detail .post-engagement {
+  border-top: var(--divider-border-width) solid var(--divider-color);
+  padding-top: var(--space-5);
+  margin-top: var(--space-10);
+}
+.page-blog-detail .engagement-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-4);
+}
+.page-blog-detail .like-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--btn-border-radius);
+  padding: var(--space-2) var(--space-4);
+  color: var(--color-text);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.page-blog-detail .like-btn svg {
+  width: 18px;
+  height: 18px;
+}
+.page-blog-detail .like-btn:hover {
+  border-color: var(--ink);
+}
+.page-blog-detail .like-btn.liked {
+  background-color: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
+.page-blog-detail .like-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.page-blog-detail .like-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+/* 评论区眉标（mono 大写，与 TOC 的 ON THIS PAGE 呼应），落在互动行右端 */
+.page-blog-detail .comments-title {
+  margin: 0 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.page-blog-detail .comments-list {
+  display: flex;
+  flex-direction: column;
+}
+.page-blog-detail .comment-item {
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--gray-100);
+}
+.page-blog-detail .comment-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-2);
+}
+.page-blog-detail .comment-user {
+  font-weight: var(--font-semibold);
+  font-size: var(--text-sm);
+}
+.page-blog-detail .comment-time {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+.page-blog-detail .comment-delete {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.page-blog-detail .comment-delete:hover {
+  color: #c0392b;
+}
+.page-blog-detail .comment-content {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.page-blog-detail .comments-empty {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+.page-blog-detail .comments-login-hint {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+/* 评论表单：书写线语言，填满阅读列（与正文同宽） */
+.page-blog-detail .comment-form {
+  margin-top: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.page-blog-detail .comment-label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-text-secondary);
+}
+.page-blog-detail .comment-form textarea {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--gray-300);
+  border-radius: 0;
+  background: transparent;
+  padding: var(--space-2) var(--space-1);
+  font-size: var(--text-base);
+  resize: vertical;
+  transition: border-color var(--duration-fast) var(--ease-out),
+              box-shadow var(--duration-fast) var(--ease-out);
+}
+.page-blog-detail .comment-form textarea:focus {
+  outline: none;
+  border-bottom-color: var(--ink);
+  box-shadow: 0 1px 0 var(--ink);
+}
+.page-blog-detail .comment-submit {
+  align-self: flex-end;
+  background-color: var(--ink);
+  color: var(--paper);
+  border: 1px solid var(--ink);
+  border-radius: var(--btn-border-radius);
+  padding: var(--space-2) var(--space-6);
+  font-size: var(--text-sm);
+  transition: transform var(--duration-fast) var(--ease-out),
+              opacity var(--duration-fast) var(--ease-out);
+}
+.page-blog-detail .comment-submit:hover {
+  transform: translateY(-1px);
+}
+.page-blog-detail .comment-submit:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
 }

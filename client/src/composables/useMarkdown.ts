@@ -1,4 +1,5 @@
 import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 export interface TocItem {
   id: string
@@ -32,6 +33,8 @@ function slugify(text: string): string {
  * 把 Markdown 正文渲染为 HTML，同时为 h2/h3 注入锚点 id 并抽取目录。
  * 实现：marked 先出 HTML → DOMParser 后处理注入 id 与抽取 TOC，
  * 避开不同 marked 版本 renderer API 的差异。
+ * 最终 HTML 经 DOMPurify 净化——正文可能来自用户撰写（登录联动），
+ * 不可信任的 Markdown 绝不能直通 v-html。
  */
 export function renderMarkdown(raw: string): RenderedMarkdown {
   const html = marked.parse(raw, { async: false }) as string
@@ -54,5 +57,5 @@ export function renderMarkdown(raw: string): RenderedMarkdown {
     toc.push({ id, text, level: el.tagName === 'H2' ? 2 : 3 })
   })
 
-  return { html: root.innerHTML, toc }
+  return { html: DOMPurify.sanitize(root.innerHTML), toc }
 }

@@ -35,35 +35,69 @@ CREATE TABLE IF NOT EXISTS logs (
 );
 
 -- 博客文章
+-- 列表/详情的静态文章来自 client/src/content/posts/*.md（打包期）；
+-- 登录用户撰写的文章存本表：author_username 非空行为用户文章（slug 以 u- 开头，
+-- 与静态文章的文件名 slug 隔离），body 存 Markdown 正文，NULL = 静态/遗留行。
 CREATE TABLE IF NOT EXISTS blog_posts (
   id INT AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(128) NULL UNIQUE,                 -- 用户文章路由 slug（u-xxx），静态/遗留行为 NULL
+  author_username VARCHAR(255) NULL,             -- 作者（登录用户名），NULL = SAKANA 静态文章（遗留行）
   title VARCHAR(255) NOT NULL,
-  excerpt TEXT NOT NULL,
-  `date` DATE NOT NULL,                       -- 文章日期，前端按此倒序
+  excerpt TEXT NOT NULL,                         -- 服务端从正文派生（前 80 字）
+  `date` DATE NOT NULL,                          -- 文章日期，前端按此倒序
   category VARCHAR(64) NOT NULL,
-  tags JSON NOT NULL,                         -- 对应前端 tags: string[]，mysql2 自动解析
-  read_time INT NULL,                         -- 阅读时长（分钟），可空 → readTime
-  is_published TINYINT(1) NOT NULL DEFAULT 1, -- 草稿 / 下线开关，默认发布
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  tags JSON NOT NULL,                            -- 对应前端 tags: string[]，mysql2 自动解析
+  read_time INT NULL,                            -- 阅读时长（分钟），服务端按正文估算
+  is_published TINYINT(1) NOT NULL DEFAULT 1,    -- 草稿 / 下线开关，默认发布（0 仅作者可见）
+  body MEDIUMTEXT NULL,                          -- 用户文章 Markdown 正文
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL
+);
+
+-- 文章评论（登录用户；按 slug 键控——静态 .md 文章与用户文章都可被评论）
+CREATE TABLE IF NOT EXISTS post_comments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  post_slug VARCHAR(128) NOT NULL,
+  username VARCHAR(255) NOT NULL,                -- 评论者（session 用户名，不由请求体携带）
+  content TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_comments_post (post_slug, id)
+);
+
+-- 文章点赞（登录用户，一人一赞；UNIQUE 约束保证不重复）
+CREATE TABLE IF NOT EXISTS post_likes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  post_slug VARCHAR(128) NOT NULL,
+  username VARCHAR(255) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_like (post_slug, username)
 );
 
 -- 二维码分享（文字/图片/文件）
 CREATE TABLE IF NOT EXISTS share_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  code VARCHAR(8) NOT NULL UNIQUE,            -- 6位取件码（字符集去除 0O1I 等易混字符）
+  code VARCHAR(8) NOT NULL UNIQUE,               -- 6位取件码（字符集去除 0O1I 等易混字符）
   type ENUM('text','image','file') NOT NULL,
-  title VARCHAR(255) NOT NULL,                -- 展示标题：文字取首行截断，文件用原始文件名
-  content MEDIUMTEXT NULL,                    -- type=text 时的正文
-  stored_name VARCHAR(255) NULL,              -- 磁盘随机文件名（file/image），原始文件名只存 title
+  title VARCHAR(255) NOT NULL,                   -- 展示标题：文字取首行截断，文件用原始文件名
+  content MEDIUMTEXT NULL,                       -- type=text 时的正文
+  stored_name VARCHAR(255) NULL,                 -- 磁盘随机文件名（file/image），原始文件名只存 title
   mime_type VARCHAR(128) NULL,
-  size BIGINT NULL,                           -- 文件字节数（text 为 NULL）
-  views INT NOT NULL DEFAULT 0,               -- 取件页打开次数
-  downloads INT NOT NULL DEFAULT 0,           -- 下载次数
+  size BIGINT NULL,                              -- 文件字节数（text 为 NULL）
+  views INT NOT NULL DEFAULT 0,                  -- 取件页打开次数
+  downloads INT NOT NULL DEFAULT 0,              -- 下载次数
   uploader_ip VARCHAR(64) NULL,
-  uploader_user VARCHAR(255) NULL,             -- 登录适配：上传者用户名（游客为 NULL）
-  expires_at DATETIME NULL,                   -- 过期时间，NULL = 永久；过期后访问即惰性删除
+  uploader_user VARCHAR(255) NULL,               -- 登录适配：上传者用户名（游客为 NULL）
+  expires_at DATETIME NULL,                      -- 过期时间，NULL = 永久；过期后访问即惰性删除
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- 已有部署升级到"分享归属"时执行（新库由上面的建表语句直接包含）：
+-- ===== 已有部署升级迁移（按顺序执行；新库由上面建表语句直接包含）=====
+-- 分享归属（历史迁移，已执行过）：
 -- ALTER TABLE share_items ADD COLUMN uploader_user VARCHAR(255) NULL AFTER uploader_ip;
+--
+-- 博客登录联动（2026-10，部署本次改动前执行）：
+-- ALTER TABLE blog_posts ADD COLUMN slug VARCHAR(128) NULL UNIQUE AFTER id;
+-- ALTER TABLE blog_posts ADD COLUMN author_username VARCHAR(255) NULL AFTER slug;
+-- ALTER TABLE blog_posts ADD COLUMN body MEDIUMTEXT NULL;
+-- ALTER TABLE blog_posts ADD COLUMN updated_at DATETIME NULL;
+-- CREATE TABLE post_comments / post_likes（同上方定义）；

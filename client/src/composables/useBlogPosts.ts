@@ -1,14 +1,15 @@
+import { ref } from 'vue'
 import type { BlogPost } from '../types'
+import { api } from './useApi'
 
 /**
- * 博客内容管线（文件驱动）。
+ * 博客内容管线（文件驱动 + DB 用户文章双来源）。
  *
- * 文章以 `client/src/content/posts/*.md` 为唯一来源：每个文件首部带 YAML 风格
- * frontmatter（title / date / category / tags / excerpt / readTime），其后是 Markdown 正文。
- * Vite 在构建期用 import.meta.glob 把所有 .md 作为原始字符串打进包，运行时解析。
+ * 静态文章：`client/src/content/posts/*.md` 为来源，首部 YAML 风格 frontmatter + Markdown 正文，
+ * Vite 构建期用 import.meta.glob 打进包。新增 = 丢一个 .md 文件。
  *
- * 新增文章 = 在 content/posts/ 下丢一个 .md 文件（文件名即 slug）→ 重启 dev / 重新构建，
- * 列表与详情页都会自动出现，无需手写页面、无需改库表。
+ * 用户文章：登录用户撰写，存服务端 blog_posts（slug 以 u- 开头），运行时经 /api/blog 拉取，
+ * 与静态文章按日期倒序合并展示；评论/点赞也以 slug 为键（静态文章同样可评论点赞）。
  */
 const modules = import.meta.glob('../content/posts/*.md', {
   query: '?raw',
@@ -89,11 +90,42 @@ export function getAllPosts(): BlogPost[] {
   return allPosts
 }
 
-/** 详情：按 slug 取单篇，返回元数据 + 原始 Markdown 正文。 */
+/** 详情：按 slug 取单篇（静态文章），返回元数据 + 原始 Markdown 正文。 */
 export function getPost(
   slug: string,
 ): { post: BlogPost; body: string } | undefined {
   const post = allPosts.find((p) => p.slug === slug)
   if (!post || !post.content) return undefined
   return { post, body: post.content }
+}
+
+// ---------- DB 用户文章（登录联动） ----------
+
+// 响应式 DB 文章列表（含自己的草稿）；请求失败保持空，静态文章不受影响
+const dbPosts = ref<BlogPost[]>([])
+
+/** 拉取/刷新 DB 用户文章列表（列表页挂载、撰写/编辑/删除后调用）。 */
+export async function refreshDbPosts(): Promise<void> {
+  try {
+    const rows = await api.getDbPosts()
+    if (Array.isArray(rows)) dbPosts.value = rows
+  } catch {
+    // 网络异常时保留旧数据
+  }
+}
+
+/** 合并流：静态 .md 文章 + DB 用户文章，按日期倒序（同日 DB 文章在前）。 */
+export function mergedPosts(): BlogPost[] {
+  return [...allPosts, ...dbPosts.value].sort((a, b) => {
+    const byDate = b.date.localeCompare(a.date)
+    if (byDate !== 0) return byDate
+    const aDb = a.slug.startsWith('u-') ? 0 : 1
+    const bDb = b.slug.startsWith('u-') ? 0 : 1
+    return aDb - bDb
+  })
+}
+
+/** DB 文章响应式列表（视图里 computed 引用，刷新后自动更新）。 */
+export function useDbPosts() {
+  return dbPosts
 }

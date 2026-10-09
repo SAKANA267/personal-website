@@ -12,6 +12,8 @@ const router = createRouter({
     { path: '/dev-log', component: () => import('../views/DevLogView.vue') },
     { path: '/blog', component: () => import('../views/BlogView.vue') },
     { path: '/blog/:slug', component: () => import('../views/BlogDetailView.vue') },
+    // 博客撰写页（登录联动）：静态段优先级高于 /blog/:slug 参数段
+    { path: '/blog/compose', component: () => import('../views/ComposeView.vue') },
     { path: '/login', component: () => import('../views/LoginView.vue') },
     { path: '/signup', component: () => import('../views/SignUpView.vue') },
     // 账号中心：改密/退出（登录适配新增，复用 .page-auth 认证页样式）
@@ -47,12 +49,13 @@ router.afterEach(() => {
   loading.reveal()
 })
 
-// 登录态路由守卫：已登录访问登录/注册页 → 回首页；未登录访问账号页 → 回登录页。
+// 登录态路由守卫：已登录访问登录/注册页 → 回首页；未登录访问账号页/撰写页 → 回登录页。
 // username 由 localStorage 即时水合，守卫在 initAuth 对账前也能工作（后续响应式纠正）。
 router.beforeEach((to) => {
   const { username } = useAuth()
   if ((to.path === '/login' || to.path === '/signup') && username.value) return '/'
   if (to.path === '/account' && !username.value) return '/login'
+  if (to.path === '/blog/compose' && !username.value) return '/login'
 })
 
 export default router

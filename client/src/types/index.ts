@@ -57,17 +57,35 @@ export interface User {
 }
 
 // 博客文章
-// 内容来源：client/src/content/posts/*.md（frontmatter + 正文），文件名即 slug
+// 双来源：SAKANA 静态文章 = client/src/content/posts/*.md（frontmatter + 正文，文件名即 slug）；
+// 登录用户文章 = DB blog_posts（slug 以 u- 开头，author 为作者用户名，isPublished 0 = 草稿仅作者可见）
 export interface BlogPost {
-  slug: string // 由 .md 文件名派生，用作路由 /blog/:slug 与列表 key
+  slug: string // 静态：.md 文件名；用户文章：u-xxx
   title: string // 中文标题（frontmatter）
-  excerpt: string // 中文摘要（frontmatter）
+  excerpt: string // 中文摘要（frontmatter / 服务端派生）
   date: string // 'YYYY-MM-DD'（frontmatter，时间序标记）
   category: string // 分类，如 '前端' | '设计' | '随笔'（frontmatter）
-  tags: string[] // 标签，如 ['vue', 'design']（frontmatter）
-  readTime?: number // 阅读时长（分钟）（frontmatter）
-  content?: string // 原始 Markdown 正文（仅详情页使用）
-  id?: number // 遗留字段（数据库时代），文件驱动下不再使用
+  tags: string[] // 标签，如 ['vue', 'design']（用户文章可能为空数组）
+  readTime?: number // 阅读时长（分钟）（frontmatter / 服务端估算）
+  content?: string // 原始 Markdown 正文（静态文章详情用；用户文章详情接口返回 body）
+  body?: string // 用户文章 Markdown 正文（详情接口 / 编辑加载时填充）
+  author?: string // 用户文章作者用户名；undefined = SAKANA 静态文章
+  isPublished?: number // 用户文章：1 发布 / 0 草稿
+  id?: number // 用户文章数据库 id（编辑/删除用）
+}
+
+// 文章评论（登录用户发表，按 slug 键控——静态/用户文章均可评论）
+export interface PostComment {
+  id: number
+  username: string
+  content: string
+  createdAt: string // 'YYYY-MM-DD HH:mm'
+}
+
+// 文章点赞状态
+export interface PostLikes {
+  count: number
+  liked: boolean
 }
 
 // 二维码分享条目（/share 上传生成，/share/:code 扫码取件）
