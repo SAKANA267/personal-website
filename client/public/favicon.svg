@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- SAKANA（鱼）站点图标：纸色鱼形线稿压墨底，呼应标题卡的纸墨视觉 -->
+  <rect width="64" height="64" rx="14" fill="#17181c"/>
+  <g fill="none" stroke="#f4f1e8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <!-- 鱼身 -->
+    <path d="M12 34 C20 23, 38 23, 46 34 C38 45, 20 45, 12 34 Z"/>
+    <!-- 尾鳍 -->
+    <path d="M46 34 L56 26 L52.5 34 L56 42 Z"/>
+    <!-- 背鳍 -->
+    <path d="M24 25.5 C26 21.5, 32 21, 35 24"/>
+  </g>
+  <circle cx="21.5" cy="32" r="2.6" fill="#f4f1e8"/>
+</svg>
