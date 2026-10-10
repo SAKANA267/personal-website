@@ -1,0 +1,82 @@
+# nginx 站点配置样例 —— 部署时复制到服务器（如 /etc/nginx/sites-available/personal_website）
+# 并按需替换：域名、证书路径。`nginx -t` 校验后 reload。
+#
+# 架构（与 deploy/README §前置 一致）：
+#   https://<域名>/web/  →  127.0.0.1:3000（Express：SPA 静态 + /api）
+#   wss://<域名>:9000    →  直连 Node 的独立 ws 端口（证书由 server/.env 的 WS_* 提供，
+#                          不经 nginx；如需收进 443 见文末注释段）
+#
+# 关键点（改这里要同步改代码/配置）：
+#   - /web/ 前缀必须在 nginx 剥掉后再 proxy_pass（Vite base '/web/' 只影响资源 URL）；
+#   - X-Forwarded-* 头必须传：Express 侧 trust proxy=1 依赖它们识别 https 与真实 IP，
+#     否则生产 secure 登录 cookie 下发异常、限流全部按 127.0.0.1 计数；
+#   - client_max_body_size 与 server/.env 的 SHARE_MAX_MB 保持一致（默认 20m），
+#     否则二维码分享上传直接 413。
+
+server {
+    listen 80;
+    server_name sakana267.online;
+    # 全站 HTTPS：80 只做跳转
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name sakana267.online;
+
+    # 证书路径按实际位置替换
+    ssl_certificate     /etc/nginx/certs/sakana267.online.pem;
+    ssl_certificate_key /etc/nginx/certs/sakana267.online.key;
+
+    # 上传体积上限：与 server/.env 的 SHARE_MAX_MB 保持一致
+    client_max_body_size 20m;
+
+    # 根路径 → 跳到 /web/（SPA 的生产入口）
+    location = / {
+        return 302 /web/;
+    }
+
+    # SPA + API：剥掉 /web/ 前缀后转给 Express（其内部按无前缀路径路由）
+    location /web/ {
+        rewrite ^/web/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+
+        # trust proxy=1 依赖这两个头：识别 https（secure cookie）与真实客户端 IP（限流/日志）
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For  $proxy_add_x_forwarded_for;
+        proxy_set_header Host             $host;
+    }
+
+    # 健康检查直通（供 uptime/监控探活；也可走 /web/api/health）
+    location = /health {
+        proxy_pass http://127.0.0.1:3000/api/health;
+        access_log off;
+    }
+
+    # 静态资源缓存（含 hash 的 Vite 产物可长缓存；index.html 不缓存保证发版即生效）
+    location /web/assets/ {
+        rewrite ^/web/(.*)$ /$1 break;
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+}
+
+# ── 可选：把聊天 WebSocket 收进 443（免开 9000 端口）────────────────────
+# 前提：server/.env 关闭 WS_USE_SSL（TLS 交给 nginx），client/.env.production 的
+# VITE_WS_URL 改为 wss://sakana267.online/wschat，然后放开下面这段：
+#
+#     location /wschat {
+#         proxy_pass http://127.0.0.1:9000;
+#         proxy_http_version 1.1;
+#         proxy_set_header Upgrade $http_upgrade;
+#         proxy_set_header Connection "upgrade";
+#         proxy_set_header Host $host;
+#         proxy_read_timeout 3600s;   # 长连接防空闲断开
+#     }
+#
+# 注意：走 nginx 反代后 ws 服务器看到的 remoteAddress 是 127.0.0.1，
+# 聊天页游客显示名会全部变成 127.0.0.1——如需修正，chatServer 需改为
+# 解析 X-Forwarded-For（当前架构默认直连 9000，不存在此问题）。
