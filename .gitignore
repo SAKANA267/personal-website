@@ -26,3 +26,6 @@ server/uploads/
 # ZCode agent 会话状态（本地工具数据，不提交）
 .zcode/
 .local-mysql/
+
+# 备份产物（backup.sh 输出，不提交）
+backups/

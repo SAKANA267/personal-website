@@ -77,6 +77,37 @@ ssh <user>@<host> "pm2 logs personal-website --lines 50"
 - **前端能打开但聊天连不上**：确认 `client/.env.production` 的 `VITE_WS_URL`、服务器 9000 端口防火墙、SSL 证书与 `WS_USE_SSL` 设置一致。
 - **部署因类型检查失败而中断**：`npm run build` 含 `vue-tsc --noEmit`，类型错误会阻止部署——这是有意为之，确保线上构建可用。
 
+## 数据备份（backup.sh）
+
+`deploy/backup.sh` 对 MySQL 与上传文件做全量备份（自动读取 `server/.env` 的连接配置，密码经 `MYSQL_PWD` 环境变量传递，不落在命令行）：
+
+1. `mysqldump --single-transaction --quick`（不锁表）→ gzip 到 `backups/db_<库>_<时间戳>.sql.gz`；
+2. `tar` 打包 `server/uploads/`（二维码分享的上传文件）；
+3. 删除超过 `RETENTION_DAYS`（默认 14）天的旧备份文件；
+4. 清理 `logs` 表超过 `LOGS_RETENTION_DAYS`（默认 90）天的聊天日志——该表每条聊天消息/上下线都写一行，只增不减，是最主要的无界增长表。
+
+本地与服务器均可运行；`DRY_RUN=1` 只打印将执行的命令不落盘：
+
+```bash
+bash deploy/backup.sh                              # 正常备份
+DRY_RUN=1 bash deploy/backup.sh                    # 演练
+MYSQLDUMP_BIN=/usr/bin/mysqldump bash deploy/backup.sh   # mysqldump 不在 PATH 时
+LOGS_RETENTION_DAYS=0 bash deploy/backup.sh        # 本次跳过 logs 清理
+```
+
+服务器建议 crontab 每日执行（产物留在本机 `backups/`，请另行 rsync/同步到异机或对象存储，避免与站点同盘共生死）：
+
+```cron
+0 4 * * * cd /path/to/deploy_dir && bash deploy/backup.sh >> backups/backup.log 2>&1
+```
+
+恢复方法：
+
+```bash
+gunzip < backups/db_xxx.sql.gz | mysql -u<user> -p personal_website   # 数据库
+tar -xzf backups/uploads_xxx.tar.gz -C server/                        # 上传文件
+```
+
 ## 可选：提交/推送即自动部署
 
 如果之后想让「每次提交」自动触发部署，加一个 git 钩子调用本脚本即可，例如 `.git/hooks/post-commit`：
