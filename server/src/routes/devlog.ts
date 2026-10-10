@@ -5,11 +5,14 @@ import { rateLimit } from '../rateLimit.js'
 
 export const devlogRouter = Router()
 
-// 对应 dev_log_fetch.php：按时间戳倒序
-devlogRouter.get('/', async (_req, res) => {
+// 对应 dev_log_fetch.php：按时间戳倒序。?limit=N 控制条数（1-1000，缺省 500）防全量拉取
+devlogRouter.get('/', async (req, res) => {
+  const n = Number(req.query?.limit)
+  const limit = Number.isInteger(n) && n >= 1 ? Math.min(n, 1000) : 500
   try {
     const [rows] = await pool.query(
-      'SELECT timestamp, change_description FROM devLog ORDER BY timestamp DESC'
+      'SELECT timestamp, change_description FROM devLog ORDER BY timestamp DESC LIMIT ?',
+      [limit]
     )
     res.json(rows)
   } catch (e: any) {

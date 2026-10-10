@@ -6,15 +6,24 @@ import { rateLimit } from '../rateLimit.js'
 export const messagesRouter = Router()
 
 // 对应 fetch_messages.php：普通访客仅返回 is_displayed=1 的留言，按 id 倒序；
-// 登录适配：管理员可看到全部（含已隐藏），并附带 is_displayed 供审核界面切换
+// 登录适配：管理员可看到全部（含已隐藏），并附带 is_displayed 供审核界面切换。
+// ?limit=N 控制单次拉取条数（1-1000，缺省 500）：留言只增不减，防止全量拉取拖垮首屏
+function parseLimit(raw: unknown): number {
+  const n = Number(raw)
+  if (!Number.isInteger(n) || n < 1) return 500
+  return Math.min(n, 1000)
+}
 messagesRouter.get('/', async (req, res) => {
+  const limit = parseLimit(req.query?.limit)
   try {
     const [rows] = isAdmin(req)
       ? await pool.query(
-          'SELECT `id`, `name`, `message`, `timestamp`, `is_displayed` FROM messages ORDER BY `id` DESC'
+          'SELECT `id`, `name`, `message`, `timestamp`, `is_displayed` FROM messages ORDER BY `id` DESC LIMIT ?',
+          [limit]
         )
       : await pool.query(
-          'SELECT `name`, `message`, `timestamp` FROM messages WHERE `is_displayed` = 1 ORDER BY `id` DESC'
+          'SELECT `name`, `message`, `timestamp` FROM messages WHERE `is_displayed` = 1 ORDER BY `id` DESC LIMIT ?',
+          [limit]
         )
     res.json(rows)
   } catch (e: any) {
