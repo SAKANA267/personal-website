@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { watch } from 'vue'
 import { useLoading, LOADING_COVER_MS } from '../stores/loading'
 import { useAuth } from '../stores/auth'
 
@@ -23,6 +24,8 @@ const router = createRouter({
     { path: '/share/:code', component: () => import('../views/ShareView.vue') },
     // 图表实验室：lieflat-charts skill 学习测试页（不在主导航，直接 URL 访问）
     { path: '/charts-lab', component: () => import('../views/ChartsLabView.vue') },
+    // 管理面板：admin 白名单专用工作台（守卫在下方法等待登录对账后校验）
+    { path: '/admin', component: () => import('../views/AdminView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },
   ],
 })
@@ -56,6 +59,25 @@ router.beforeEach((to) => {
   if ((to.path === '/login' || to.path === '/signup') && username.value) return '/'
   if (to.path === '/account' && !username.value) return '/login'
   if (to.path === '/blog/compose' && !username.value) return '/login'
+})
+
+// 管理面板守卫：isAdmin 不落 localStorage（每次启动须等 /api/auth/me 对账），
+// 刷新直入 /admin 时先等对账完成再判定——未登录去登录页，非管理员回首页。
+router.beforeEach(async (to) => {
+  if (to.path !== '/admin') return
+  const { username, isAdmin, restored } = useAuth()
+  if (!restored.value) {
+    await new Promise<void>((resolve) => {
+      const stop = watch(restored, (v) => {
+        if (v) {
+          stop()
+          resolve()
+        }
+      })
+    })
+  }
+  if (!username.value) return '/login'
+  if (!isAdmin.value) return '/'
 })
 
 export default router

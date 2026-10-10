@@ -20,5 +20,6 @@ import './styles/login.css'
 import './styles/title_card.css' // 标题卡入口页样式
 import './styles/charts_lab.css' // 图表实验室测试页样式
 import './styles/share.css' // 二维码分享页样式
+import './styles/admin.css' // 管理面板样式（独立设计体系）
 
 createApp(App).use(router).mount('#app')

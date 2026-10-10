@@ -29,6 +29,7 @@ export default {
     menuAria: '账号菜单（{name}）',
     signedInAs: '当前登录',
     profile: '账号主页',
+    adminPanel: '管理面板',
     logout: '退出登录',
   },
   footer: {

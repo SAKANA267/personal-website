@@ -1,0 +1,824 @@
+/* ============================================================
+   管理面板样式（/admin）— 「印房」方向
+   墨纸仪器面板：素材呼应站点水墨世界（ink/paper），但作为持印者的
+   工作台引入唯一工作色「朱砂印红」——只盖在需要定夺的东西上
+   （审核状态 / 危险操作 / 活动标签 / 确认动作），其余一律墨与纸。
+   · 侧栏 = 整块墨底，活动项反白为纸片 + 印红方点
+   · 概览 = 刻度式统计带（hairline 分隔的账本带，非浮动卡片）
+   · 数据 = mono + tabular-nums 仪器读数；标签 = 微型字距标题
+   · 零外部资源（系统字体栈），类名全部收在 .admin-app 前缀下
+   响应式遵循站点断点约定 1024 / 768 / 480。
+   ============================================================ */
+
+.admin-app {
+  /* 印房色板 */
+  --ap-ink: #101318;        /* 墨：侧栏底 / 主文字 */
+  --ap-ink-2: #5d6470;      /* 灰墨：次级文字 */
+  --ap-ink-3: #8a8f99;      /* 淡墨：列头 / 只读注脚 */
+  --ap-paper: #f3f3f1;      /* 纸：页面底 */
+  --ap-panel: #fbfbfa;      /* 纸白：表面 */
+  --ap-wash: #f0f0ec;       /* 墨晕：hover / 斑马纹 */
+  --ap-line: #e3e3dd;       /* 细线 */
+  --ap-line-strong: #c9c9c0;
+  --ap-seal: #b5382a;       /* 朱砂：唯一强调色 */
+  --ap-seal-ink: #8c2a20;   /* 深朱：印底上的文字 */
+  --ap-seal-bg: #f6e9e6;    /* 印底 */
+  --ap-ok: #2f6b4f;         /* 通过绿（克制使用） */
+  --ap-ok-bg: #e9f0ec;
+
+  --ap-mono: ui-monospace, 'Cascadia Mono', 'SF Mono', Consolas, Menlo, monospace;
+  --ap-sans: system-ui, -apple-system, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  display: flex;
+  min-height: 100vh;
+  min-height: 100dvh;
+  /* 顶部让位：站点固定的角落导航（右上账号/语言图标）悬于面板上方而非压住顶栏 */
+  padding-top: 64px;
+  box-sizing: border-box;
+  background: var(--ap-paper);
+  color: var(--ap-ink);
+  font-family: var(--ap-sans);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.admin-app ::selection {
+  background: var(--ap-seal);
+  color: #fff;
+}
+
+/* ---------- 侧栏：整块墨底 ---------- */
+
+.admin-side {
+  display: flex;
+  flex-direction: column;
+  width: 208px;
+  flex-shrink: 0;
+  background: var(--ap-ink);
+  color: #c9ccd3;
+  position: sticky;
+  top: 64px;
+  height: calc(100vh - 64px);
+  height: calc(100dvh - 64px);
+  box-sizing: border-box;
+}
+
+.admin-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 16px 16px;
+  border-bottom: 1px solid #262b33;
+}
+
+/* 方形「管」字印章：品牌签名，全场唯一的具象印 */
+.admin-brand-seal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: var(--ap-seal);
+  color: #fdf6f0;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1.5px rgba(253, 246, 240, 0.28);
+}
+
+.admin-brand-mark {
+  display: block;
+  font-family: var(--ap-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  color: #f2f1ec;
+}
+
+.admin-brand-sub {
+  display: block;
+  margin-top: 1px;
+  font-size: 11px;
+  letter-spacing: 0.22em;
+  color: #8a8f99;
+}
+
+.admin-nav {
+  flex: 1;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow-y: auto;
+}
+
+.admin-nav-item {
+  appearance: none;
+  border: 0;
+  border-radius: 4px;
+  padding: 8px 12px;
+  text-align: left;
+  font: inherit;
+  color: #b4b9c2;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.admin-nav-item::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-right: 10px;
+  border-radius: 1px;
+  background: #4d545e;
+  flex-shrink: 0;
+  transition: background 0.12s ease;
+}
+
+.admin-nav-item:hover {
+  background: #1b1f26;
+  color: #e8e9e5;
+}
+
+.admin-nav-item:focus-visible {
+  outline: 2px solid var(--ap-seal);
+  outline-offset: -2px;
+}
+
+/* 活动项 = 反白纸片 + 印红方点（墨底上的选格） */
+.admin-nav-item.active {
+  background: var(--ap-panel);
+  color: var(--ap-ink);
+  font-weight: 600;
+}
+
+.admin-nav-item.active::before {
+  background: var(--ap-seal);
+}
+
+.admin-side-foot {
+  padding: 12px 16px 14px;
+  border-top: 1px solid #262b33;
+  font-size: 11.5px;
+  color: #8a8f99;
+}
+
+.admin-side-line {
+  margin: 0 0 4px;
+  font-family: var(--ap-mono);
+  font-size: 11.5px;
+  color: #c9ccd3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-side-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.admin-side-link:hover {
+  color: #e8e9e5;
+  text-decoration: underline;
+}
+
+/* ---------- 主区 ---------- */
+
+.admin-main {
+  flex: 1;
+  min-width: 0; /* 允许表格列自然收缩 */
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 170px 12px 24px; /* 右侧让位给固定的角落账号/语言图标 */
+  background: var(--ap-panel);
+  border-bottom: 1px solid var(--ap-line-strong);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.admin-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.admin-topbar-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.admin-body {
+  padding: 20px 24px 48px;
+}
+
+.admin-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---------- 表单件：安静的墨线 ---------- */
+
+.admin-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.admin-search {
+  width: 300px;
+  max-width: 100%;
+}
+
+.admin-input {
+  font: inherit;
+  color: inherit;
+  padding: 7px 11px;
+  border: 1px solid var(--ap-line-strong);
+  border-radius: 4px;
+  background: var(--ap-panel);
+  box-sizing: border-box;
+}
+
+.admin-input::placeholder {
+  color: var(--ap-ink-3);
+}
+
+.admin-input:focus-visible {
+  outline: 2px solid var(--ap-seal);
+  outline-offset: -1px;
+}
+
+.admin-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 56px;
+  font-family: var(--ap-mono);
+  font-size: 13px;
+}
+
+.admin-select {
+  font: inherit;
+  padding: 5px 8px;
+  border: 1px solid var(--ap-line-strong);
+  border-radius: 4px;
+  background: var(--ap-panel);
+  color: inherit;
+}
+
+/* 按钮层级：实心墨 = 确认；描边墨 = 次级；描边朱 = 定夺（危险/下线） */
+.admin-btn {
+  appearance: none;
+  font: inherit;
+  padding: 7px 14px;
+  border: 1px solid var(--ap-ink);
+  border-radius: 4px;
+  background: var(--ap-ink);
+  color: #f2f1ec;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-btn:hover:not(:disabled) {
+  background: #23272f;
+  border-color: #23272f;
+}
+
+.admin-btn:focus-visible {
+  outline: 2px solid var(--ap-seal);
+  outline-offset: 2px;
+}
+
+.admin-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.admin-btn.ghost {
+  background: transparent;
+  color: var(--ap-ink);
+}
+
+.admin-btn.ghost:hover:not(:disabled) {
+  background: var(--ap-wash);
+}
+
+/* 工具条里的搜索按钮降为次级，避免满屏实心墨 */
+.admin-toolbar .admin-btn {
+  background: transparent;
+  color: var(--ap-ink);
+}
+
+.admin-toolbar .admin-btn:hover:not(:disabled) {
+  background: var(--ap-wash);
+}
+
+.admin-btn.danger {
+  background: transparent;
+  border-color: var(--ap-seal);
+  color: var(--ap-seal-ink);
+}
+
+.admin-btn.danger:hover:not(:disabled) {
+  background: var(--ap-seal-bg);
+}
+
+.admin-btn.sm {
+  padding: 3px 10px;
+  font-size: 12.5px;
+  border-radius: 3px;
+}
+
+/* ---------- 表格：仪器读数 ---------- */
+
+.admin-table-wrap {
+  overflow-x: auto;
+  background: var(--ap-panel);
+  border: 1px solid var(--ap-line-strong);
+  border-radius: 6px;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.admin-table th,
+.admin-table td {
+  padding: 8px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--ap-line);
+  vertical-align: top;
+}
+
+.admin-table th {
+  position: sticky;
+  top: 0;
+  background: var(--ap-panel);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ap-ink-3);
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  box-shadow: inset 0 -1px 0 var(--ap-line-strong);
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-table tbody tr:hover {
+  background: var(--ap-wash);
+}
+
+.admin-table .col-id,
+.admin-table .col-num,
+.admin-table .col-code,
+.admin-table .col-time {
+  font-family: var(--ap-mono);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--ap-ink-2);
+}
+
+.admin-table .col-num {
+  text-align: right;
+}
+
+.admin-table .col-author,
+.admin-table .col-cat,
+.admin-table .col-size,
+.admin-table .col-slug {
+  white-space: nowrap;
+}
+
+.admin-table .col-op {
+  white-space: nowrap;
+}
+
+.admin-table .col-op .admin-btn + .admin-btn,
+.admin-table .col-op .admin-btn + a {
+  margin-left: 6px;
+}
+
+.admin-cell-clip {
+  max-width: 420px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.admin-empty {
+  text-align: center !important;
+  color: var(--ap-ink-3);
+  font-family: var(--ap-mono);
+  font-size: 12px;
+  padding: 32px 12px !important;
+}
+
+.admin-empty-inline {
+  color: var(--ap-ink-3);
+  font-size: 12.5px;
+  padding: 6px 0;
+  list-style: none;
+}
+
+/* ---------- 状态章：朱 = 需要定夺，绿 = 通过，墨 = 中性 ---------- */
+
+.admin-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 3px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.admin-tag.ok {
+  color: var(--ap-ok);
+  background: var(--ap-ok-bg);
+}
+
+.admin-tag.danger {
+  color: #fff;
+  background: var(--ap-seal);
+}
+
+.admin-tag.muted {
+  color: var(--ap-ink-2);
+  background: var(--ap-wash);
+  box-shadow: inset 0 0 0 1px var(--ap-line-strong);
+}
+
+.admin-link {
+  color: var(--ap-ink);
+  text-decoration: none;
+  border-bottom: 1px solid var(--ap-line-strong);
+}
+
+.admin-link:hover {
+  color: var(--ap-seal-ink);
+  border-bottom-color: var(--ap-seal);
+}
+
+/* ---------- 概览：刻度式统计带（账本带，非卡片） ---------- */
+
+/* 8 格整除 4 列/2 列，杜绝 auto-fit 末行的空洞格子 */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--ap-line-strong);
+  border: 1px solid var(--ap-line-strong);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.admin-stat {
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  padding: 14px 16px 12px;
+  border: 0;
+  background: var(--ap-panel);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.admin-stat:focus-visible {
+  outline: 2px solid var(--ap-seal);
+  outline-offset: -2px;
+}
+
+.admin-stat:hover {
+  background: var(--ap-wash);
+}
+
+.admin-stat-num {
+  font-family: var(--ap-mono);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-stat:hover .admin-stat-num {
+  color: var(--ap-seal);
+}
+
+.admin-stat-label {
+  font-size: 12px;
+  color: var(--ap-ink-2);
+}
+
+.admin-stat-sub {
+  font-style: normal;
+  font-size: 11px;
+  margin-left: 4px;
+  color: var(--ap-seal-ink);
+}
+
+/* ---------- 概览：近期动态 ---------- */
+
+.admin-overview-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start; /* 空面板不强行等高 */
+}
+
+.admin-panel {
+  background: var(--ap-panel);
+  border: 1px solid var(--ap-line-strong);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+
+.admin-panel-title {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ap-ink-3);
+  letter-spacing: 0.1em;
+}
+
+.admin-recent {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-recent-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.admin-recent-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ap-ink-2);
+}
+
+.admin-recent-meta b {
+  color: var(--ap-ink);
+  font-weight: 600;
+}
+
+.admin-recent-meta time {
+  font-family: var(--ap-mono);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ap-ink-2);
+}
+
+.admin-recent-text {
+  font-size: 13px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.admin-server-line {
+  margin: 2px 0 0;
+  font-family: var(--ap-mono);
+  font-size: 11.5px;
+  color: var(--ap-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- 分页 ---------- */
+
+.admin-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-pager-info {
+  font-family: var(--ap-mono);
+  font-size: 12px;
+  color: var(--ap-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.admin-pager-ctl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- 开发日志表单 ---------- */
+
+.admin-devlog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  background: var(--ap-panel);
+  border: 1px solid var(--ap-line-strong);
+  border-radius: 6px;
+  padding: 12px;
+}
+
+/* ---------- 提示 / 空态 ---------- */
+
+.admin-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ap-ink-2);
+}
+
+.admin-hint.danger {
+  color: var(--ap-seal-ink);
+}
+
+/* ---------- 轻提示：墨条 + 印红缘（错误） ---------- */
+
+.admin-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 9px 18px;
+  border-radius: 4px;
+  background: var(--ap-ink);
+  color: #f2f1ec;
+  font-size: 13px;
+  box-shadow: 0 0 0 1px #262b33, 0 8px 28px rgba(16, 19, 24, 0.28);
+  z-index: 300;
+}
+
+.admin-toast.err {
+  box-shadow: inset 3px 0 0 var(--ap-seal), 0 0 0 1px #262b33, 0 8px 28px rgba(16, 19, 24, 0.28);
+}
+
+.admin-toast-enter-active,
+.admin-toast-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.admin-toast-enter-from,
+.admin-toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(8px);
+}
+
+/* ---------- 对话框 ---------- */
+
+.admin-modal-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(16, 19, 24, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 200;
+}
+
+.admin-modal {
+  width: min(420px, 100%);
+  background: var(--ap-panel);
+  border: 1px solid var(--ap-line-strong);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 24px 60px rgba(16, 19, 24, 0.3);
+}
+
+.admin-modal-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  padding-left: 10px;
+  border-left: 3px solid var(--ap-seal);
+}
+
+.admin-modal-hint {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ap-ink-2);
+}
+
+.admin-modal .admin-input {
+  width: 100%;
+}
+
+.admin-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* ---------- 动效克制：仅提示条过渡，尊重系统减动效 ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-toast-enter-active,
+  .admin-toast-leave-active {
+    transition: none;
+  }
+}
+
+/* ---------- 响应式（遵循站点断点 1024 / 768 / 480） ---------- */
+
+@media (max-width: 1024px) {
+  .admin-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-app {
+    flex-direction: column;
+    padding-top: 56px;
+  }
+
+  /* 墨底侧栏收成顶部的横向墨条 */
+  .admin-side {
+    width: 100%;
+    height: auto;
+    position: static;
+  }
+
+  .admin-brand {
+    padding: 12px 16px 10px;
+  }
+
+  .admin-nav {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding: 6px 10px 10px;
+  }
+
+  .admin-nav-item {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .admin-side-foot {
+    display: none;
+  }
+
+  .admin-body {
+    padding: 14px 16px 36px;
+  }
+
+  .admin-topbar {
+    padding: 10px 88px 10px 16px; /* 右侧让位给固定的角落图标 */
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-body {
+    padding: 12px 12px 32px;
+  }
+
+  .admin-search {
+    width: 100%;
+  }
+
+  .admin-cell-clip {
+    max-width: 200px;
+  }
+}

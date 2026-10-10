@@ -23,6 +23,7 @@ const en: MessagePack = {
     menuAria: 'Account menu ({name})',
     signedInAs: 'Signed in as',
     profile: 'Account',
+    adminPanel: 'Admin panel',
     logout: 'Log out',
   },
   footer: {

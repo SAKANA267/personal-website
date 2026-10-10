@@ -11,6 +11,7 @@ import { devlogRouter } from './routes/devlog.js'
 import { authRouter } from './routes/auth.js'
 import { blogRouter } from './routes/blog.js'
 import { shareRouter } from './routes/share.js'
+import { adminRouter } from './routes/admin.js'
 import { startChatServer } from './ws/chatServer.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -66,6 +67,8 @@ app.use('/api/devlog', devlogRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/blog', blogRouter)
 app.use('/api/share', shareRouter)
+// 管理面板聚合接口（统一 admin 白名单门禁，路由内部自行 401/403）
+app.use('/api/admin', adminRouter)
 
 // 生产：托管前端构建产物并做 SPA 回退
 const distDir = path.resolve(__dirname, '../../client/dist')

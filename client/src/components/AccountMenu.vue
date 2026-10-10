@@ -7,7 +7,7 @@ import { useLocale } from '../stores/locale'
 // 首页右上角账号入口：单个黑白人形 icon。
 // 已登录：点击展开下拉菜单（账号主页 / 退出登录）；未登录：点击直接前往登录页。
 const router = useRouter()
-const { username, logout } = useAuth()
+const { username, isAdmin, logout } = useAuth()
 const { t } = useLocale()
 
 const open = ref(false)
@@ -88,6 +88,16 @@ onBeforeUnmount(() => {
       <div class="account-entry-items">
         <button type="button" class="account-entry-item" role="menuitem" @click="router.push('/account')">
           {{ t('account.profile') }}
+        </button>
+        <!-- 管理员专属入口：管理面板（/admin，非管理员被路由守卫弹回） -->
+        <button
+          v-if="isAdmin"
+          type="button"
+          class="account-entry-item"
+          role="menuitem"
+          @click="router.push('/admin')"
+        >
+          {{ t('account.adminPanel') }}
         </button>
         <button type="button" class="account-entry-item" role="menuitem" @click="onLogout">
           {{ t('account.logout') }}

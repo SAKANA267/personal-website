@@ -43,6 +43,11 @@ npm start            # 启动 server
 
 生产环境将 `client/.env.production` 的 `VITE_WS_URL` 指向 `wss://...`，并在 `server/.env` 中开启 `WS_USE_SSL=true` 并提供证书路径。
 
+## 管理面板
+
+`/admin` 是管理员（`server/.env` 的 `ADMIN_USERNAMES` 白名单）专用工作台，**独立于站点美术风格**（墨纸 + 朱砂印红的工具面板，样式隔离在 `client/src/styles/admin.css` 的 `.admin-app` 前缀下）。功能：站点概览（8 表计数 + 最近留言/聊天动态 + 服务器信息）、留言板审核（隐藏/恢复）、博客管理（上下线/编辑/删除）、评论删除、分享管理（删除/清理过期）、用户管理（贡献计数 + 重置密码）、聊天日志与开发日志（可追加）。所有数据服务端分页（`?page&pageSize&q`），接口统一走 `/api/admin/*`（`server/src/routes/admin.ts`，全部过管理员门禁）；账号菜单对管理员显示「管理面板」入口。
+
+
 ## 与原项目的差异说明
 
 为交付**预期可用功能**与必要的安全/稳健性，做了以下处理（不改变正常可观察行为）：

@@ -1,0 +1,351 @@
+import { Router } from 'express'
+import path from 'node:path'
+import fs from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { pool } from '../db.js'
+import { sessionUsername, isAdmin } from '../admin.js'
+import { rateLimit } from '../rateLimit.js'
+
+export const adminRouter = Router()
+
+/**
+ * 管理面板 API（/api/admin）：把散落在各业务接口里的管理动作（留言审核、devlog 写入、
+ * 博客/评论/分享管理删除、重置密码）收拢为一个统一入口，并提供全站概览与各资源的
+ * 分页检索视图。所有接口统一过管理员白名单（未登录 401 / 非管理员 403），
+ * 错误一律机器码（与站点其余接口一致）。
+ *
+ * 写操作复用既有业务接口：PATCH /api/messages/:id（留言隐藏/恢复）、POST /api/devlog、
+ * DELETE /api/blog/:id、DELETE /api/blog/comments/:id、DELETE /api/share/:code、
+ * POST /api/auth/admin/reset-password；本路由只补齐它们没有的能力
+ * （概览聚合、全量分页列表、文章快速上下线、过期分享清理）。
+ */
+
+// ---------- 统一鉴权 ----------
+
+adminRouter.use((req, res, next) => {
+  if (!sessionUsername(req)) {
+    res.status(401).json({ error: 'LOGIN_REQUIRED' })
+    return
+  }
+  if (!isAdmin(req)) {
+    res.status(403).json({ error: 'ADMIN_ONLY' })
+    return
+  }
+  next()
+})
+
+// ---------- 分页 / 搜索工具 ----------
+
+const DT = '%Y-%m-%d %H:%i'
+
+/** 解析 ?page=1&pageSize=20（pageSize 夹在 10-100） */
+function parsePager(req: { query: any }): { page: number; pageSize: number; offset: number } {
+  const page = Math.max(1, Number(req.query?.page) || 1)
+  const pageSize = Math.min(100, Math.max(10, Number(req.query?.pageSize) || 20))
+  return { page, pageSize, offset: (page - 1) * pageSize }
+}
+
+/** 关键词 → LIKE 模式（%_\\ 转义，配对 SQL 里的 ESCAPE '\\'） */
+function likePattern(q: unknown): string | null {
+  if (typeof q !== 'string' || !q.trim()) return null
+  const esc = q.trim().slice(0, 100).replace(/[\\%_]/g, '\\$&')
+  return `%${esc}%`
+}
+
+/** 分页列表通用执行：where/order 动态拼接（参数化），返回 { rows, total, page, pageSize } */
+async function pagedQuery(
+  table: string,
+  selectSql: string,
+  whereSql: string,
+  params: unknown[],
+  pager: { page: number; pageSize: number; offset: number },
+  orderSql: string
+) {
+  const [[{ total }]] = (await pool.query(
+    `SELECT COUNT(*) AS total FROM ${table} ${whereSql}`,
+    params
+  )) as any[]
+  const [rows] = (await pool.query(
+    `${selectSql} ${whereSql} ${orderSql} LIMIT ? OFFSET ?`,
+    [...params, pager.pageSize, pager.offset]
+  )) as any[]
+  return { rows, total, page: pager.page, pageSize: pager.pageSize }
+}
+
+// ---------- 概览（仪表盘单请求） ----------
+
+adminRouter.get('/overview', async (_req, res) => {
+  try {
+    const [[counts]] = (await pool.query(`
+      SELECT
+        (SELECT COUNT(*) FROM users) AS users,
+        (SELECT COUNT(*) FROM messages) AS messages,
+        (SELECT COUNT(*) FROM messages WHERE is_displayed = 0) AS messagesHidden,
+        (SELECT COUNT(*) FROM devLog) AS devlog,
+        (SELECT COUNT(*) FROM blog_posts WHERE author_username IS NOT NULL) AS posts,
+        (SELECT COUNT(*) FROM blog_posts WHERE author_username IS NOT NULL AND is_published = 0) AS postsDraft,
+        (SELECT COUNT(*) FROM post_comments) AS comments,
+        (SELECT COUNT(*) FROM post_likes) AS likes,
+        (SELECT COUNT(*) FROM share_items) AS shares,
+        (SELECT COUNT(*) FROM share_items WHERE expires_at IS NULL OR expires_at > NOW()) AS sharesActive,
+        (SELECT COUNT(*) FROM logs) AS logs,
+        (SELECT MAX(timestamp) FROM messages) AS lastMessageAt
+    `)) as any[]
+    const [recentMessages, recentLogs] = await Promise.all([
+      pool.query(
+        `SELECT id, name, message, DATE_FORMAT(timestamp, '${DT}') AS timestamp, is_displayed
+         FROM messages ORDER BY id DESC LIMIT 5`
+      ),
+      pool.query(
+        `SELECT id, sender, message, DATE_FORMAT(timestamp, '${DT}') AS timestamp
+         FROM logs ORDER BY id DESC LIMIT 5`
+      ),
+    ])
+    res.json({
+      counts,
+      recentMessages: (recentMessages as any[])[0],
+      recentLogs: (recentLogs as any[])[0],
+      server: {
+        uptimeSec: Math.round(process.uptime()),
+        nodeVersion: process.version,
+        now: new Date().toISOString(),
+      },
+    })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+// ---------- 留言板（全量含已隐藏，供审核） ----------
+
+adminRouter.get('/messages', async (req, res) => {
+  try {
+    const pager = parsePager(req)
+    const like = likePattern(req.query?.q)
+    const where = like ? 'WHERE name LIKE ? ESCAPE \'\\\\\' OR message LIKE ? ESCAPE \'\\\\\'' : ''
+    const params = like ? [like, like] : []
+    const data = await pagedQuery(
+      'messages',
+      `SELECT id, name, message, DATE_FORMAT(timestamp, '${DT}') AS timestamp, is_displayed FROM messages`,
+      where,
+      params,
+      pager,
+      'ORDER BY id DESC'
+    )
+    res.json(data)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+// ---------- 开发日志（追加制，面板只读 + 走既有 POST 新增） ----------
+
+adminRouter.get('/devlog', async (req, res) => {
+  try {
+    const pager = parsePager(req)
+    const like = likePattern(req.query?.q)
+    const where = like ? 'WHERE change_description LIKE ? ESCAPE \'\\\\\'' : ''
+    const data = await pagedQuery(
+      'devLog',
+      `SELECT id, DATE_FORMAT(timestamp, '${DT}') AS timestamp, change_description FROM devLog`,
+      where,
+      like ? [like] : [],
+      pager,
+      'ORDER BY id DESC'
+    )
+    res.json(data)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+// ---------- 博客文章（全量含草稿） ----------
+
+adminRouter.get('/posts', async (req, res) => {
+  try {
+    const pager = parsePager(req)
+    const like = likePattern(req.query?.q)
+    const where = like
+      ? `WHERE author_username IS NOT NULL AND (title LIKE ? ESCAPE '\\\\' OR author_username LIKE ? ESCAPE '\\\\')`
+      : 'WHERE author_username IS NOT NULL'
+    const params = like ? [like, like] : []
+    const data = await pagedQuery(
+      'blog_posts',
+      `SELECT id, slug, title, author_username AS author, category,
+         DATE_FORMAT(\`date\`, '%Y-%m-%d') AS date, is_published AS isPublished, read_time AS readTime,
+         (SELECT COUNT(*) FROM post_comments pc WHERE pc.post_slug = blog_posts.slug) AS commentCount,
+         (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_slug = blog_posts.slug) AS likeCount
+       FROM blog_posts`,
+      where,
+      params,
+      pager,
+      'ORDER BY `date` DESC, id DESC'
+    )
+    res.json(data)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+// 文章快速上下线：面板开关草稿位，不必走完整 PUT（无需重传正文）
+adminRouter.patch(
+  '/posts/:id/publish',
+  rateLimit({ windowMs: 60_000, max: 60 }),
+  async (req, res) => {
+    try {
+      const published = req.body?.is_published
+      if (published !== 0 && published !== 1) {
+        res.status(400).json({ error: 'POST_BAD_PUBLISHED' })
+        return
+      }
+      const [result] = (await pool.query(
+        'UPDATE blog_posts SET is_published = ?, updated_at = NOW() WHERE id = ? AND author_username IS NOT NULL',
+        [published, req.params.id]
+      )) as any
+      if (result.affectedRows === 0) {
+        res.status(404).json({ error: 'NOT_FOUND' })
+        return
+      }
+      res.json({ success: true, isPublished: published })
+    } catch (e) {
+      console.error(e)
+      res.status(500).json({ error: 'SERVER_ERROR' })
+    }
+  }
+)
+
+// ---------- 评论（全站，跨文章检索） ----------
+
+adminRouter.get('/comments', async (req, res) => {
+  try {
+    const pager = parsePager(req)
+    const like = likePattern(req.query?.q)
+    const where = like
+      ? `WHERE username LIKE ? ESCAPE '\\\\' OR content LIKE ? ESCAPE '\\\\' OR post_slug LIKE ? ESCAPE '\\\\'`
+      : ''
+    const params = like ? [like, like, like] : []
+    const data = await pagedQuery(
+      'post_comments',
+      `SELECT id, post_slug, username, content, DATE_FORMAT(created_at, '${DT}') AS createdAt FROM post_comments`,
+      where,
+      params,
+      pager,
+      'ORDER BY id DESC'
+    )
+    res.json(data)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+// ---------- 分享（全量；text 正文不随列表下发，避免大字段拖慢） ----------
+
+// 上传文件目录须与 share.ts 一致（清理时删除磁盘文件）
+const UPLOAD_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../uploads/share'
+)
+
+adminRouter.get('/shares', async (req, res) => {
+  try {
+    const pager = parsePager(req)
+    const like = likePattern(req.query?.q)
+    const where = like
+      ? `WHERE title LIKE ? ESCAPE '\\\\' OR code LIKE ? ESCAPE '\\\\' OR uploader_user LIKE ? ESCAPE '\\\\'`
+      : ''
+    const params = like ? [like, like, like] : []
+    const data = await pagedQuery(
+      'share_items',
+      `SELECT id, code, type, title, mime_type AS mimeType, size, views, downloads,
+         uploader_user AS uploaderUser, uploader_ip AS uploaderIp,
+         DATE_FORMAT(expires_at, '${DT}') AS expiresAt,
+         DATE_FORMAT(created_at, '${DT}') AS createdAt,
+         (expires_at IS NOT NULL AND expires_at <= NOW()) AS expired
+       FROM share_items`,
+      where,
+      params,
+      pager,
+      'ORDER BY id DESC'
+    )
+    res.json(data)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+// 清理已过期分享：删行 + 清磁盘文件（与 share.ts 的惰性清理同一套逻辑）
+adminRouter.post('/shares/cleanup', rateLimit({ windowMs: 60_000, max: 10 }), async (_req, res) => {
+  try {
+    const [rows] = (await pool.query(
+      'SELECT id, stored_name FROM share_items WHERE expires_at IS NOT NULL AND expires_at <= NOW()'
+    )) as any[]
+    for (const item of rows as any[]) {
+      if (item.stored_name) {
+        const abs = path.join(UPLOAD_DIR, path.basename(String(item.stored_name)))
+        fs.promises.unlink(abs).catch(() => {})
+      }
+      await pool.query('DELETE FROM share_items WHERE id = ?', [item.id])
+    }
+    res.json({ success: true, removed: (rows as any[]).length })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+// ---------- 用户（含各维度贡献计数；不做删号，账号治理走重置密码） ----------
+
+adminRouter.get('/users', async (req, res) => {
+  try {
+    const pager = parsePager(req)
+    const like = likePattern(req.query?.q)
+    const where = like ? 'WHERE username LIKE ? ESCAPE \'\\\\\'' : ''
+    const params = like ? [like] : []
+    const data = await pagedQuery(
+      'users',
+      `SELECT id, username,
+         (SELECT COUNT(*) FROM blog_posts bp WHERE bp.author_username = users.username) AS posts,
+         (SELECT COUNT(*) FROM post_comments pc WHERE pc.username = users.username) AS comments,
+         (SELECT COUNT(*) FROM post_likes pl WHERE pl.username = users.username) AS likes,
+         (SELECT COUNT(*) FROM share_items si WHERE si.uploader_user = users.username) AS shares
+       FROM users`,
+      where,
+      params,
+      pager,
+      'ORDER BY id DESC'
+    )
+    res.json(data)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+// ---------- 聊天日志（ws 服务写入的连接/发言记录） ----------
+
+adminRouter.get('/logs', async (req, res) => {
+  try {
+    const pager = parsePager(req)
+    const like = likePattern(req.query?.q)
+    const where = like ? 'WHERE sender LIKE ? ESCAPE \'\\\\\' OR message LIKE ? ESCAPE \'\\\\\'' : ''
+    const params = like ? [like, like] : []
+    const data = await pagedQuery(
+      'logs',
+      `SELECT id, sender, message, DATE_FORMAT(timestamp, '${DT}') AS timestamp FROM logs`,
+      where,
+      params,
+      pager,
+      'ORDER BY id DESC'
+    )
+    res.json(data)
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
