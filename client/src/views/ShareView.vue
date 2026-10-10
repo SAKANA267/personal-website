@@ -91,7 +91,11 @@ function acceptType() {
 }
 
 function validatePicked(file: File): string | null {
-  if (tab.value === 'image' && !file.type.startsWith('image/')) return t('share.notImage')
+  if (tab.value === 'image') {
+    if (!file.type.startsWith('image/')) return t('share.notImage')
+    // SVG 内联预览会被注入脚本（服务端同样拦截），引导改走文件分享
+    if (file.type === 'image/svg+xml') return t('share.notSvg')
+  }
   return null
 }
 

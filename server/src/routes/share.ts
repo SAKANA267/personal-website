@@ -28,6 +28,19 @@ const EXPIRY_MS: Record<string, number> = {
 // 取件码字符集：去掉 0/O/1/I 等易混字符
 const CODE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz'
 
+// 允许内联预览（inline）的图片类型白名单：只有惰性位图格式可内联。
+// SVG 属于 image/* 但可携带 <script>，作为顶层文档内联输出会在站点同源执行（存储型 XSS），
+// 因此上传侧拒绝、取件侧对历史残留/伪装类型一律降级为 attachment 下载。
+const INLINE_IMAGE_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/gif',
+  'image/webp',
+  'image/bmp',
+  'image/avif',
+  'image/x-icon',
+])
+
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOAD_DIR),
   filename: (_req, file, cb) => {
@@ -148,6 +161,11 @@ shareRouter.post('/file', rateLimit({ windowMs: 60_000, max: 6 }), (req, res) =>
         fs.promises.unlink(file.path).catch(() => {})
         return res.status(400).json({ error: 'SHARE_NOT_IMAGE' })
       }
+      // SVG 内联预览 = 同源 XSS，图片分享一律拒绝（改走文件分享，取件时下载）
+      if (kind === 'image' && file.mimetype === 'image/svg+xml') {
+        fs.promises.unlink(file.path).catch(() => {})
+        return res.status(400).json({ error: 'SHARE_IMAGE_UNSUPPORTED' })
+      }
 
       const code = await createUniqueCode()
       const expiresAt = expiryDate(req.body?.expiresIn)
@@ -224,7 +242,7 @@ shareRouter.get('/:code', async (req, res) => {
   }
 })
 
-// 文件内联输出：仅允许图片（其余类型一律走下载，防 HTML/SVG 内联 XSS）
+// 文件内联输出：仅白名单位图可 inline（其余类型一律走下载，防 HTML/SVG 内联 XSS）
 shareRouter.get('/:code/file', async (req, res) => {
   try {
     const item = await findActiveShare(req.params.code)
@@ -238,10 +256,12 @@ shareRouter.get('/:code/file', async (req, res) => {
       await deleteShareItem(item)
       return res.status(404).json({ error: 'SHARE_FILE_GONE' })
     }
+    // 历史残留的 svg/非常规 mime 不满足白名单 → 降级为下载，杜绝内联执行
+    const inlineSafe = INLINE_IMAGE_TYPES.has(item.mime_type)
     res.sendFile(abs, {
       headers: {
-        'Content-Type': item.mime_type || 'application/octet-stream',
-        'Content-Disposition': `inline; filename*=UTF-8''${encodeURIComponent(item.title)}`,
+        'Content-Type': inlineSafe ? item.mime_type : 'application/octet-stream',
+        'Content-Disposition': `${inlineSafe ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(item.title)}`,
       },
     })
   } catch (e: any) {
