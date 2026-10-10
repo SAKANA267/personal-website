@@ -28,8 +28,12 @@ devlogRouter.post('/', rateLimit({ windowMs: 60_000, max: 10 }), async (req, res
     res.status(403).json({ error: 'ADMIN_ONLY' })
     return
   }
+  const content = typeof req.body?.content === 'string' ? req.body.content.trim() : ''
+  if (!content || content.length > 5000) {
+    res.status(400).json({ error: 'DEVLOG_INVALID' })
+    return
+  }
   try {
-    const content = req.body?.content
     await pool.query('INSERT INTO devLog (change_description) VALUES (?)', [content])
     res.json({ success: true })
   } catch (e: any) {

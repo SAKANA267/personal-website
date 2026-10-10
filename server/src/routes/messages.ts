@@ -24,14 +24,33 @@ messagesRouter.get('/', async (req, res) => {
 
 // 对应 submit_message.php：插入留言，时间戳为当前时间，is_displayed 走默认值 1。
 // 留言板是游客可写的最暴露入口，按 IP 每分钟 5 条防刷屏
+// 输入校验：非空 + 长度上限（此前 undefined 会直接让 mysql2 抛错，超长串打 DB 报错）
+const NAME_MAX = 100
+const MESSAGE_MAX = 5000
 messagesRouter.post('/', rateLimit({ windowMs: 60_000, max: 5 }), async (req, res) => {
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : ''
+  const message = typeof req.body?.message === 'string' ? req.body.message.trim() : ''
+  if (!name) {
+    res.status(400).json({ error: 'MESSAGE_NAME_REQUIRED' })
+    return
+  }
+  if (name.length > NAME_MAX) {
+    res.status(400).json({ error: 'MESSAGE_NAME_TOO_LONG', max: NAME_MAX })
+    return
+  }
+  if (!message) {
+    res.status(400).json({ error: 'MESSAGE_TEXT_REQUIRED' })
+    return
+  }
+  if (message.length > MESSAGE_MAX) {
+    res.status(400).json({ error: 'MESSAGE_TEXT_TOO_LONG', max: MESSAGE_MAX })
+    return
+  }
   try {
-    const name = req.body?.name
-    const message = req.body?.message
-    await pool.query(
-      'INSERT INTO messages (name, message, timestamp) VALUES (?, ?, NOW())',
-      [name, message]
-    )
+    await pool.query('INSERT INTO messages (name, message, timestamp) VALUES (?, ?, NOW())', [
+      name,
+      message,
+    ])
     res.json({ success: true })
   } catch (e: any) {
     res.json({ error: e.message })

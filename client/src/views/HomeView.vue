@@ -11,7 +11,7 @@ import { useLocale } from '../stores/locale'
 import type { Message } from '../types'
 
 const router = useRouter()
-const { t } = useLocale()
+const { t, apiError } = useLocale()
 const messages = ref<Message[]>([])
 const name = ref('')
 const message = ref('')
@@ -57,7 +57,8 @@ async function submitMessage() {
       message.value = ''
       fetchMessages()
     } else {
-      alert(t('home.msgFail'))
+      // 服务端校验/限流等错误按码本地化（4xx），网络类失败回落通用文案
+      alert(apiError(res.data, 'home.msgFail'))
     }
   } catch (e) {
     alert(t('home.msgFail'))
@@ -118,12 +119,13 @@ onMounted(fetchMessages)
               v-model="name"
               :readonly="!!username"
               :title="username ? t('home.nameTitle', { name: username }) : undefined"
+              maxlength="100"
               required
             />
           </div>
           <div class="form-group">
             <label for="message">{{ t('home.msgLabel') }}</label>
-            <textarea id="message" v-model="message" required></textarea>
+            <textarea id="message" v-model="message" maxlength="5000" required></textarea>
           </div>
           <button type="submit">{{ t('home.submit') }}</button>
         </form>
