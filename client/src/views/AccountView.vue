@@ -8,13 +8,47 @@ import { useLocale } from '../stores/locale'
 
 const router = useRouter()
 const { t, apiError } = useLocale()
-const { username, logout } = useAuth()
+const { username, logout, isAdmin } = useAuth()
 const oldPassword = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const error = ref('')
 const notice = ref('')
 const pending = ref(false)
+
+// 管理员工具：重置任意用户密码（找回密码的最小闭环，无邮件设施时线下核实身份后使用）
+const resetTarget = ref('')
+const resetPassword = ref('')
+const resetConfirm = ref('')
+const resetError = ref('')
+const resetNotice = ref('')
+const resetPending = ref(false)
+
+async function submitReset() {
+  resetError.value = ''
+  resetNotice.value = ''
+  if (resetPassword.value !== resetConfirm.value) {
+    resetError.value = t('accountPage.mismatch')
+    return
+  }
+  resetPending.value = true
+  try {
+    const res = await api.adminResetPassword({
+      username: resetTarget.value,
+      newPassword: resetPassword.value,
+    })
+    if (res.ok) {
+      resetNotice.value = t('accountPage.adminDone', { name: resetTarget.value })
+      resetTarget.value = ''
+      resetPassword.value = ''
+      resetConfirm.value = ''
+    } else {
+      resetError.value = apiError(res.data, 'accountPage.adminFail')
+    }
+  } finally {
+    resetPending.value = false
+  }
+}
 
 async function submit() {
   error.value = ''
@@ -86,6 +120,31 @@ async function onLogout() {
         <p v-if="error" class="auth-error">{{ error }}</p>
         <p v-if="notice" class="auth-notice">{{ notice }}</p>
       </form>
+
+      <!-- 管理员工具：重置任意用户密码（仅 ADMIN_USERNAMES 白名单可见） -->
+      <template v-if="isAdmin">
+        <p class="auth-section-label">{{ t('accountPage.adminSection') }}</p>
+        <form class="auth-form" @submit.prevent="submitReset">
+          <div class="field">
+            <label for="reset-target">{{ t('accountPage.adminTarget') }}</label>
+            <input type="text" id="reset-target" v-model="resetTarget" maxlength="255" required />
+          </div>
+          <div class="field">
+            <label for="reset-password">{{ t('accountPage.newPassword') }}</label>
+            <input type="password" id="reset-password" v-model="resetPassword" autocomplete="new-password" required minlength="6" />
+            <p class="field-hint">{{ t('accountPage.hint') }}</p>
+          </div>
+          <div class="field">
+            <label for="reset-confirm">{{ t('accountPage.confirmPassword') }}</label>
+            <input type="password" id="reset-confirm" v-model="resetConfirm" autocomplete="new-password" required minlength="6" />
+          </div>
+          <button type="submit" class="auth-submit" :disabled="resetPending">
+            {{ resetPending ? t('accountPage.pending') : t('accountPage.adminSubmit') }}
+          </button>
+          <p v-if="resetError" class="auth-error">{{ resetError }}</p>
+          <p v-if="resetNotice" class="auth-notice">{{ resetNotice }}</p>
+        </form>
+      </template>
     </div>
   </div>
 </template>

@@ -71,6 +71,9 @@ export const api = {
   // 账号中心：修改密码（需已登录 + 旧密码校验）
   changePassword: (data: { oldPassword: string; newPassword: string }) =>
     post<{ success?: boolean; error?: string }>('/auth/change-password', data),
+  // 管理员重置任意用户密码（找回密码的最小闭环，线下核实身份后使用）
+  adminResetPassword: (data: { username: string; newPassword: string }) =>
+    post<{ success?: boolean; username?: string; error?: string }>('/auth/admin/reset-password', data),
   // 聊天 WS 一次性握手令牌（登录后连接聊天时换取）
   wsToken: () => post<{ token?: string; error?: string }>('/auth/ws-token', {}),
   // 留言审核：管理员隐藏/恢复留言

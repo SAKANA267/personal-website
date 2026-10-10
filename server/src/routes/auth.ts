@@ -147,3 +147,54 @@ authRouter.post('/ws-token', rateLimit({ windowMs: 60_000, max: 30 }), (req, res
   }
   res.json({ token: issueWsToken(username) })
 })
+
+// 管理员重置任意用户密码：找回密码的最小闭环——站点无邮件设施，
+// 用户密码丢失时由管理员线下核实身份后重置（自己改密仍走 /change-password 验旧密码）。
+authRouter.post(
+  '/admin/reset-password',
+  rateLimit({ windowMs: 10 * 60_000, max: 20 }),
+  async (req, res) => {
+    const admin = sessionUsername(req)
+    if (!admin) {
+      res.status(401).json({ error: 'AUTH_NOT_LOGGED_IN' })
+      return
+    }
+    if (!isAdmin(req)) {
+      res.status(403).json({ error: 'ADMIN_ONLY' })
+      return
+    }
+    const username = typeof req.body?.username === 'string' ? req.body.username.trim() : ''
+    if (!username || username.length > 255) {
+      res.status(400).json({ error: 'AUTH_USERNAME_REQUIRED' })
+      return
+    }
+    if (username === admin) {
+      res.status(400).json({ error: 'AUTH_RESET_SELF' })
+      return
+    }
+    const newPassword = req.body?.newPassword
+    if (typeof newPassword !== 'string' || newPassword.length < PASSWORD_MIN) {
+      res.status(400).json({ error: 'AUTH_PASSWORD_MIN', min: PASSWORD_MIN })
+      return
+    }
+    if (Buffer.byteLength(newPassword, 'utf8') > 72) {
+      res.status(400).json({ error: 'AUTH_PASSWORD_TOO_LONG' })
+      return
+    }
+    try {
+      const [rows] = await pool.query('SELECT id FROM users WHERE username = ?', [username])
+      const user = (rows as any[])[0]
+      if (!user) {
+        res.status(404).json({ error: 'AUTH_USER_NOT_FOUND' })
+        return
+      }
+      const hashed = await bcrypt.hash(newPassword, 10)
+      await pool.query('UPDATE users SET password = ? WHERE id = ?', [hashed, user.id])
+      console.log(`[admin] ${admin} 重置了用户 ${username} 的密码`)
+      res.json({ success: true, username })
+    } catch (e: any) {
+      console.error('admin reset-password failed:', e)
+      res.status(500).json({ error: 'SERVER_ERROR' })
+    }
+  }
+)
