@@ -5,6 +5,7 @@ import MySQLStoreFactory from 'express-mysql-session'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { pool } from './db.js'
+import { securityHeaders } from './securityHeaders.js'
 import { messagesRouter } from './routes/messages.js'
 import { devlogRouter } from './routes/devlog.js'
 import { authRouter } from './routes/auth.js'
@@ -21,6 +22,9 @@ app.set('trust proxy', 1)
 // limit 提至 1mb：文字分享接口需要粘贴较长文本（其余接口不受影响）
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '1mb' }))
+
+// 安全响应头（CSP/nosniff/防点击劫持/HSTS），须先于路由与静态托管注册
+app.use(securityHeaders)
 
 // 健康检查（nginx/监控/PM2 探活用）：验证进程存活 + 数据库连通性。
 // 放在 session 中间件之前，探活请求不创建会话、不落库写 sessions 表。
