@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { pool } from '../db.js'
 import { sessionUsername, isAdmin } from '../admin.js'
+import { rateLimit } from '../rateLimit.js'
 
 export const blogRouter = Router()
 
@@ -132,8 +133,15 @@ function validatePostInput(body: any) {
   return { title, category, tags, body: content, isPublished }
 }
 
-// 新建（登录）
-blogRouter.post('/', async (req, res) => {
+// 新建（登录）。按作者限流：每 10 分钟 10 篇，防脚本灌水
+blogRouter.post(
+  '/',
+  rateLimit({
+    windowMs: 10 * 60_000,
+    max: 10,
+    key: (req) => sessionUsername(req) ?? String(req.ip),
+  }),
+  async (req, res) => {
   try {
     const user = sessionUsername(req)
     if (!user) return res.status(401).json({ error: 'LOGIN_REQUIRED' })
@@ -154,7 +162,8 @@ blogRouter.post('/', async (req, res) => {
   } catch (e: any) {
     console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
-})
+  }
+)
 
 // 单篇正文（发布，或作者本人/管理员可见草稿）
 blogRouter.get('/:slug', async (req, res) => {
@@ -245,8 +254,15 @@ blogRouter.get('/:slug/comments', async (req, res) => {
   }
 })
 
-// 发表评论（登录；静态/用户文章均可）
-blogRouter.post('/:slug/comments', async (req, res) => {
+// 发表评论（登录；静态/用户文章均可）。按作者每分钟 10 条
+blogRouter.post(
+  '/:slug/comments',
+  rateLimit({
+    windowMs: 60_000,
+    max: 10,
+    key: (req) => sessionUsername(req) ?? String(req.ip),
+  }),
+  async (req, res) => {
   try {
     const user = sessionUsername(req)
     if (!user) return res.status(401).json({ error: 'LOGIN_REQUIRED' })
@@ -275,7 +291,8 @@ blogRouter.post('/:slug/comments', async (req, res) => {
   } catch (e: any) {
     console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
-})
+  }
+)
 
 // 删除评论（评论者本人或管理员）
 blogRouter.delete('/comments/:id', async (req, res) => {
@@ -319,8 +336,16 @@ blogRouter.get('/:slug/likes', async (req, res) => {
   }
 })
 
-// 点赞/取消（登录，toggle；一人一赞由 UNIQUE 约束保证）
-blogRouter.post('/:slug/likes', async (req, res) => {
+// 点赞/取消（登录，toggle；一人一赞由 UNIQUE 约束保证）。
+// 快速连续切换属正常操作，额度放宽到每分钟 30 次
+blogRouter.post(
+  '/:slug/likes',
+  rateLimit({
+    windowMs: 60_000,
+    max: 30,
+    key: (req) => sessionUsername(req) ?? String(req.ip),
+  }),
+  async (req, res) => {
   try {
     const user = sessionUsername(req)
     if (!user) return res.status(401).json({ error: 'LOGIN_REQUIRED' })
@@ -344,4 +369,5 @@ blogRouter.post('/:slug/likes', async (req, res) => {
   } catch (e: any) {
     console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
   }
-})
+  }
+)

@@ -6,6 +6,7 @@ import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { pool } from '../db.js'
 import { sessionUsername, isAdmin } from '../admin.js'
+import { rateLimit } from '../rateLimit.js'
 
 export const shareRouter = Router()
 
@@ -105,8 +106,9 @@ async function findActiveShare(code: string): Promise<any | null | 'expired'> {
   return item
 }
 
-// 文字分享：JSON 正文（受全局 express.json 1mb 限制）
-shareRouter.post('/text', async (req, res) => {
+// 文字分享：JSON 正文（受全局 express.json 1mb 限制）。
+// 游客可写，按 IP 每分钟 10 条防灌水
+shareRouter.post('/text', rateLimit({ windowMs: 60_000, max: 10 }), async (req, res) => {
   try {
     const content = typeof req.body?.content === 'string' ? req.body.content : ''
     if (!content.trim()) return res.status(400).json({ error: 'SHARE_TEXT_EMPTY' })
@@ -127,8 +129,9 @@ shareRouter.post('/text', async (req, res) => {
   }
 })
 
-// 图片/文件分享：multipart 上传（字段名 file）
-shareRouter.post('/file', (req, res) => {
+// 图片/文件分享：multipart 上传（字段名 file）。
+// 上传最耗磁盘与带宽，按 IP 每分钟 6 次收紧
+shareRouter.post('/file', rateLimit({ windowMs: 60_000, max: 6 }), (req, res) => {
   upload.single('file')(req, res, async (err) => {
     if (err) {
       if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {

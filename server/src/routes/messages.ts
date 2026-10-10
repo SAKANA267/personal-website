@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { pool } from '../db.js'
 import { sessionUsername, isAdmin } from '../admin.js'
+import { rateLimit } from '../rateLimit.js'
 
 export const messagesRouter = Router()
 
@@ -21,8 +22,9 @@ messagesRouter.get('/', async (req, res) => {
   }
 })
 
-// 对应 submit_message.php：插入留言，时间戳为当前时间，is_displayed 走默认值 1
-messagesRouter.post('/', async (req, res) => {
+// 对应 submit_message.php：插入留言，时间戳为当前时间，is_displayed 走默认值 1。
+// 留言板是游客可写的最暴露入口，按 IP 每分钟 5 条防刷屏
+messagesRouter.post('/', rateLimit({ windowMs: 60_000, max: 5 }), async (req, res) => {
   try {
     const name = req.body?.name
     const message = req.body?.message
@@ -36,8 +38,9 @@ messagesRouter.post('/', async (req, res) => {
   }
 })
 
-// 登录适配：留言审核——管理员隐藏/恢复一条留言（is_displayed 置 0/1）
-messagesRouter.patch('/:id', async (req, res) => {
+// 登录适配：留言审核——管理员隐藏/恢复一条留言（is_displayed 置 0/1）。
+// 批量审核会连续切换，按 IP 每分钟 60 次的宽裕额度
+messagesRouter.patch('/:id', rateLimit({ windowMs: 60_000, max: 60 }), async (req, res) => {
   if (!sessionUsername(req)) {
     res.status(401).json({ error: 'LOGIN_REQUIRED' })
     return

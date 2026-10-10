@@ -333,6 +333,7 @@ const en: MessagePack = {
     SHARE_EXPIRED: 'Share has expired',
     SHARE_NO_PREVIEW: 'This share does not support inline preview',
     SHARE_FILE_GONE: 'The file no longer exists',
+    RATE_LIMITED: 'Too many requests — please try again later',
     SERVER_ERROR: 'Something went wrong on the server. Please try again later',
   },
 }

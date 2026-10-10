@@ -340,6 +340,7 @@ export default {
     SHARE_EXPIRED: '分享已过期',
     SHARE_NO_PREVIEW: '该分享不支持在线预览',
     SHARE_FILE_GONE: '文件已不存在',
+    RATE_LIMITED: '操作过于频繁，请稍后再试',
     SERVER_ERROR: '服务器开小差了，请稍后再试',
   },
 }

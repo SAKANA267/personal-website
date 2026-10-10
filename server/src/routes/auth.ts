@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs'
 import { pool } from '../db.js'
 import { sessionUsername, isAdmin } from '../admin.js'
 import { issueWsToken } from '../wsTokens.js'
+import { rateLimit } from '../rateLimit.js'
 
 export const authRouter = Router()
 
@@ -20,8 +21,11 @@ function invalidCredentials(username: unknown, password: unknown): { code: strin
   return null
 }
 
-// 对应 sign_up.php：bcrypt 哈希后写入用户
-authRouter.post('/signup', async (req, res) => {
+// 注册接口：防脚本批量开号（按 IP 每小时 10 次）。对应 sign_up.php：bcrypt 哈希后写入用户
+authRouter.post(
+  '/signup',
+  rateLimit({ windowMs: 60 * 60_000, max: 10 }),
+  async (req, res) => {
   try {
     const username = req.body?.username
     const password = req.body?.password
@@ -46,10 +50,12 @@ authRouter.post('/signup', async (req, res) => {
       res.status(500).json({ error: 'SERVER_ERROR' })
     }
   }
-})
+  }
+)
 
-// 对应 login.php：原实现明文比对 bcrypt 哈希导致永远失败，这里修复为正确的 bcrypt 比对
-authRouter.post('/login', async (req, res) => {
+// 对应 login.php：原实现明文比对 bcrypt 哈希导致永远失败，这里修复为正确的 bcrypt 比对。
+// 登录爆破防线：按 IP 每 5 分钟 20 次（bcrypt 慢哈希本身也是 CPU 消耗，超限直接 429）
+authRouter.post('/login', rateLimit({ windowMs: 5 * 60_000, max: 20 }), async (req, res) => {
   try {
     const username = req.body?.username
     const password = req.body?.password
@@ -89,8 +95,12 @@ authRouter.post('/logout', (req, res) => {
   })
 })
 
-// 修改密码：需已登录 + 旧密码校验；新密码同样受最小长度与 72 字节上限约束
-authRouter.post('/change-password', async (req, res) => {
+// 修改密码：需已登录 + 旧密码校验；新密码同样受最小长度与 72 字节上限约束。
+// 旧密码试错防线：按 IP 每 10 分钟 10 次
+authRouter.post(
+  '/change-password',
+  rateLimit({ windowMs: 10 * 60_000, max: 10 }),
+  async (req, res) => {
   const username = sessionUsername(req)
   if (!username) {
     res.status(401).json({ error: 'AUTH_NOT_LOGGED_IN' })
@@ -124,10 +134,12 @@ authRouter.post('/change-password', async (req, res) => {
     console.error('change-password failed:', e)
     res.status(500).json({ error: 'SERVER_ERROR' })
   }
-})
+  }
+)
 
-// WS 握手令牌：一次性、60 秒有效，把登录身份带过 9000 端口的 WebSocket 连接
-authRouter.post('/ws-token', (req, res) => {
+// WS 握手令牌：一次性、60 秒有效，把登录身份带过 9000 端口的 WebSocket 连接。
+// 页面每次进聊天页都会换取一次，给到按 IP 每分钟 30 次的余量
+authRouter.post('/ws-token', rateLimit({ windowMs: 60_000, max: 30 }), (req, res) => {
   const username = sessionUsername(req)
   if (!username) {
     res.status(401).json({ error: 'AUTH_NOT_LOGGED_IN' })
