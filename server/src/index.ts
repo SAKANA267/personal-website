@@ -33,6 +33,13 @@ app.get('/api/health', async (_req, res) => {
   }
 })
 
+// 生产强制要求显式 SESSION_SECRET：回退默认值意味着会话签名密钥公开可猜，
+// 宁可启动失败（.env 丢失/漏配）也不要带着可伪造的会话悄悄上线。
+if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+  console.error('[启动失败] 生产环境必须设置 SESSION_SECRET（server/.env），拒绝以默认密钥启动')
+  process.exit(1)
+}
+
 // 会话持久化：接入现有 mysql2 连接池（自动建 sessions 表），服务重启不再全员登出。
 // express-mysql-session 是 CJS 工厂，需传入 express-session 模块以取得 Store 基类。
 const createMysqlSessionStore = MySQLStoreFactory as unknown as (

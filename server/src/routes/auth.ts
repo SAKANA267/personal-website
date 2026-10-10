@@ -67,8 +67,16 @@ authRouter.post('/login', rateLimit({ windowMs: 5 * 60_000, max: 20 }), async (r
     const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username])
     const user = (rows as any[])[0]
     if (user && (await bcrypt.compare(password, user.password))) {
-      ;(req.session as any).username = username
-      res.json({ success: true, username, isAdmin: isAdmin(req) })
+      // 重新生成会话 ID（防会话固定）：登录前持有的 sid 不延续到登录态
+      req.session.regenerate((err: any) => {
+        if (err) {
+          console.error('session regenerate failed:', err)
+          res.status(500).json({ error: 'SERVER_ERROR' })
+          return
+        }
+        ;(req.session as any).username = username
+        res.json({ success: true, username, isAdmin: isAdmin(req) })
+      })
     } else {
       res.status(401).json({ error: 'AUTH_INVALID_CREDENTIALS' })
     }
