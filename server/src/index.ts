@@ -22,6 +22,17 @@ app.set('trust proxy', 1)
 app.use(express.json({ limit: '1mb' }))
 app.use(express.urlencoded({ extended: true, limit: '1mb' }))
 
+// 健康检查（nginx/监控/PM2 探活用）：验证进程存活 + 数据库连通性。
+// 放在 session 中间件之前，探活请求不创建会话、不落库写 sessions 表。
+app.get('/api/health', async (_req, res) => {
+  try {
+    await pool.query('SELECT 1')
+    res.json({ status: 'ok', db: 'ok' })
+  } catch {
+    res.status(503).json({ status: 'degraded', db: 'down' })
+  }
+})
+
 // 会话持久化：接入现有 mysql2 连接池（自动建 sessions 表），服务重启不再全员登出。
 // express-mysql-session 是 CJS 工厂，需传入 express-session 模块以取得 Store 基类。
 const createMysqlSessionStore = MySQLStoreFactory as unknown as (
@@ -54,9 +65,36 @@ app.get('*', (req, res, next) => {
 })
 
 const PORT = Number(process.env.PORT) || 3000
-app.listen(PORT, () => {
+const httpServer = app.listen(PORT, () => {
   console.log(`Express 服务已启动: http://localhost:${PORT}`)
 })
 
-// 启动 WebSocket 聊天服务器
-startChatServer()
+// 启动 WebSocket 聊天服务器（拿到 wss 实例供优雅停机收口）
+const chatWss = startChatServer()
+
+// 优雅停机（PM2 reload 发 SIGINT/SIGTERM）：停进线 → 断开聊天连接 → 关连接池。
+// 10 秒兜底强退，避免个别悬挂连接拖住进程。
+let shuttingDown = false
+function shutdown(signal: string) {
+  if (shuttingDown) return
+  shuttingDown = true
+  console.log(`收到 ${signal}，开始优雅停机…`)
+  httpServer.close(() => console.log('HTTP 服务已关闭'))
+  // 聊天客户端直接断开（客户端有重连逻辑），再关 wss（SSL 模式联动关 https server）
+  chatWss.clients.forEach((client) => client.terminate())
+  chatWss.close(() => console.log('WebSocket 服务已关闭'))
+  const forceExit = setTimeout(() => {
+    console.log('优雅停机超时，强制退出')
+    process.exit(1)
+  }, 10_000)
+  forceExit.unref()
+  pool
+    .end()
+    .then(() => {
+      console.log('数据库连接池已关闭，优雅停机完成')
+      process.exit(0)
+    })
+    .catch(() => process.exit(0))
+}
+process.on('SIGINT', () => shutdown('SIGINT'))
+process.on('SIGTERM', () => shutdown('SIGTERM'))

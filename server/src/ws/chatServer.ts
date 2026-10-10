@@ -23,7 +23,11 @@ const FLOOD_WINDOW_MS = 10_000
 const CHAT_FLOOD_MAX = 30
 const RTC_FLOOD_MAX = 120
 
-export function startChatServer() {
+/**
+ * 启动聊天/转播 WebSocket 服务器，返回 wss 实例供优雅停机使用。
+ * SSL 模式下 wss 关闭时联动关闭底层 https server（见下方 close 监听）。
+ */
+export function startChatServer(): WebSocketServer {
   const port = Number(process.env.WS_PORT ?? 9000)
   const useSSL = process.env.WS_USE_SSL === 'true'
 
@@ -43,6 +47,8 @@ export function startChatServer() {
       key: fs.readFileSync(process.env.WS_KEY_PATH || 'certs/server.key'),
     })
     wss = new WebSocketServer({ server, maxPayload: 64 * 1024 })
+    // wss 关闭时联动关闭底层 https server，优雅停机才能彻底释放端口
+    wss.on('close', () => server.close(() => console.log('WS https server 已关闭')))
     server.listen(port, () => console.log(`WebSocket 安全服务器已启动，监听端口 ${port}`))
   } else {
     // 开发：ws（明文）
@@ -196,4 +202,6 @@ export function startChatServer() {
       }
     })
   })
+
+  return wss
 }
