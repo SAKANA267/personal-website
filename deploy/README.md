@@ -15,9 +15,9 @@
 ## 前置：一次性服务器初始化
 
 1. **运行时**：Node.js ≥ 18（建议 nvm，或宝塔自带）；`npm install -g pm2`。
-2. **MySQL**：建库后导入 `server/src/schema.sql`（6 张表：messages / devLog / users / logs / blog_posts / share_items）。
+2. **MySQL**：建库后导入 `server/src/schema.sql`（8 张表：messages / devLog / users / logs / blog_posts / post_comments / post_likes / share_items）。
 3. **放置配置**（不进 git、不被部署覆盖）到服务器 `<DEPLOY_DIR>/server/`：
-   - `.env`：参考 `server/.env.example`，填 DB 凭据、`SESSION_SECRET`、`PORT=3000`、`WS_PORT=9000`、生产 `WS_USE_SSL=true` 及证书路径；
+   - `.env`：参考 `server/.env.example`，填 DB 凭据、`SESSION_SECRET`（生产缺失将拒绝启动）、`ADMIN_USERNAMES`（管理员白名单）、`SHARE_MAX_MB`（与 nginx `client_max_body_size` 对齐）、`PORT=3000`、`WS_PORT=9000`、生产 `WS_USE_SSL=true` 及证书路径；
    - 若 `WS_USE_SSL=true`，把证书放到 `server/certs/`（默认 `server.pem` / `server.key`）。
 4. **反向代理 / SSL**（完整样例见 [`deploy/nginx.conf.example`](nginx.conf.example)，按域名/证书路径替换后 `nginx -t` 校验）：
    - `https://sakana267.online` → `127.0.0.1:3000`（Express，含静态前端，`/web/` 前缀在 nginx 剥除）；
