@@ -421,6 +421,9 @@
   margin-left: 6px;
 }
 
+/* 两行截断的读数格：必须挂在 td 内层的块元素上（模板中为 div）——
+   若直接设到 td，display:-webkit-box 会顶掉 table-cell 角色，
+   border-collapse 下该列的行分隔线将脱离行边界、与相邻列错位 */
 .admin-cell-clip {
   max-width: 420px;
   overflow: hidden;

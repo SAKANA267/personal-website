@@ -471,7 +471,7 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
                 <tr v-for="m in messagesList.st.rows" :key="m.id">
                   <td class="col-id">{{ m.id }}</td>
                   <td class="col-name">{{ m.name }}</td>
-                  <td class="admin-cell-clip">{{ m.message }}</td>
+                  <td><div class="admin-cell-clip">{{ m.message }}</div></td>
                   <td class="col-time">{{ m.timestamp }}</td>
                   <td class="col-state">
                     <span class="admin-tag" :class="m.is_displayed === 1 ? 'ok' : 'danger'">
@@ -532,8 +532,10 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
               <tbody>
                 <tr v-for="p in postsList.st.rows" :key="p.id">
                   <td class="col-id">{{ p.id }}</td>
-                  <td class="admin-cell-clip">
-                    <RouterLink class="admin-link" :to="`/blog/${p.slug}`" :title="p.title">{{ p.title }}</RouterLink>
+                  <td>
+                    <div class="admin-cell-clip">
+                      <RouterLink class="admin-link" :to="`/blog/${p.slug}`" :title="p.title">{{ p.title }}</RouterLink>
+                    </div>
                   </td>
                   <td class="col-author">{{ p.author }}</td>
                   <td class="col-cat">{{ p.category }}</td>
@@ -599,7 +601,7 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
                 <tr v-for="c in commentsList.st.rows" :key="c.id">
                   <td class="col-id">{{ c.id }}</td>
                   <td class="col-author">{{ c.username }}</td>
-                  <td class="admin-cell-clip">{{ c.content }}</td>
+                  <td><div class="admin-cell-clip">{{ c.content }}</div></td>
                   <td class="col-slug">
                     <RouterLink class="admin-link" :to="`/blog/${c.post_slug}`">{{ c.post_slug }}</RouterLink>
                   </td>
@@ -659,8 +661,10 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
                 <tr v-for="s in sharesList.st.rows" :key="s.id">
                   <td class="col-code">{{ s.code }}</td>
                   <td class="col-cat">{{ SHARE_TYPE_LABEL[s.type] }}</td>
-                  <td class="admin-cell-clip">
-                    <RouterLink class="admin-link" :to="`/share/${s.code}`" :title="s.title">{{ s.title }}</RouterLink>
+                  <td>
+                    <div class="admin-cell-clip">
+                      <RouterLink class="admin-link" :to="`/share/${s.code}`" :title="s.title">{{ s.title }}</RouterLink>
+                    </div>
                   </td>
                   <td class="col-size">{{ formatSize(s.size) }}</td>
                   <td class="col-author">{{ s.uploaderUser ?? `游客 ${s.uploaderIp ?? ''}` }}</td>
@@ -781,7 +785,7 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
                 <tr v-for="l in logsList.st.rows" :key="l.id">
                   <td class="col-id">{{ l.id }}</td>
                   <td class="col-author">{{ l.sender }}</td>
-                  <td class="admin-cell-clip">{{ l.message }}</td>
+                  <td><div class="admin-cell-clip">{{ l.message }}</div></td>
                   <td class="col-time">{{ l.timestamp }}</td>
                 </tr>
                 <tr v-if="!logsList.st.loading && !logsList.st.error && !logsList.st.rows.length">
@@ -839,7 +843,7 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
                 <tr v-for="d in devlogList.st.rows" :key="d.id">
                   <td class="col-id">{{ d.id }}</td>
                   <td class="col-time">{{ d.timestamp }}</td>
-                  <td class="admin-cell-clip">{{ d.change_description }}</td>
+                  <td><div class="admin-cell-clip">{{ d.change_description }}</div></td>
                 </tr>
                 <tr v-if="!devlogList.st.loading && !devlogList.st.error && !devlogList.st.rows.length">
                   <td colspan="3" class="admin-empty">暂无日志</td>
