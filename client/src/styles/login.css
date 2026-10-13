@@ -214,6 +214,43 @@
     color: var(--ink);
 }
 
+/* ===== ALTCHA 人机验证（登录页专用）=====
+ * <altcha-widget> 是 shadow DOM Web Component，内部样式外部动不了；
+ * 官方开放一组 --altcha-* CSS 自定义属性（自定义属性可穿透 shadow 边界继承），
+ * 在宿主元素上映射到站点 token，把默认"圆角卡片蓝"压成纸墨发丝线风。 */
+.page-auth .auth-captcha {
+    margin-bottom: var(--space-6);
+}
+
+.page-auth .auth-captcha altcha-widget {
+    display: block;
+    /* 响应式基线：任何内容不得撑破页面横向边界 */
+    max-width: 100%;
+    --altcha-max-width: 100%;
+    /* 面板：纸面 + 发丝线 + 2px 半径（同按钮） */
+    --altcha-color-base: var(--paper);
+    --altcha-color-base-content: var(--ink);
+    --altcha-color-neutral: var(--gray-200);
+    --altcha-color-neutral-content: var(--gray-500);
+    --altcha-border-color: var(--gray-200);
+    --altcha-border-width: var(--divider-border-width);
+    --altcha-border-radius: var(--btn-border-radius);
+    --altcha-padding: var(--space-3);
+    /* 主交互：墨块体系（选中态转墨，同主按钮） */
+    --altcha-color-primary: var(--ink);
+    --altcha-color-primary-content: var(--paper);
+    --altcha-checkbox-border-color: var(--gray-300);
+    --altcha-checkbox-border-radius: 2px;
+    --altcha-checkbox-size: 18px;
+    --altcha-spinner-color: var(--ink);
+    /* 状态色沿用站点反馈色 */
+    --altcha-color-success: var(--color-success);
+    --altcha-color-success-content: var(--paper);
+    --altcha-color-error: var(--color-danger, #c0392b);
+    --altcha-color-error-content: var(--paper);
+    --altcha-transition-duration: 0.2s;
+}
+
 /* 顶部导航：窄屏改为纵向堆叠，与其它页面一致 */
 @media (max-width: 768px) {
 

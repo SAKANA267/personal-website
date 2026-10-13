@@ -8,6 +8,9 @@ import type { Request, Response, NextFunction } from 'express'
  *  - 样式放行内联：Vue 的 :style 动态样式属性受 style-src 约束，禁掉会破版；
  *  - 图片放行 data:/blob:（二维码 canvas 导出）；
  *  - connect 放行 ws:/wss:（聊天/屏幕转播在独立的 9000 端口）；
+ *  - worker 放行 blob:（ALTCHA 验证码的 PoW worker 由 blob URL 构造；
+ *    未设 worker-src 时回落 script-src 'self' 会把 blob worker 拦死——
+ *    dev 由 Vite 直出页面无 CSP 不暴露，仅生产生效，故必须显式声明）；
  *  - frame 允许同源（图表实验室页以 iframe 内嵌）。
  *
  * 例外：/charts-lab/* 的静态演示页是自包含 HTML（内联 <script>/<style>），
@@ -20,6 +23,7 @@ const CSP = [
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   "connect-src 'self' ws: wss:",
+  "worker-src 'self' blob:",
   "frame-src 'self'",
   "object-src 'none'",
   "base-uri 'self'",

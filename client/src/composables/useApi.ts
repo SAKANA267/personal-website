@@ -58,9 +58,13 @@ export const api = {
   postMessage: (data: { name: string; message: string }) => post('/messages', data),
   getDevLogs: () => getJson<DevLogEntry[]>('/devlog'),
   postDevLog: (data: { content: string }) => post('/devlog', data),
-  signup: (data: User) => post<{ success?: boolean; error?: string }>('/auth/signup', data),
-  login: (data: User) =>
+  // 注册与登录同样需附 ALTCHA PoW 解（widget 解出后由表单页填入）
+  signup: (data: User & { altcha?: string }) =>
+    post<{ success?: boolean; error?: string }>('/auth/signup', data),
+  // 登录需附 ALTCHA PoW 解（widget 解出后由 LoginView 填入）；挑战题面地址供 widget 拉取
+  login: (data: User & { altcha?: string }) =>
     post<{ success?: boolean; username?: string; isAdmin?: boolean; error?: string }>('/auth/login', data),
+  altchaChallengeUrl: () => `${BASE}/auth/altcha-challenge`,
   // 会话校验要区分 401（未登录）与网络失败，getJson 拿不到状态码，按 getShare 的方式自带 fetch
   me: async () => {
     const res = await fetch(`${BASE}/auth/me`)

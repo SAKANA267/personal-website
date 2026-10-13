@@ -8,7 +8,7 @@
 #
 # 做四件事：
 #   1. mysqldump 全库（--single-transaction 不锁表）→ gzip 落盘
-#   2. tar 打包 server/uploads/（二维码分享的上传文件）
+#   2. tar 打包 server/uploads/（二维码分享与博客插图的上传文件）
 #   3. 删除超过 RETENTION_DAYS 天的旧备份文件
 #   4. 清理 logs 表超过 LOGS_RETENTION_DAYS 天的聊天日志（该表只增不减）
 #

@@ -14,10 +14,10 @@
 
 ## 前置：一次性服务器初始化
 
-1. **运行时**：Node.js ≥ 18（建议 nvm，或宝塔自带）；`npm install -g pm2`。
+1. **运行时**：Node.js ≥ 18（建议 nvm，或宝塔自带）；`npm install -g pm2`。注意 `sharp` 锁在 ^0.34（`server/package.json`）：0.35 起要求 Node ≥ 20，线上 Node 18 曾因装到 0.35 陷入启动崩溃循环（已降级修复），升 sharp 前先升 Node。
 2. **MySQL**：建库后导入 `server/src/schema.sql`（9 张表：messages / devLog / users / logs / blog_posts / post_comments / post_likes / blog_images / share_items）。已有部署升级：执行 schema.sql 文末「博客插图上传」迁移段（CREATE TABLE blog_images）。
 3. **放置配置**（不进 git、不被部署覆盖）到服务器 `<DEPLOY_DIR>/server/`：
-   - `.env`：参考 `server/.env.example`，填 DB 凭据、`SESSION_SECRET`（生产缺失将拒绝启动）、`ADMIN_USERNAMES`（管理员白名单）、`SHARE_MAX_MB`（分享上传上限）、`BLOG_IMAGE_MAX_MB`（博客插图上限，默认 8；两者均需 ≤ nginx `client_max_body_size`）、`PORT=3000`、`WS_PORT=9000`、生产 `WS_USE_SSL=true` 及证书路径；
+   - `.env`：参考 `server/.env.example`，填 DB 凭据、`SESSION_SECRET`（生产缺失将拒绝启动）、`ADMIN_USERNAMES`（管理员白名单）、`SHARE_MAX_MB`（分享上传上限）、`BLOG_IMAGE_MAX_MB`（博客插图上限，默认 8；两者均需 ≤ nginx `client_max_body_size`）、`ALTCHA_HMAC_KEY`（登录/注册页 ALTCHA 验证码的挑战签名密钥；不填自动用进程级随机密钥，重启作废在途挑战）、`PORT=3000`、`WS_PORT=9000`、生产 `WS_USE_SSL=true` 及证书路径；
    - 若 `WS_USE_SSL=true`，把证书放到 `server/certs/`（默认 `server.pem` / `server.key`）。
 4. **反向代理 / SSL**（完整样例见 [`deploy/nginx.conf.example`](nginx.conf.example)，按域名/证书路径替换后 `nginx -t` 校验）：
    - `https://sakana267.online` → `127.0.0.1:3000`（Express，含静态前端，`/web/` 前缀在 nginx 剥除）；
@@ -51,7 +51,9 @@
 │  ├─ node_modules/    ← npm install 生成，增量保留
 │  ├─ .env             ← 首次手动放置，不覆盖
 │  ├─ certs/           ← 首次手动放置，不覆盖
-│  └─ uploads/share/   ← 二维码分享的上传文件，运行时生成，部署不覆盖
+│  └─ uploads/         ← 运行时生成，部署不覆盖，backup.sh 全量打包
+│     ├─ share/        ← 二维码分享的上传文件
+│     └─ blog/         ← 博客插图：原图 + <hex>.disp.webp 压缩变体（登记于 blog_images 表）
 ├─ client/dist/        ← 由部署覆盖
 ├─ ecosystem.config.cjs
 └─ remote-setup.sh
@@ -83,7 +85,7 @@ ssh <user>@<host> "pm2 logs personal-website --lines 50"
 `deploy/backup.sh` 对 MySQL 与上传文件做全量备份（自动读取 `server/.env` 的连接配置，密码经 `MYSQL_PWD` 环境变量传递，不落在命令行）：
 
 1. `mysqldump --single-transaction --quick`（不锁表）→ gzip 到 `backups/db_<库>_<时间戳>.sql.gz`；
-2. `tar` 打包 `server/uploads/`（二维码分享的上传文件）；
+2. `tar` 打包 `server/uploads/`（二维码分享与博客插图的上传文件，博客插图含压缩变体双文件）；
 3. 删除超过 `RETENTION_DAYS`（默认 14）天的旧备份文件；
 4. 清理 `logs` 表超过 `LOGS_RETENTION_DAYS`（默认 90）天的聊天日志——该表每条聊天消息/上下线都写一行，只增不减，是最主要的无界增长表。
 

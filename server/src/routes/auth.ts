@@ -4,6 +4,7 @@ import { pool } from '../db.js'
 import { sessionUsername, isAdmin } from '../admin.js'
 import { issueWsToken } from '../wsTokens.js'
 import { rateLimit } from '../rateLimit.js'
+import { issueChallenge, verifyLoginCaptcha } from '../altcha.js'
 
 export const authRouter = Router()
 
@@ -38,6 +39,21 @@ authRouter.post(
       res.status(400).json({ error: 'AUTH_PASSWORD_MIN', min: PASSWORD_MIN })
       return
     }
+    // ALTCHA PoW 验证（与登录同一套出题/核销）：验通过才写入新用户，
+    // 失败（如用户名已存在）也消耗这道解，客户端会重置 widget 重解
+    const captcha = await verifyLoginCaptcha(req.body?.altcha)
+    if (captcha === 'required') {
+      res.status(400).json({ error: 'AUTH_CAPTCHA_REQUIRED' })
+      return
+    }
+    if (captcha === 'expired') {
+      res.status(400).json({ error: 'AUTH_CAPTCHA_EXPIRED' })
+      return
+    }
+    if (captcha !== 'ok') {
+      res.status(400).json({ error: 'AUTH_CAPTCHA_INVALID' })
+      return
+    }
     const hashed = await bcrypt.hash(password, 10)
     await pool.query('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashed])
     res.json({ success: true })
@@ -53,6 +69,22 @@ authRouter.post(
   }
 )
 
+// ALTCHA 挑战：登录页 widget 经 challenge 属性指向此地址取题（每次一题、带 HMAC 签名、
+// 120s 有效）。出题本身只做随机数 + 一次 HMAC（不预计算派生键），限流防刷题耗内存。
+authRouter.get(
+  '/altcha-challenge',
+  rateLimit({ windowMs: 60_000, max: 30 }),
+  async (_req, res) => {
+    try {
+      const challenge = await issueChallenge()
+      res.set('Cache-Control', 'no-store').json(challenge)
+    } catch (e: any) {
+      console.error('altcha challenge failed:', e)
+      res.status(500).json({ error: 'SERVER_ERROR' })
+    }
+  }
+)
+
 // 对应 login.php：原实现明文比对 bcrypt 哈希导致永远失败，这里修复为正确的 bcrypt 比对。
 // 登录爆破防线：按 IP 每 5 分钟 20 次（bcrypt 慢哈希本身也是 CPU 消耗，超限直接 429）
 authRouter.post('/login', rateLimit({ windowMs: 5 * 60_000, max: 20 }), async (req, res) => {
@@ -62,6 +94,21 @@ authRouter.post('/login', rateLimit({ windowMs: 5 * 60_000, max: 20 }), async (r
     const invalid = invalidCredentials(username, password)
     if (invalid) {
       res.status(400).json({ error: invalid.code })
+      return
+    }
+    // ALTCHA PoW 验证（一次性）：验通过才进入口令比对；错口令也算消耗，
+    // 下一次登录必须重解新题。机器码由前端按语言映射展示。
+    const captcha = await verifyLoginCaptcha(req.body?.altcha)
+    if (captcha === 'required') {
+      res.status(400).json({ error: 'AUTH_CAPTCHA_REQUIRED' })
+      return
+    }
+    if (captcha === 'expired') {
+      res.status(400).json({ error: 'AUTH_CAPTCHA_EXPIRED' })
+      return
+    }
+    if (captcha !== 'ok') {
+      res.status(400).json({ error: 'AUTH_CAPTCHA_INVALID' })
       return
     }
     const [rows] = await pool.query('SELECT * FROM users WHERE username = ?', [username])

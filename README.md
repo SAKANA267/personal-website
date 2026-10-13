@@ -22,7 +22,7 @@ personal_website/
    ```
 2. 创建数据库并导入表结构（依据 `server/src/schema.sql`）。
 3. 配置环境变量：
-   - 复制 `server/.env.example` → `server/.env`，填入数据库连接、端口、SESSION_SECRET（生产缺失将拒绝启动）、ADMIN_USERNAMES（管理员白名单）、SHARE_MAX_MB（分享上传上限）、BLOG_IMAGE_MAX_MB（博客插图上限，默认 8）。
+   - 复制 `server/.env.example` → `server/.env`，填入数据库连接、端口、SESSION_SECRET（生产缺失将拒绝启动）、ADMIN_USERNAMES（管理员白名单）、SHARE_MAX_MB（分享上传上限）、BLOG_IMAGE_MAX_MB（博客插图上限，默认 8）、ALTCHA_HMAC_KEY（登录页人机验证的挑战签名密钥，缺省自动改用进程级随机密钥）。
    - 复制 `client/.env.example` → `client/.env`（dev 默认即可）。
 
 ## 开发
@@ -44,6 +44,14 @@ npm start            # 启动 server
 
 生产环境将 `client/.env.production` 的 `VITE_WS_URL` 指向 `wss://...`，并在 `server/.env` 中开启 `WS_USE_SSL=true` 并提供证书路径。站点挂在 nginx 子路径 `/web/` 下（nginx 剥除前缀后反代 Node，完整样例见 `deploy/nginx.conf.example`）。
 
+## 登录/注册人机验证（ALTCHA）
+
+登录页与注册页均集成开源 PoW 验证码 [ALTCHA](https://altcha.org)（无第三方追踪、无图片识别，浏览器用算力解题）：
+
+- **体验**：勾选「我不是机器人」→ 浏览器自动解题（约半秒，内置 Web Worker）→ 绿色对勾即可提交；语言随站点 zh/en 切换。提交失败（口令错/验证过期/用户名已存在）会自动重置，重解一次即可。
+- **服务端**（`server/src/altcha.ts` + `routes/auth.ts`，登录与注册共用同一套出题/核销）：`GET /api/auth/altcha-challenge` 出题（PBKDF2/SHA-256，120 秒有效，带 HMAC 签名），登录/注册请求须附 `altcha` 解字段；验证为**一次性**（nonce 核销防重放），错误码 `AUTH_CAPTCHA_REQUIRED / INVALID / EXPIRED`。防刷叠加在原有按 IP 限流之上（登录 20 次/5 分钟、注册 10 次/小时），脚本每次尝试都要实付约 128 万次哈希迭代的算力。
+- **兼容性**：CSP 因此新增 `worker-src 'self' blob:`（ALTCHA 以 blob URL 构造 PoW worker，无此指令生产环境解题必被拦截）；altcha 包无 engines 限制、唯一依赖 hash-wasm（纯 WASM），线上 Node 18 可用（库依赖的 WebCrypto 全局 Node 18 起自带，代码内另有兜底赋值）。
+
 ## 博客撰写
 
 登录后 `/blog/compose`（写文章）支持两项工具增强：
@@ -63,6 +71,7 @@ npm start            # 启动 server
 为交付**预期可用功能**与必要的安全/稳健性，做了以下处理（不改变正常可观察行为）：
 
 - **登录修复**：原 `login.php` 用明文比对 bcrypt 哈希，登录永远失败且成功后跳转不存在的 `welcome.php`。本版用 `bcrypt.compare` 正确校验，成功后跳转首页。
+- **登录人机验证（新增，应用户要求）**：登录页与注册页在口令校验/写入前增加了 ALTCHA PoW 验证（见上文「登录/注册人机验证」小节），属安全增强而非原有行为。
 - **参数化查询**：用 mysql2 预编译语句替代原 `real_escape_string` 字符串拼接，防注入，数据一致。
 - **`messages.is_displayed` 默认 1**：原插入留言不写该列，依赖列默认值才能显示。
 - **配置外置**：数据库凭据、端口、WS 地址全部走 `.env`，不再硬编码。

@@ -15,5 +15,8 @@
     "allowImportingTsExtensions": true,
     "types": ["vite/client"]
   },
+  "vueCompilerOptions": {
+    "isCustomElement": ["altcha-widget"]
+  },
   "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"]
 }
