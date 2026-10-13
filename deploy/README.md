@@ -15,17 +15,17 @@
 ## 前置：一次性服务器初始化
 
 1. **运行时**：Node.js ≥ 18（建议 nvm，或宝塔自带）；`npm install -g pm2`。
-2. **MySQL**：建库后导入 `server/src/schema.sql`（8 张表：messages / devLog / users / logs / blog_posts / post_comments / post_likes / share_items）。
+2. **MySQL**：建库后导入 `server/src/schema.sql`（9 张表：messages / devLog / users / logs / blog_posts / post_comments / post_likes / blog_images / share_items）。已有部署升级：执行 schema.sql 文末「博客插图上传」迁移段（CREATE TABLE blog_images）。
 3. **放置配置**（不进 git、不被部署覆盖）到服务器 `<DEPLOY_DIR>/server/`：
-   - `.env`：参考 `server/.env.example`，填 DB 凭据、`SESSION_SECRET`（生产缺失将拒绝启动）、`ADMIN_USERNAMES`（管理员白名单）、`SHARE_MAX_MB`（与 nginx `client_max_body_size` 对齐）、`PORT=3000`、`WS_PORT=9000`、生产 `WS_USE_SSL=true` 及证书路径；
+   - `.env`：参考 `server/.env.example`，填 DB 凭据、`SESSION_SECRET`（生产缺失将拒绝启动）、`ADMIN_USERNAMES`（管理员白名单）、`SHARE_MAX_MB`（分享上传上限）、`BLOG_IMAGE_MAX_MB`（博客插图上限，默认 8；两者均需 ≤ nginx `client_max_body_size`）、`PORT=3000`、`WS_PORT=9000`、生产 `WS_USE_SSL=true` 及证书路径；
    - 若 `WS_USE_SSL=true`，把证书放到 `server/certs/`（默认 `server.pem` / `server.key`）。
 4. **反向代理 / SSL**（完整样例见 [`deploy/nginx.conf.example`](nginx.conf.example)，按域名/证书路径替换后 `nginx -t` 校验）：
    - `https://sakana267.online` → `127.0.0.1:3000`（Express，含静态前端，`/web/` 前缀在 nginx 剥除）；
    - `wss://sakana267.online:9000` → 直连 ws 的 9000 端口（或用 nginx 做 WebSocket 反代，样例文件文末有注释段）；
    - **必须传 `X-Forwarded-Proto` / `X-Forwarded-For`**：Express 侧 `trust proxy=1` 依赖它们识别 https（secure cookie）与真实 IP（限流），缺失会导致登录态异常、限流全按 127.0.0.1 计数；
-   - **二维码分享需要**：在反代配置里放开上传体积（nginx 默认仅 1MB，超限直接 413）：
+   - **二维码分享 / 博客插图需要**：在反代配置里放开上传体积（nginx 默认仅 1MB，超限直接 413）：
      ```nginx
-     client_max_body_size 20m;   # 与 server/.env 的 SHARE_MAX_MB 保持一致
+     client_max_body_size 20m;   # ≥ server/.env 的 SHARE_MAX_MB 与 BLOG_IMAGE_MAX_MB 取大者
      ```
 5. **pm2 开机自启**（首次部署成功后在服务器执行一次）：
    ```bash

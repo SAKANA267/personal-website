@@ -127,6 +127,23 @@ export const api = {
       .then(async (res) => ({ ok: res.ok, status: res.status, data: (await res.json().catch(() => ({}))) as { success?: boolean; post?: BlogPost; error?: string } })),
   deletePost: (id: number) =>
     request<{ success?: boolean; error?: string }>('DELETE', `/blog/${id}`),
+  // 博客插图：multipart 上传（带进度条）；url 由客户端按 BASE 拼接（生产在 /web 前缀下）
+  uploadBlogImage: (file: File, onProgress?: (pct: number) => void) => {
+    const form = new FormData()
+    form.append('file', file)
+    return postForm<{ success?: boolean; image?: { name: string; url: string; mime: string; size: number; displaySize: number | null }; error?: string }>(
+      '/blog/images',
+      form,
+      onProgress
+    )
+  },
+  blogImageUrl: (name: string) => `${BASE}/blog/images/${encodeURIComponent(name)}`,
+  getBlogImageMeta: (name: string) =>
+    getJson<{ name: string; origSize: number; dispSize: number | null }>(
+      `/blog/images/${encodeURIComponent(name)}/meta`
+    ),
+  deleteBlogImage: (name: string) =>
+    request<{ success?: boolean; error?: string }>('DELETE', `/blog/images/${encodeURIComponent(name)}`),
   getComments: (slug: string) => getJson<PostComment[]>(`/blog/${encodeURIComponent(slug)}/comments`),
   addComment: (slug: string, content: string) =>
     post<{ success?: boolean; comment?: PostComment; error?: string }>(`/blog/${encodeURIComponent(slug)}/comments`, { content }),

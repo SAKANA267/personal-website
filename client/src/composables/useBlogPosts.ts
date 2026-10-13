@@ -17,8 +17,8 @@ const modules = import.meta.glob('../content/posts/*.md', {
   eager: true,
 }) as Record<string, string>
 
-/** 剥离首部 `---\n...\n---` frontmatter，按首个 `:` 切键值。 */
-function parseFrontmatter(raw: string): {
+/** 剥离首部 `---\n...\n---` frontmatter，按首个 `:` 切键值。（导出供撰写页 .md 导入复用） */
+export function parseFrontmatter(raw: string): {
   meta: Record<string, string>
   body: string
 } {
@@ -35,8 +35,8 @@ function parseFrontmatter(raw: string): {
   return { meta, body: raw.slice(match[0].length) }
 }
 
-/** 解析 `[a, b, c]` 形式的 tags。 */
-function parseTags(raw: string): string[] {
+/** 解析 `[a, b, c]` 形式的 tags。（导出供撰写页 .md 导入复用） */
+export function parseTags(raw: string): string[] {
   return raw
     .replace(/^\[/, '')
     .replace(/\]$/, '')

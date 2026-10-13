@@ -745,3 +745,146 @@
     flex: 1;
   }
 }
+
+/* ============================================
+   14. 撰写页工具增强：插图上传面板 / .md 导入 / 预览 figure
+   ============================================ */
+
+/* 刊头行：标题区 + .md 导入按钮（不想用网页编辑器的作者本地写好再导入） */
+.page-compose .compose-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--space-4);
+  animation: slideUp var(--duration-slow) var(--ease-out) backwards;
+}
+
+.page-compose .compose-import-btn {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--btn-border-radius);
+  padding: var(--space-2) var(--space-3);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.page-compose .compose-import-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+/* 工具按钮排（插入图片 + 预览切换） */
+.page-compose .compose-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.page-compose .compose-tool-btn {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  color: var(--color-text-secondary);
+  border: 1px solid var(--gray-300);
+  border-radius: var(--btn-border-radius);
+  padding: var(--space-1) var(--space-3);
+  transition: all var(--duration-fast) var(--ease-out);
+}
+.page-compose .compose-tool-btn:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+/* 插图上传面板：文件名 + 进度条 + 说明输入（书写线字段样式由既有 input 规则覆盖）+ 动作 */
+.page-compose .compose-image-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-radius: var(--btn-border-radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.page-compose .compose-image-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+
+.page-compose .compose-image-name {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text);
+  overflow-wrap: anywhere; /* 长文件名不撑破面板 */
+}
+
+.page-compose .compose-image-status {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+.page-compose .compose-image-status.ok {
+  color: var(--color-success);
+}
+
+.page-compose .compose-image-progress {
+  height: 3px;
+  background: var(--gray-100);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.page-compose .compose-image-progress-bar {
+  height: 100%;
+  background: var(--ink);
+  transition: width var(--duration-fast) var(--ease-out);
+}
+
+.page-compose .compose-image-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+.page-compose .compose-image-actions .compose-btn-ghost,
+.page-compose .compose-image-actions .compose-btn-submit {
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--text-sm);
+}
+
+/* .md 导入成功提示（非错误） */
+.page-compose .compose-notice {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-success);
+  margin: 0;
+}
+
+/* 预览中的带说明插图（与详情页 figure 同构） */
+.page-compose .compose-preview .markdown-body :where(figure) {
+  margin: 0 0 var(--space-4);
+}
+.page-compose .compose-preview .markdown-body :where(figcaption) {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--gray-600);
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .page-compose .compose-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* 上传面板：服务端压缩结果提示（1.2 MB → 180 KB） */
+.page-compose .compose-image-compress {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-success);
+}

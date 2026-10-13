@@ -10,8 +10,8 @@
 #   - /web/ 前缀必须在 nginx 剥掉后再 proxy_pass（Vite base '/web/' 只影响资源 URL）；
 #   - X-Forwarded-* 头必须传：Express 侧 trust proxy=1 依赖它们识别 https 与真实 IP，
 #     否则生产 secure 登录 cookie 下发异常、限流全部按 127.0.0.1 计数；
-#   - client_max_body_size 与 server/.env 的 SHARE_MAX_MB 保持一致（默认 20m），
-#     否则二维码分享上传直接 413。
+#   - client_max_body_size 需 ≥ server/.env 的 SHARE_MAX_MB 与 BLOG_IMAGE_MAX_MB 取大者
+#     （默认 20m / 8m），否则二维码分享或博客插图上传直接 413。
 
 server {
     listen 80;
@@ -29,7 +29,7 @@ server {
     ssl_certificate     /etc/nginx/certs/sakana267.online.pem;
     ssl_certificate_key /etc/nginx/certs/sakana267.online.key;
 
-    # 上传体积上限：与 server/.env 的 SHARE_MAX_MB 保持一致
+    # 上传体积上限：≥ server/.env 的 SHARE_MAX_MB 与 BLOG_IMAGE_MAX_MB 取大者
     client_max_body_size 20m;
 
     # 根路径 → 跳到 /web/（SPA 的生产入口）

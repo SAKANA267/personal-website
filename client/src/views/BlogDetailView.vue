@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import WriterByline from '../components/WriterByline.vue'
 import { getPost, mergedPosts, refreshDbPosts } from '../composables/useBlogPosts'
-import { renderMarkdown } from '../composables/useMarkdown'
+import { renderMarkdown, enhanceBlogImages } from '../composables/useMarkdown'
 import { api } from '../composables/useApi'
 import { useAuth } from '../stores/auth'
 import { useLocale } from '../stores/locale'
@@ -48,6 +48,13 @@ const rendered = computed(() =>
 )
 const articleHtml = computed(() => rendered.value.html)
 const toc = computed(() => rendered.value.toc)
+
+// 正文渲染后给博客插图补「大小 · 查看原图」徽标（v-html 重渲染会重建 DOM，故每次跟随）
+watch(articleHtml, async () => {
+  await nextTick()
+  const el = document.querySelector<HTMLElement>('.page-blog-detail .markdown-body')
+  if (el) void enhanceBlogImages(el)
+}, { immediate: true })
 
 // 上一篇 / 下一篇：mergedPosts 已按日期倒序（最新在前）。
 const neighbours = computed(() => {

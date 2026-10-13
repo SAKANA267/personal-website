@@ -264,6 +264,36 @@
   border: 1px solid var(--color-border);
 }
 
+/* 带说明的插图：独立成段的 ![说明](url) 渲染为 figure + figcaption（说明居中置底） */
+.page-blog-detail .markdown-body figure {
+  margin: var(--space-8) 0;
+}
+.page-blog-detail .markdown-body figure img {
+  display: block;
+}
+.page-blog-detail .markdown-body figcaption {
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+  line-height: var(--leading-relaxed);
+}
+
+/* 徽标（阅读页增强）：展示中的大小 + 原图链接（enhanceBlogImages 注入） */
+.page-blog-detail .markdown-body figcaption .img-size-badge {
+  margin-left: 0.5em;
+  color: var(--gray-500);
+}
+.page-blog-detail .markdown-body figcaption .img-original-link {
+  margin-left: 0.5em;
+  color: var(--color-text-secondary);
+  text-underline-offset: 2px;
+}
+.page-blog-detail .markdown-body figcaption .img-original-link:hover {
+  color: var(--color-text);
+}
+
 .page-blog-detail .markdown-body table {
   width: 100%;
   border-collapse: collapse;

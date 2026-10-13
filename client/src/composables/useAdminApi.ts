@@ -29,6 +29,7 @@ export interface AdminOverview {
     postsDraft: number
     comments: number
     likes: number
+    blogImages: number
     shares: number
     sharesActive: number
     logs: number
@@ -151,6 +152,7 @@ export const adminApi = {
   setPostPublished: (id: number, isPublished: 0 | 1) =>
     mutate<{ success: boolean }>('PATCH', `posts/${id}/publish`, { is_published: isPublished }),
   cleanupShares: () => mutate<{ success: boolean; removed: number }>('POST', 'shares/cleanup', {}),
+  cleanupImages: () => mutate<{ success: boolean; removed: number }>('POST', 'images/cleanup', {}),
   // 透传既有业务接口，供视图统一从 adminApi 调用
   setMessageDisplayed: api.setMessageDisplayed,
   deletePost: api.deletePost,

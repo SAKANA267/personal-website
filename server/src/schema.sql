@@ -73,6 +73,23 @@ CREATE TABLE IF NOT EXISTS post_likes (
   UNIQUE KEY uniq_like (post_slug, username)
 );
 
+-- 博客插图（撰写页上传；正文 Markdown 以 /api/blog/images/<stored_name> 引用。
+-- 上传经 mime 白名单 + 扩展名 + 魔数嗅探三重校验，SVG 一律拒绝。
+-- 展示变体：上传时生成 WebP 压缩版（宽 ≤1600/高 ≤4000，q82），文章默认读变体、
+-- /original 读原图；小图不生成（display_* 为 NULL，读原图即展示版））
+CREATE TABLE IF NOT EXISTS blog_images (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  stored_name VARCHAR(128) NOT NULL UNIQUE,             -- 原图磁盘文件名（32 位 hex + 规范扩展名）
+  uploader_username VARCHAR(255) NOT NULL,              -- 上传者（登录用户；配额与删除权归属）
+  mime_type VARCHAR(64) NOT NULL,                       -- 原图白名单 mime（落库取嗅探类型的规范 mime）
+  size INT NOT NULL,                                    -- 原图字节数
+  display_name VARCHAR(128) NULL,                       -- 展示变体文件名（<同hex>.disp.webp，NULL = 未压缩）
+  display_mime VARCHAR(64) NULL,                        -- 变体 mime（恒 image/webp）
+  display_size INT NULL,                                -- 变体字节数（阅读页徽标与「查看原图」展示用）
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_images_uploader (uploader_username)
+);
+
 -- 二维码分享（文字/图片/文件）
 CREATE TABLE IF NOT EXISTS share_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
@@ -101,3 +118,10 @@ CREATE TABLE IF NOT EXISTS share_items (
 -- ALTER TABLE blog_posts ADD COLUMN body MEDIUMTEXT NULL;
 -- ALTER TABLE blog_posts ADD COLUMN updated_at DATETIME NULL;
 -- CREATE TABLE post_comments / post_likes（同上方定义）；
+--
+-- 博客插图上传（2026-10，部署本次改动前执行）：
+-- CREATE TABLE blog_images（同上方定义）；
+-- 已建过 blog_images 的部署补展示变体三列：
+-- ALTER TABLE blog_images ADD COLUMN display_name VARCHAR(128) NULL AFTER size;
+-- ALTER TABLE blog_images ADD COLUMN display_mime VARCHAR(64) NULL AFTER display_name;
+-- ALTER TABLE blog_images ADD COLUMN display_size INT NULL AFTER display_mime;

@@ -233,6 +233,18 @@ async function cleanupShares() {
   }
 }
 
+// 清理未被任何文章正文引用的插图（取消插入 / 改稿删图留下的孤儿文件）
+async function cleanupImages() {
+  if (!window.confirm('清理所有未被文章正文引用的博客图片（连同磁盘文件）？')) return
+  try {
+    const r = await adminApi.cleanupImages()
+    notify(`已清理 ${r.removed} 张未引用图片`)
+    void loadOverview()
+  } catch (e: unknown) {
+    notify(`清理失败（${errText(e)}）`, 'err')
+  }
+}
+
 // 重置密码（复用 /api/auth/admin/reset-password）
 const resetTarget = ref<AdminUser | null>(null)
 const resetPassword = ref('')
@@ -390,6 +402,10 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
                 <span class="admin-stat-num">{{ overview.counts.likes }}</span>
                 <span class="admin-stat-label">点赞</span>
               </div>
+              <button type="button" class="admin-stat" @click="switchTab('posts')">
+                <span class="admin-stat-num">{{ overview.counts.blogImages }}</span>
+                <span class="admin-stat-label">博客图片</span>
+              </button>
               <button type="button" class="admin-stat" @click="switchTab('shares')">
                 <span class="admin-stat-num">{{ overview.counts.sharesActive }}</span>
                 <span class="admin-stat-label">有效分享
@@ -513,6 +529,7 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
               @keyup.enter="postsList.load(true)"
             />
             <button type="button" class="admin-btn" @click="postsList.load(true)">搜索</button>
+            <button type="button" class="admin-btn ghost" @click="cleanupImages">清理未引用图片</button>
           </div>
           <div class="admin-table-wrap">
             <table class="admin-table">

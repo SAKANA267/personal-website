@@ -86,6 +86,7 @@ adminRouter.get('/overview', async (_req, res) => {
         (SELECT COUNT(*) FROM blog_posts WHERE author_username IS NOT NULL AND is_published = 0) AS postsDraft,
         (SELECT COUNT(*) FROM post_comments) AS comments,
         (SELECT COUNT(*) FROM post_likes) AS likes,
+        (SELECT COUNT(*) FROM blog_images) AS blogImages,
         (SELECT COUNT(*) FROM share_items) AS shares,
         (SELECT COUNT(*) FROM share_items WHERE expires_at IS NULL OR expires_at > NOW()) AS sharesActive,
         (SELECT COUNT(*) FROM logs) AS logs,
@@ -293,6 +294,46 @@ adminRouter.post('/shares/cleanup', rateLimit({ windowMs: 60_000, max: 10 }), as
       await pool.query('DELETE FROM share_items WHERE id = ?', [item.id])
     }
     res.json({ success: true, removed: (rows as any[]).length })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+// ---------- 博客插图（撰写页上传，正文引用） ----------
+
+// 插图目录须与 blog.ts 一致（清理时删除磁盘文件）
+const BLOG_IMAGE_DIR = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../uploads/blog'
+)
+
+// 清理未被任何文章正文引用的插图（上传后取消插入 / 文章改稿删图留下的孤儿）。
+// 引用判定：blog_posts.body 中出现 blog/images/<stored_name> 即视为在用（含草稿）。
+adminRouter.post('/images/cleanup', rateLimit({ windowMs: 60_000, max: 10 }), async (_req, res) => {
+  try {
+    const [posts] = (await pool.query(
+      'SELECT body FROM blog_posts WHERE body IS NOT NULL'
+    )) as any[]
+    const referenced = new Set<string>()
+    const refRe = /blog\/images\/([0-9a-f]{32}\.(?:png|jpg|gif|webp|bmp|avif))/g
+    for (const p of posts as any[]) {
+      let m: RegExpExecArray | null
+      while ((m = refRe.exec(String(p.body ?? '')))) referenced.add(m[1])
+    }
+    const [images] = (await pool.query('SELECT id, stored_name, display_name FROM blog_images')) as any[]
+    let removed = 0
+    for (const img of images as any[]) {
+      if (referenced.has(img.stored_name)) continue
+      await pool.query('DELETE FROM blog_images WHERE id = ?', [img.id])
+      fs.promises.unlink(path.join(BLOG_IMAGE_DIR, path.basename(String(img.stored_name)))).catch(() => {})
+      // 展示变体一并清理
+      if (img.display_name) {
+        fs.promises.unlink(path.join(BLOG_IMAGE_DIR, path.basename(String(img.display_name)))).catch(() => {})
+      }
+      removed += 1
+    }
+    res.json({ success: true, removed })
   } catch (e) {
     console.error(e)
     res.status(500).json({ error: 'SERVER_ERROR' })
