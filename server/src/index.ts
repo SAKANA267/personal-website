@@ -11,6 +11,7 @@ import { devlogRouter } from './routes/devlog.js'
 import { authRouter } from './routes/auth.js'
 import { blogRouter } from './routes/blog.js'
 import { shareRouter } from './routes/share.js'
+import { usersRouter } from './routes/users.js'
 import { adminRouter } from './routes/admin.js'
 import { startChatServer } from './ws/chatServer.js'
 
@@ -67,6 +68,8 @@ app.use('/api/devlog', devlogRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/blog', blogRouter)
 app.use('/api/share', shareRouter)
+// 个人主页（公开资料/文章/评论/头像；编辑与注销在 authRouter）
+app.use('/api/users', usersRouter)
 // 管理面板聚合接口（统一 admin 白名单门禁，路由内部自行 401/403）
 app.use('/api/admin', adminRouter)
 

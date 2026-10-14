@@ -94,6 +94,9 @@ export interface AdminShare {
 export interface AdminUser {
   id: number
   username: string
+  status: 'active' | 'disabled' | 'deleted'
+  displayName: string | null
+  createdAt: string
   posts: number
   comments: number
   likes: number
@@ -151,6 +154,9 @@ export const adminApi = {
   // 面板专属写操作（其余复用 api.*）
   setPostPublished: (id: number, isPublished: 0 | 1) =>
     mutate<{ success: boolean }>('PATCH', `posts/${id}/publish`, { is_published: isPublished }),
+  // 禁用/启用账号（白名单管理员不可被禁用；被禁用账号登录被拒、存量会话下次对账失效）
+  setUserStatus: (id: number, status: 'active' | 'disabled') =>
+    mutate<{ success: boolean; username: string; status: string }>('PATCH', `users/${id}/status`, { status }),
   cleanupShares: () => mutate<{ success: boolean; removed: number }>('POST', 'shares/cleanup', {}),
   cleanupImages: () => mutate<{ success: boolean; removed: number }>('POST', 'images/cleanup', {}),
   // 透传既有业务接口，供视图统一从 adminApi 调用

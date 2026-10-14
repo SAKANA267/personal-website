@@ -101,3 +101,48 @@ export interface ShareItem {
   views: number // 取件页打开次数
   downloads: number // 下载次数
 }
+
+// 社交链接（个人主页资料；服务端校验 http(s):// 前缀）
+export interface SocialLink {
+  label: string
+  url: string
+}
+
+// 个人主页资料（GET /api/users/:username/profile）。
+// 隐私裁剪在服务端完成：非本人/管理员视角下被隐藏的字段为 null/[]，
+// 各 *Visible 布尔回传真实开关供本人视角标「仅自己可见」。
+export interface UserProfile {
+  username: string
+  displayName: string | null
+  avatar: string | null // 头像文件名；null = 默认首字头像
+  bio: string | null
+  region: string | null
+  regionVisible: boolean
+  socialLinks: SocialLink[]
+  socialVisible: boolean
+  createdAt: string // 注册时间
+  stats: { posts: number; comments: number; likes: number }
+  contentVisible: boolean // 文章/评论标签对外可见（本人恒 true）
+  profilePublic: boolean // 主页是否公开（本人隐私设置表单回填用）
+  allowIndex: boolean
+  isSelf: boolean
+  isAdmin: boolean
+}
+
+// 隐私设置（PUT /api/auth/privacy 的载荷，与 users 表五个开关一一对应）
+export interface ProfilePrivacy {
+  profilePublic: boolean
+  showRegion: boolean
+  showSocial: boolean
+  showContent: boolean
+  allowIndex: boolean
+}
+
+// 个人主页「评论」标签行（自己的评论 + 所属文章标题）
+export interface ProfileComment {
+  id: number
+  postSlug: string
+  postTitle: string
+  content: string
+  createdAt: string
+}

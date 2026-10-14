@@ -340,7 +340,7 @@ adminRouter.post('/images/cleanup', rateLimit({ windowMs: 60_000, max: 10 }), as
   }
 })
 
-// ---------- 用户（含各维度贡献计数；不做删号，账号治理走重置密码） ----------
+// ---------- 用户（含各维度贡献计数与账号状态；注销由用户本人走 auth 侧） ----------
 
 adminRouter.get('/users', async (req, res) => {
   try {
@@ -350,7 +350,8 @@ adminRouter.get('/users', async (req, res) => {
     const params = like ? [like] : []
     const data = await pagedQuery(
       'users',
-      `SELECT id, username,
+      `SELECT id, username, status, display_name AS displayName,
+         DATE_FORMAT(created_at, '%Y-%m-%d') AS createdAt,
          (SELECT COUNT(*) FROM blog_posts bp WHERE bp.author_username = users.username) AS posts,
          (SELECT COUNT(*) FROM post_comments pc WHERE pc.username = users.username) AS comments,
          (SELECT COUNT(*) FROM post_likes pl WHERE pl.username = users.username) AS likes,
@@ -362,11 +363,49 @@ adminRouter.get('/users', async (req, res) => {
       'ORDER BY id DESC'
     )
     res.json(data)
-  } catch (e) {
+  } catch (e: any) {
     console.error(e)
     res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
+
+// 禁用/启用账号：被禁用账号无法登录，存量会话在下次 /api/auth/me 对账或 ws-token 签发时失效。
+// 白名单管理员（含操作者自己）不可被禁用——防止把唯一的治理入口锁死；deleted 只能由用户本人注销产生。
+adminRouter.patch(
+  '/users/:id/status',
+  rateLimit({ windowMs: 60_000, max: 30 }),
+  async (req, res) => {
+    try {
+      const status = req.body?.status
+      if (status !== 'active' && status !== 'disabled') {
+        res.status(400).json({ error: 'USER_STATUS_INVALID' })
+        return
+      }
+      const [rows] = (await pool.query('SELECT id, username FROM users WHERE id = ?', [
+        req.params.id,
+      ])) as any[]
+      const target = (rows as any[])[0]
+      if (!target) {
+        res.status(404).json({ error: 'USER_NOT_FOUND' })
+        return
+      }
+      const whitelist = (process.env.ADMIN_USERNAMES || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+      if (whitelist.includes(target.username)) {
+        res.status(400).json({ error: 'USER_ADMIN_PROTECTED' })
+        return
+      }
+      await pool.query('UPDATE users SET status = ? WHERE id = ?', [status, target.id])
+      console.log(`[admin] ${sessionUsername(req)} 将用户 ${target.username} 置为 ${status}`)
+      res.json({ success: true, username: target.username, status })
+    } catch (e: any) {
+      console.error(e)
+      res.status(500).json({ error: 'SERVER_ERROR' })
+    }
+  }
+)
 
 // ---------- 聊天日志（ws 服务写入的连接/发言记录） ----------
 

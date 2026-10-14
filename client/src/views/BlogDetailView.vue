@@ -237,7 +237,15 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
         </span>
         <span v-if="post.author" class="meta-item">
           <span class="meta-k">{{ t('blogDetail.authorK') }}</span>
-          <span class="meta-v">{{ post.author }}</span>
+          <!-- 用户文章作者：链到其个人主页 -->
+          <button
+            type="button"
+            class="meta-v meta-link"
+            :aria-label="t('profile.viewOf', { name: post.author })"
+            @click="router.push(`/u/${post.author}`)"
+          >
+            {{ post.author }}
+          </button>
         </span>
         <span v-if="post.readTime" class="meta-item">
           <span class="meta-k">{{ t('blogDetail.readK') }}</span>
@@ -288,7 +296,15 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
             <div v-if="comments.length" class="comments-list">
               <div v-for="c in comments" :key="c.id" class="comment-item">
                 <p class="comment-head">
-                  <span class="comment-user">{{ c.username }}</span>
+                  <!-- 评论者：链到其个人主页 -->
+                  <button
+                    type="button"
+                    class="comment-user comment-user--link"
+                    :aria-label="t('profile.viewOf', { name: c.username })"
+                    @click="router.push(`/u/${c.username}`)"
+                  >
+                    {{ c.username }}
+                  </button>
                   <span class="comment-time">{{ c.createdAt }}</span>
                   <button
                     v-if="canDeleteComment(c)"

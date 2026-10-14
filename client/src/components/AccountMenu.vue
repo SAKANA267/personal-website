@@ -86,7 +86,7 @@ onBeforeUnmount(() => {
         <p class="account-entry-name">{{ username }}</p>
       </div>
       <div class="account-entry-items">
-        <button type="button" class="account-entry-item" role="menuitem" @click="router.push('/account')">
+        <button type="button" class="account-entry-item" role="menuitem" @click="router.push(`/u/${username}`)">
           {{ t('account.profile') }}
         </button>
         <!-- 管理员专属入口：管理面板（/admin，非管理员被路由守卫弹回） -->

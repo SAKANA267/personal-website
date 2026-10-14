@@ -408,7 +408,8 @@
 .admin-table .col-author,
 .admin-table .col-cat,
 .admin-table .col-size,
-.admin-table .col-slug {
+.admin-table .col-slug,
+.admin-table .col-status {
   white-space: nowrap;
 }
 

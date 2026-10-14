@@ -21,6 +21,7 @@ import './styles/dev_log.css'
 import './styles/blog.css'
 import './styles/blog_detail.css'
 import './styles/login.css'
+import './styles/profile.css' // 个人主页样式
 import './styles/title_card.css' // 标题卡英雄区样式
 import './styles/charts_lab.css' // 图表实验室测试页样式
 import './styles/share.css' // 二维码分享页样式

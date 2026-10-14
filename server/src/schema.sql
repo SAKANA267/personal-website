@@ -19,11 +19,23 @@ CREATE TABLE IF NOT EXISTS devLog (
   change_description TEXT NOT NULL
 );
 
--- 用户（注册/登录）
+-- 用户（注册/登录 + 个人主页资料/隐私/状态）
 CREATE TABLE IF NOT EXISTS users (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(255) NOT NULL UNIQUE,
-  password VARCHAR(255) NOT NULL           -- bcrypt 哈希（约 60 字符，预留余量）
+  password VARCHAR(255) NOT NULL,                -- bcrypt 哈希（约 60 字符，预留余量）
+  display_name VARCHAR(40) NULL,                 -- 昵称（个人主页展示；NULL = 用用户名）
+  avatar VARCHAR(120) NULL,                      -- 头像文件名（uploads/avatars/<32hex>.webp；NULL = 默认首字头像）
+  bio VARCHAR(500) NULL,                         -- 简介
+  region VARCHAR(60) NULL,                       -- 地区
+  social_links JSON NULL,                        -- 社交链接 [{label,url}]，≤5 条
+  is_profile_public TINYINT(1) NOT NULL DEFAULT 1,  -- 个人主页是否公开（0 = 仅本人/管理员可见）
+  show_region TINYINT(1) NOT NULL DEFAULT 1,     -- 地区是否对外展示
+  show_social TINYINT(1) NOT NULL DEFAULT 1,     -- 社交链接是否对外展示
+  show_content TINYINT(1) NOT NULL DEFAULT 1,    -- 文章/评论标签页是否对外展示
+  allow_index TINYINT(1) NOT NULL DEFAULT 0,     -- 是否允许搜索引擎收录（默认不收录）
+  status ENUM('active','disabled','deleted') NOT NULL DEFAULT 'active',  -- 禁用=管理员封禁；注销=用户自助销号
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP  -- 注册时间（主页展示；存量行迁移时取执行时刻）
 );
 
 -- WebSocket 聊天日志（由 ws 服务器写入）
@@ -125,3 +137,17 @@ CREATE TABLE IF NOT EXISTS share_items (
 -- ALTER TABLE blog_images ADD COLUMN display_name VARCHAR(128) NULL AFTER size;
 -- ALTER TABLE blog_images ADD COLUMN display_mime VARCHAR(64) NULL AFTER display_name;
 -- ALTER TABLE blog_images ADD COLUMN display_size INT NULL AFTER display_mime;
+--
+-- 个人主页（2026-10，部署本次改动前执行）：
+-- ALTER TABLE users ADD COLUMN display_name VARCHAR(40) NULL AFTER password;
+-- ALTER TABLE users ADD COLUMN avatar VARCHAR(120) NULL AFTER display_name;
+-- ALTER TABLE users ADD COLUMN bio VARCHAR(500) NULL AFTER avatar;
+-- ALTER TABLE users ADD COLUMN region VARCHAR(60) NULL AFTER bio;
+-- ALTER TABLE users ADD COLUMN social_links JSON NULL AFTER region;
+-- ALTER TABLE users ADD COLUMN is_profile_public TINYINT(1) NOT NULL DEFAULT 1 AFTER social_links;
+-- ALTER TABLE users ADD COLUMN show_region TINYINT(1) NOT NULL DEFAULT 1 AFTER is_profile_public;
+-- ALTER TABLE users ADD COLUMN show_social TINYINT(1) NOT NULL DEFAULT 1 AFTER show_region;
+-- ALTER TABLE users ADD COLUMN show_content TINYINT(1) NOT NULL DEFAULT 1 AFTER show_social;
+-- ALTER TABLE users ADD COLUMN allow_index TINYINT(1) NOT NULL DEFAULT 0 AFTER show_content;
+-- ALTER TABLE users ADD COLUMN status ENUM('active','disabled','deleted') NOT NULL DEFAULT 'active' AFTER allow_index;
+-- ALTER TABLE users ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER status;

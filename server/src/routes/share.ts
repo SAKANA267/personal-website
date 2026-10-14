@@ -11,8 +11,9 @@ import { rateLimit } from '../rateLimit.js'
 export const shareRouter = Router()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-// 上传文件落盘目录：server/uploads/share（部署 tar 不覆盖运行时目录）
-const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/share')
+// 上传文件落盘目录：server/uploads/share（部署 tar 不覆盖运行时目录）；
+// auth.ts 注销账号时级联清理用户分享文件，故导出
+export const UPLOAD_DIR = path.resolve(__dirname, '../../uploads/share')
 fs.mkdirSync(UPLOAD_DIR, { recursive: true })
 
 // 单文件大小上限，可通过环境变量调整（生产 nginx 的 client_max_body_size 需同步）

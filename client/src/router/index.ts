@@ -17,8 +17,13 @@ const router = createRouter({
     { path: '/blog/compose', component: () => import('../views/ComposeView.vue') },
     { path: '/login', component: () => import('../views/LoginView.vue') },
     { path: '/signup', component: () => import('../views/SignUpView.vue') },
-    // 账号中心：改密/退出（登录适配新增，复用 .page-auth 认证页样式）
-    { path: '/account', component: () => import('../views/AccountView.vue') },
+    // 个人主页：/u/:username 公开主页；/u/me = 当前登录用户（未登录显示登录引导）。
+    // 旧账号中心 /account 重定向至此——改密/退出/管理员工具并入主页「设置」标签
+    {
+      path: '/u/:username',
+      component: () => import('../views/ProfileView.vue'),
+    },
+    { path: '/account', redirect: () => '/u/me' },
     // 二维码分享：/share 上传，/share/:code 扫码取件（同一视图按参数切换模式）
     { path: '/share', component: () => import('../views/ShareView.vue') },
     { path: '/share/:code', component: () => import('../views/ShareView.vue') },
@@ -52,12 +57,12 @@ router.afterEach(() => {
   loading.reveal()
 })
 
-// 登录态路由守卫：已登录访问登录/注册页 → 回首页；未登录访问账号页/撰写页 → 回登录页。
+// 登录态路由守卫：已登录访问登录/注册页 → 回首页；未登录访问撰写页 → 回登录页。
+// （/u/me 由 ProfileView 自行渲染登录引导态，无需守卫拦截）
 // username 由 localStorage 即时水合，守卫在 initAuth 对账前也能工作（后续响应式纠正）。
 router.beforeEach((to) => {
   const { username } = useAuth()
   if ((to.path === '/login' || to.path === '/signup') && username.value) return '/'
-  if (to.path === '/account' && !username.value) return '/login'
   if (to.path === '/blog/compose' && !username.value) return '/login'
 })
 

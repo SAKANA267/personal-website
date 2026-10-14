@@ -1,4 +1,7 @@
-import type { Message, DevLogEntry, User, ShareItem, BlogPost, PostComment, PostLikes } from '../types'
+import type {
+  Message, DevLogEntry, User, ShareItem, BlogPost, PostComment, PostLikes,
+  UserProfile, ProfilePrivacy, ProfileComment, SocialLink,
+} from '../types'
 
 const BASE = import.meta.env.VITE_API_BASE || '/api'
 
@@ -17,7 +20,7 @@ async function post<T = unknown>(path: string, body: unknown) {
   return { ok: res.ok, status: res.status, data: data as T }
 }
 
-async function request<T = unknown>(method: 'PATCH' | 'DELETE', path: string, body?: unknown) {
+async function request<T = unknown>(method: 'PATCH' | 'DELETE' | 'PUT', path: string, body?: unknown) {
   const res = await fetch(`${BASE}${path}`, {
     method,
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
@@ -156,4 +159,57 @@ export const api = {
   getLikes: (slug: string) => getJson<PostLikes>(`/blog/${encodeURIComponent(slug)}/likes`),
   toggleLike: (slug: string) =>
     post<PostLikes & { error?: string }>(`/blog/${encodeURIComponent(slug)}/likes`, {}),
+  // ---------- 个人主页 ----------
+  // 公开主页资料（隐私裁剪在服务端完成；404/410/403 由调用方按状态码分流展示）
+  getProfile: async (username: string) => {
+    const res = await fetch(`${BASE}/users/${encodeURIComponent(username)}/profile`)
+    const data = await res.json().catch(() => ({}))
+    return { ok: res.ok, status: res.status, data: data as UserProfile & { error?: string } }
+  },
+  // 主页「文章」标签（本人含草稿；他人仅已发布且受 show_content 门禁）
+  getUserPosts: async (username: string, page: number, pageSize = 10) => {
+    const res = await fetch(
+      `${BASE}/users/${encodeURIComponent(username)}/posts?page=${page}&pageSize=${pageSize}`
+    )
+    const data = await res.json().catch(() => ({}))
+    return {
+      ok: res.ok,
+      status: res.status,
+      data: data as { rows: BlogPost[]; total: number; page: number; pageSize: number } & { error?: string },
+    }
+  },
+  // 主页「评论」标签
+  getUserComments: async (username: string, page: number, pageSize = 10) => {
+    const res = await fetch(
+      `${BASE}/users/${encodeURIComponent(username)}/comments?page=${page}&pageSize=${pageSize}`
+    )
+    const data = await res.json().catch(() => ({}))
+    return {
+      ok: res.ok,
+      status: res.status,
+      data: data as { rows: ProfileComment[]; total: number; page: number; pageSize: number } & { error?: string },
+    }
+  },
+  // 编辑个人资料（登录，本人）
+  updateProfile: (data: { displayName: string; bio: string; region: string; socialLinks: SocialLink[] }) =>
+    request<{ success?: boolean; error?: string }>('PUT', '/auth/profile', data),
+  // 隐私设置（登录，本人；保存即生效）
+  updatePrivacy: (data: ProfilePrivacy) =>
+    request<{ success?: boolean; error?: string }>('PUT', '/auth/privacy', data),
+  // 头像：multipart 上传（服务端统一重编码 256×256 WebP）；删除后回落默认首字头像
+  uploadAvatar: (file: File, onProgress?: (pct: number) => void) => {
+    const form = new FormData()
+    form.append('file', file)
+    return postForm<{ success?: boolean; avatar?: string; error?: string; maxMb?: number }>(
+      '/auth/avatar',
+      form,
+      onProgress
+    )
+  },
+  deleteAvatar: () => request<{ success?: boolean; error?: string }>('DELETE', '/auth/avatar'),
+  // 注销账号：旧密码验证身份 + 输入用户名二次确认（服务端级联删除内容并匿名化账号行）
+  deleteAccount: (data: { password: string; confirm: string }) =>
+    post<{ success?: boolean; error?: string }>('/auth/delete-account', data),
+  // 头像文件地址（不可变内容长缓存；生产在 /web 前缀下）
+  avatarUrl: (name: string) => `${BASE}/users/avatars/${encodeURIComponent(name)}`,
 }

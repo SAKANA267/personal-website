@@ -402,11 +402,19 @@
   border-color: var(--color-success);
 }
 
-/* 用户文章作者署名（mono 次要文本） */
+/* 用户文章作者署名（mono 次要文本）；--link 态为链到个人主页的可点击版 */
 .page-blog .post-author {
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
+}
+.page-blog .post-author--link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.page-blog .post-author--link:hover {
+  color: var(--color-text);
 }
 
 /* 草稿徽标：仅作者/管理员可见的未发布文章 */

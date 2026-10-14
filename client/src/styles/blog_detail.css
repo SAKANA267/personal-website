@@ -104,6 +104,16 @@
   color: var(--color-text);
 }
 
+/* 作者名链到个人主页（meta-v 同款字级的可点击变体） */
+.page-blog-detail .meta-link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.page-blog-detail .meta-link:hover {
+  color: var(--color-text-secondary);
+}
+
 .page-blog-detail .meta-tags .meta-v {
   display: flex;
   flex-wrap: wrap;
@@ -688,6 +698,15 @@
 .page-blog-detail .comment-user {
   font-weight: var(--font-semibold);
   font-size: var(--text-sm);
+}
+/* 评论者名链到个人主页 */
+.page-blog-detail .comment-user--link {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.page-blog-detail .comment-user--link:hover {
+  color: var(--color-text-secondary);
 }
 .page-blog-detail .comment-time {
   font-family: var(--font-mono);

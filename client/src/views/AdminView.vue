@@ -250,6 +250,32 @@ const resetTarget = ref<AdminUser | null>(null)
 const resetPassword = ref('')
 const resetSubmitting = ref(false)
 
+// 禁用/启用账号（PATCH /api/admin/users/:id/status；白名单管理员受服务端保护）
+const statusBusy = ref<number | null>(null)
+
+function userStatusLabel(s: AdminUser['status']): string {
+  return s === 'disabled' ? '已禁用' : s === 'deleted' ? '已注销' : '正常'
+}
+
+async function toggleUserStatus(u: AdminUser) {
+  const next: 'active' | 'disabled' = u.status === 'disabled' ? 'active' : 'disabled'
+  const tip =
+    next === 'disabled'
+      ? `禁用用户 ${u.username}？其将无法登录，存量会话下次对账时失效。`
+      : `恢复用户 ${u.username} 的登录资格？`
+  if (!window.confirm(tip)) return
+  statusBusy.value = u.id
+  try {
+    await adminApi.setUserStatus(u.id, next)
+    notify(next === 'disabled' ? `已禁用 ${u.username}` : `已恢复 ${u.username}`)
+    void usersList.load()
+  } catch (e: unknown) {
+    notify(`操作失败（${errText(e)}）`, 'err')
+  } finally {
+    statusBusy.value = null
+  }
+}
+
 async function submitReset() {
   const target = resetTarget.value
   if (!target) return
@@ -733,6 +759,7 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
                 <tr>
                   <th class="col-id">ID</th>
                   <th class="col-author">用户名</th>
+                  <th class="col-status">状态</th>
                   <th class="col-num">文章</th>
                   <th class="col-num">评论</th>
                   <th class="col-num">点赞</th>
@@ -744,6 +771,12 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
                 <tr v-for="u in usersList.st.rows" :key="u.id">
                   <td class="col-id">{{ u.id }}</td>
                   <td class="col-author">{{ u.username }}</td>
+                  <td class="col-status">
+                    <span
+                      class="admin-tag"
+                      :class="u.status === 'active' ? 'ok' : u.status === 'disabled' ? 'danger' : 'muted'"
+                    >{{ userStatusLabel(u.status) }}</span>
+                  </td>
                   <td class="col-num">{{ u.posts }}</td>
                   <td class="col-num">{{ u.comments }}</td>
                   <td class="col-num">{{ u.likes }}</td>
@@ -756,10 +789,20 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
                     >
                       重置密码
                     </button>
+                    <button
+                      v-if="u.status !== 'deleted'"
+                      type="button"
+                      class="admin-btn sm"
+                      :class="u.status === 'disabled' ? '' : 'danger'"
+                      :disabled="statusBusy === u.id"
+                      @click="toggleUserStatus(u)"
+                    >
+                      {{ u.status === 'disabled' ? '启用' : '禁用' }}
+                    </button>
                   </td>
                 </tr>
                 <tr v-if="!usersList.st.loading && !usersList.st.error && !usersList.st.rows.length">
-                  <td colspan="7" class="admin-empty">暂无用户</td>
+                  <td colspan="8" class="admin-empty">暂无用户</td>
                 </tr>
               </tbody>
             </table>

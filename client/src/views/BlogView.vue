@@ -149,10 +149,17 @@ function goToPage(n: number) {
             <span class="post-date">{{ post.date }}</span>
             <span class="meta-sep">·</span>
             <span class="post-cat">{{ post.category }}</span>
-            <!-- 登录联动：用户文章署名作者；草稿仅作者/管理员可见 -->
+            <!-- 登录联动：用户文章署名作者（链到个人主页）；草稿仅作者/管理员可见 -->
             <template v-if="post.author">
               <span class="meta-sep">·</span>
-              <span class="post-author">{{ post.author }}</span>
+              <button
+                type="button"
+                class="post-author post-author--link"
+                :aria-label="t('profile.viewOf', { name: post.author })"
+                @click.stop="router.push(`/u/${post.author}`)"
+              >
+                {{ post.author }}
+              </button>
             </template>
             <span v-if="post.isPublished === 0" class="post-draft-badge">{{ t('blog.draft') }}</span>
             <template v-if="post.readTime">

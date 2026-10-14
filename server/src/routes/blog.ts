@@ -90,10 +90,12 @@ function normalizeRow(row: any) {
   }
 }
 
-const POST_FIELDS = `id, slug, title, excerpt,
+// 个人主页文章列表（users.ts）复用同一字段投影与归一化，保证前端 BlogPost 形状一致
+export const POST_FIELDS = `id, slug, title, excerpt,
   DATE_FORMAT(\`date\`, '%Y-%m-%d') AS date,
   category, tags, read_time AS readTime, author_username AS author,
   is_published AS isPublished`
+export { normalizeRow }
 
 // ---------- 文章 CRUD ----------
 
@@ -174,8 +176,9 @@ blogRouter.post(
 // ---------- 博客插图上传（登录用户，正文 Markdown 以 ![说明](/api/blog/images/<name>) 引用） ----------
 
 const IMG_DIRNAME = path.dirname(fileURLToPath(import.meta.url))
-// 插图落盘目录：server/uploads/blog（部署 tar 不覆盖运行时目录）
-const IMAGE_DIR = path.resolve(IMG_DIRNAME, '../../uploads/blog')
+// 插图落盘目录：server/uploads/blog（部署 tar 不覆盖运行时目录）；
+// auth.ts 注销账号时级联清理用户插图，故导出
+export const IMAGE_DIR = path.resolve(IMG_DIRNAME, '../../uploads/blog')
 fs.mkdirSync(IMAGE_DIR, { recursive: true })
 
 // 单图大小上限，可用环境变量调整（生产 nginx 的 client_max_body_size 需同步）
