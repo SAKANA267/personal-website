@@ -23,6 +23,7 @@ export default {
   },
   nav: {
     backHome: '返回主页',
+    backToBlog: '返回博客列表',
   },
   account: {
     login: '登录',

@@ -58,8 +58,9 @@ onMounted(() => {
 
 <template>
   <LoadingOverlay />
-  <!-- 全站角落导航：左上返回主页（首页除外）+ 右上账号入口；
-       首页标题卡在场期间（titleCardRevealed=false）右上 icon 也不出现 -->
+  <!-- 全站顶部导航条：左侧返回主页（首页除外）+ 右侧语言切换与账号入口；
+       滚动感知显隐（下滑收起/上滑展开/贴顶常显，逻辑在 CornerNav.vue，样式 global.css §12）；
+       首页标题卡在场期间（titleCardRevealed=false）整条不渲染 -->
   <CornerNav :show-home="route.path !== '/'" :show-account="route.path !== '/' || titleCardRevealed" />
   <AshParticles v-if="route.path === '/' && titleCardRevealed" />
   <RouterView />

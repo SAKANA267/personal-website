@@ -371,42 +371,105 @@ label {
     bottom: 0;
   }
 
+  /* 打印无导航条，正文也不为条让位 */
+  body {
+    padding-top: 0;
+  }
+
   .btn,
   .tooltip,
-  .loading-skeleton {
+  .loading-skeleton,
+  .corner-nav {
     display: none;
   }
 }
 
 /* ============================================
-   12. 角落导航 (Corner Navigation)
-   全站统一的固定角落 icon 导航（App 级 CornerNav / AccountMenu）：
-   左上角「返回主页」house icon（首页自身不显示）；
-   右上角账号 icon——未登录点击直跳 /login，已登录展开下拉
-   （账号主页 / 退出登录），展开时按钮反转为墨块（呼应 .auth-submit）；
+   12. 顶部导航条 (Corner Navigation Bar)
+   全站统一的固定顶部导航条（App 级 CornerNav / AccountMenu）：
+   左侧「返回」icon——二级页面（博客阅读 /blog/:slug、撰写 /blog/compose）为
+   「返回博客列表」左向箭头（.corner-nav-back），其余页面为返回主页 house icon（首页自身不显示）；
+   右侧账号 icon——未登录点击直跳 /login，已登录展开下拉
+   （账号主页 / 管理面板 / 退出登录），展开时按钮反转为墨块（呼应 .auth-submit）；
    账号 icon 左侧为语言切换小方块（zh/en，点击即切，i18n 入口）。
+   滚动感知（CornerNav.vue 监听 window scroll）：下滑收起、上滑展开、贴顶常显；
+   纸白条状背景 + 发丝线底边，正文经 body padding-top 让出条高避免被压。
+   /admin 幽灵态（.corner-nav--ghost）透明无底——管理面板有自己的顶栏与 64px 让位。
    z-index 高于正文与粒子（10），低于 tooltip（10000）与加载遮罩。
    ============================================ */
 
-.account-entry,
-.corner-nav-home {
+/* 条高：条身与 body 让位共用同一变量；≤768 收紧（本节末响应式块） */
+:root {
+  --corner-bar-h: 64px;
+}
+
+body {
+  padding-top: var(--corner-bar-h);
+}
+
+/* 标题卡首屏：条不渲染且标题卡是精确 100dvh，不让位（与 home.css 锁滚的 body:has 同款选择器） */
+body:has(.page-title-card:not(.is-leaving)) {
+  padding-top: 0;
+}
+
+/* /admin：admin-app 已自留 64px 顶部让位（admin.css），幽灵条不再占空间 */
+body:has(.admin-app) {
+  padding-top: 0;
+}
+
+.corner-nav {
   position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
-  /* 与各页内容区的上 gutter(32px)/左右 gutter(24px) 对齐 */
-  top: var(--space-8);
+  display: flex;
+  align-items: center;
+  height: var(--corner-bar-h);
+  padding: 0 var(--space-6);
+  background-color: var(--paper);
+  border-bottom: var(--divider-border-width) solid var(--divider-color);
+  transition: transform var(--duration-normal) var(--ease-out);
+  /* 入场仅 fade——transform 归滚动显隐的过渡所有，二者不冲突 */
+  animation: cornerBarIn var(--duration-slower) var(--ease-out) backwards;
+}
+
+.corner-nav--hidden {
+  transform: translateY(-100%);
+}
+
+.corner-nav--ghost {
+  background-color: transparent;
+  border-bottom: none;
+}
+
+@keyframes cornerBarIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* 右侧组：margin-left:auto 保证仅其在场时（首页）也靠右 */
+.corner-nav-side {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+/* 账号入口容器：relative 承载下拉面板的 absolute 锚点 */
+.account-entry {
+  position: relative;
   animation: accountEntryIn var(--duration-slower) var(--ease-out) backwards;
 }
 
-.account-entry { right: var(--space-6); }
-.corner-nav-home { left: var(--space-6); animation-name: cornerHomeIn; }
+.corner-nav-home,
+.corner-nav-back {
+  animation: cornerHomeIn var(--duration-slower) var(--ease-out) backwards;
+}
 
 /* 语言切换：账号 icon 左侧的 mono 标签 chip（显示目标语言，点击切换）。
    发丝线边框给出可点控件的暗示；hover 墨块反转呼应 .auth-submit 的反转签名 */
 .corner-lang {
-  position: fixed;
-  z-index: 100;
-  top: var(--space-8);
-  right: calc(var(--space-6) + 40px + var(--space-2));
   display: grid;
   place-items: center;
   width: 40px;
@@ -449,7 +512,8 @@ label {
 }
 
 .account-entry-btn,
-.corner-nav-home {
+.corner-nav-home,
+.corner-nav-back {
   display: grid;
   place-items: center;
   width: 40px;
@@ -463,6 +527,7 @@ label {
 }
 
 .corner-nav-home:hover,
+.corner-nav-back:hover,
 .account-entry-btn:hover {
   background-color: var(--gray-100);
 }
@@ -474,7 +539,8 @@ label {
 }
 
 .account-entry-btn svg,
-.corner-nav-home svg {
+.corner-nav-home svg,
+.corner-nav-back svg {
   width: 20px;
   height: 20px;
 }
@@ -541,25 +607,25 @@ label {
 }
 
 @media (max-width: 768px) {
-  .account-entry,
-  .corner-nav-home,
-  .corner-lang {
-    top: var(--space-4);
+  :root {
+    --corner-bar-h: 56px;
   }
 
-  .account-entry { right: var(--space-4); }
-  .corner-nav-home { left: var(--space-4); }
-  .corner-lang { right: calc(var(--space-4) + 36px + var(--space-1)); }
+  .corner-nav {
+    padding: 0 var(--space-4);
+  }
 
   .account-entry-btn,
   .corner-nav-home,
+  .corner-nav-back,
   .corner-lang {
     width: 36px;
     height: 36px;
   }
 
   .account-entry-btn svg,
-  .corner-nav-home svg {
+  .corner-nav-home svg,
+  .corner-nav-back svg {
     width: 18px;
     height: 18px;
   }

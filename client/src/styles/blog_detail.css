@@ -322,9 +322,11 @@
 .page-blog-detail .toc {
   flex: 0 0 180px;
   position: sticky;
-  top: var(--space-6);
+  /* 停在顶部导航条（64px 纸白条，见 global.css §12）之下而非钻到条底；
+     条下滑收起时 TOC 只是位置偏低，不会与条重叠 */
+  top: calc(var(--corner-bar-h) + var(--space-4));
   align-self: flex-start;
-  max-height: calc(100vh - var(--space-12));
+  max-height: calc(100vh - var(--corner-bar-h) - var(--space-8));
   overflow-y: auto;
 }
 

@@ -17,6 +17,7 @@ const en: MessagePack = {
   },
   nav: {
     backHome: 'Back to home',
+    backToBlog: 'Back to blog',
   },
   account: {
     login: 'Log in',
