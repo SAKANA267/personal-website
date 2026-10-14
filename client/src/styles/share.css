@@ -330,6 +330,7 @@
 .page-share .result-qr-box {
   flex-shrink: 0;
   padding: var(--space-4);
+  /* 黑夜模式下仍保持纯白：二维码扫码依赖浅底，白底面板浮于暗页是通用做法 */
   background-color: #ffffff;
   border: var(--divider-border-width) solid var(--divider-color);
   border-radius: var(--space-1);

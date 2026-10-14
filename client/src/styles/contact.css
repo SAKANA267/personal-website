@@ -80,6 +80,17 @@
   filter: grayscale(0%);
 }
 
+/* 黑夜模式：四个图标都是黑色系单色 SVG，且经 <img> 引用（外链文档，
+   CSS color 无法为其重新着色），暗底下不可见——用 invert 翻转为纸白。
+   上方既有的 grayscale rest / hover 结构保持同形，invert 叠加在两种状态上 */
+html.dark .contact-item img {
+  filter: grayscale(100%) invert(1);
+}
+
+html.dark .contact-item:hover img {
+  filter: grayscale(0%) invert(1);
+}
+
 /* ============================================
    4. 文本标签 (Text Label)
    ============================================ */

@@ -24,6 +24,8 @@ export default {
   nav: {
     backHome: '返回主页',
     backToBlog: '返回博客列表',
+    toDark: '切换为黑夜模式',
+    toLight: '切换为白天模式',
   },
   account: {
     login: '登录',

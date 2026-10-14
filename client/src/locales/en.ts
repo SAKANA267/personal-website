@@ -18,6 +18,8 @@ const en: MessagePack = {
   nav: {
     backHome: 'Back to home',
     backToBlog: 'Back to blog',
+    toDark: 'Switch to dark mode',
+    toLight: 'Switch to light mode',
   },
   account: {
     login: 'Log in',

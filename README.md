@@ -52,6 +52,14 @@ npm start            # 启动 server
 - **服务端**（`server/src/altcha.ts` + `routes/auth.ts`，登录与注册共用同一套出题/核销）：`GET /api/auth/altcha-challenge` 出题（PBKDF2/SHA-256，120 秒有效，带 HMAC 签名），登录/注册请求须附 `altcha` 解字段；验证为**一次性**（nonce 核销防重放），错误码 `AUTH_CAPTCHA_REQUIRED / INVALID / EXPIRED`。防刷叠加在原有按 IP 限流之上（登录 20 次/5 分钟、注册 10 次/小时），脚本每次尝试都要实付约 128 万次哈希迭代的算力。
 - **兼容性**：CSP 因此新增 `worker-src 'self' blob:`（ALTCHA 以 blob URL 构造 PoW worker，无此指令生产环境解题必被拦截）；altcha 包无 engines 限制、唯一依赖 hash-wasm（纯 WASM），线上 Node 18 可用（库依赖的 WebCrypto 全局 Node 18 起自带，代码内另有兜底赋值）。
 
+## 白天/黑夜模式
+
+顶部导航条右侧的日/月图标按钮一键切换全站配色（纸墨反转：亮色纸底墨字 ↔ 暗色墨底纸字），零依赖手写实现（约百行 store + CSS 变量覆盖，不引第三方库）：
+
+- **规则**：首次访问跟随系统 `prefers-color-scheme`；手动切换后以 `localStorage['theme']` 的显式选择为准（不再跟随系统）。`index.html` 内联脚本在首帧前挂类，重载无亮色闪烁；移动端浏览器地址栏底色（theme-color）随主题联动。
+- **实现**：切换即给 `<html>` 挂/摘 `dark` 类，`design-system.css` 的 `html.dark` 覆盖 `--ink`/`--paper`/灰阶变量，全站经既有变量间接层整体翻转（含表单、代码块、ALTCHA 验证组件）；过渡为 200ms 色彩渐变，`prefers-reduced-motion` 用户瞬时切换。图表实验室页有独立暖纸色板，单独换板。
+- **刻意不随主题**：标题卡封面（本就是深色）、管理面板（独立亮色墨纸体系，导航条幽灵态钉回亮色图标）、二维码结果白底（保证扫码）、题库代码高亮（本就是 VS Code 深色）。
+
 ## 博客撰写
 
 登录后 `/blog/compose`（写文章）支持两项工具增强：
@@ -72,6 +80,7 @@ npm start            # 启动 server
 
 - **登录修复**：原 `login.php` 用明文比对 bcrypt 哈希，登录永远失败且成功后跳转不存在的 `welcome.php`。本版用 `bcrypt.compare` 正确校验，成功后跳转首页。
 - **登录人机验证（新增，应用户要求）**：登录页与注册页在口令校验/写入前增加了 ALTCHA PoW 验证（见上文「登录/注册人机验证」小节），属安全增强而非原有行为。
+- **白天/黑夜模式（新增，应用户要求）**：全站主题切换（见上文「白天/黑夜模式」小节）；默认亮色为原有观感，暗色为增量能力。
 - **参数化查询**：用 mysql2 预编译语句替代原 `real_escape_string` 字符串拼接，防注入，数据一致。
 - **`messages.is_displayed` 默认 1**：原插入留言不写该列，依赖列默认值才能显示。
 - **配置外置**：数据库凭据、端口、WS 地址全部走 `.env`，不再硬编码。

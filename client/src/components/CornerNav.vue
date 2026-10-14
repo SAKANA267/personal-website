@@ -3,10 +3,11 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import { useLocale } from '../stores/locale'
+import { useTheme } from '../stores/theme'
 
 // 全站顶部导航条（App 级，替代各页 TopNav 的文字导航行）：
 // 左侧「返回」icon——二级页面（博客阅读/撰写）为「返回博客列表」箭头，其余为返回主页 house icon（首页自身不显示）；
-// 右侧语言切换与账号入口（AccountMenu）。
+// 右侧黑夜/白天切换、语言切换与账号入口（AccountMenu）。
 // 挂在 RouterView 之外渲染，fixed 定位不受各页入场动画 transform 的包含块影响。
 // 滚动感知：下滑隐藏、上滑显示、贴顶常显；纸白条状背景 + 发丝线底边，
 // 正文经 body padding-top(var(--corner-bar-h)) 让位（标题卡首屏与 /admin 例外，见 global.css §12）。
@@ -15,6 +16,7 @@ defineProps<{ showHome: boolean; showAccount: boolean }>()
 const route = useRoute()
 const router = useRouter()
 const { locale, t, setLocale } = useLocale()
+const { isDark, toggleTheme } = useTheme()
 
 // /admin 幽灵态：透明无底条只承载图标——管理面板有自己的顶栏体系（admin.css 自留 64px 让位）
 const isGhost = computed(() => route.path === '/admin')
@@ -61,6 +63,10 @@ onBeforeUnmount(() => window.removeEventListener('scroll', onScroll))
 function toggleLocale() {
   void setLocale(locale.value === 'zh' ? 'en' : 'zh')
 }
+
+// 黑夜/白天切换：亮色下显示月亮（动作=进入黑夜），暗色下显示太阳——
+// 图标与 aria 均指向目标态，与语言切换按钮「显示目标语言」的语义一致
+const themeLabel = computed(() => t(isDark.value ? 'nav.toLight' : 'nav.toDark'))
 </script>
 
 <template>
@@ -114,6 +120,40 @@ function toggleLocale() {
       </svg>
     </button>
     <div v-if="showAccount" class="corner-nav-side">
+      <button
+        type="button"
+        class="corner-theme"
+        :aria-label="themeLabel"
+        :title="themeLabel"
+        @click="toggleTheme"
+      >
+        <!-- 月亮（当前亮色，点击入夜）/ 太阳（当前暗色，点击回昼） -->
+        <svg
+          v-if="!isDark"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a7 7 0 1 0 10.5 10.5z" />
+        </svg>
+        <svg
+          v-else
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2.75v2M12 19.25v2M2.75 12h2M19.25 12h2M5.4 5.4l1.4 1.4M17.2 17.2l1.4 1.4M18.6 5.4l-1.4 1.4M6.8 17.2l-1.4 1.4" />
+        </svg>
+      </button>
       <button
         type="button"
         class="corner-lang"

@@ -16,6 +16,27 @@
       content="SAKANA 的个人网站：在线聊天与屏幕转播、自定义题库、开发日志、博客、二维码文件分享。"
     />
     <title>Web learning</title>
+    <!-- 移动端浏览器 chrome 底色随主题；由下方内联脚本与 stores/theme.ts 共同维护 -->
+    <meta name="theme-color" content="#fafafa" />
+    <script>
+      // 主题防闪烁：首帧前按「localStorage 显式选择 > 系统偏好」给 <html> 挂 dark 类。
+      // 逻辑须与 client/src/stores/theme.ts 保持一致（dark 类 + 两处取值优先级）。
+      ;(function () {
+        try {
+          var saved = localStorage.getItem('theme')
+          var dark =
+            saved === 'dark' ||
+            (saved !== 'light' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches)
+          if (dark) {
+            document.documentElement.classList.add('dark')
+            document
+              .querySelector('meta[name="theme-color"]')
+              ?.setAttribute('content', '#121314')
+          }
+        } catch (e) {}
+      })()
+    </script>
   </head>
   <body>
     <div id="app"></div>

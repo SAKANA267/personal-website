@@ -8,6 +8,9 @@
    ============================================ */
 
 :root {
+  /* 原生滚动条/表单控件按亮色渲染（暗色在下方 html.dark 覆盖） */
+  color-scheme: light;
+
   /* === 颜色系统 (Color System) === */
   /* 核心颜色 - 保持黑白简约，增加灰度层次 */
   --ink: #0a0a0a;              /* 主黑色 - 比纯黑更柔和 */
@@ -133,6 +136,52 @@
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
   --breakpoint-xl: 1200px;
+}
+
+/* ============================================
+   1b. 黑夜模式色板 (Dark Theme)
+   <html class="dark">（stores/theme.ts 挂类，index.html 内联脚本防首帧闪烁）
+   时覆盖核心色板：下方语义变量 --color-* 与全站组件都引用 --ink/--paper/灰阶，
+   覆盖这组原色即整体翻转，无需逐组件改写。纸墨气质镜像反转——
+   墨成纸色、纸成墨色，悬停反转块（墨块↔纸块）随变量对调。
+   不消费这些变量的板块天然不受影响：标题卡封面（自带 --tc-* 深色体系）、
+   /admin（自有 --ap-* 体系，刻意豁免全站风格）、二维码结果白底（保证扫码）。
+   ============================================ */
+
+html.dark {
+  color-scheme: dark; /* 原生滚动条/表单控件随暗色 */
+
+  --ink: #f0f0ee;              /* 主前景 - 近白微暖（原 #0a0a0a） */
+  --paper: #121314;            /* 主背景 - 近黑微冷（原 #fafafa） */
+  --gray-100: #1a1b1d;         /* 极浅灰 → 深灰 - 替代背景 */
+  --gray-200: #26282a;         /* 浅灰 → 分割线、边框 */
+  --gray-300: #333639;         /* 中浅灰 → 次要边框 */
+  --gray-500: #8b8e92;         /* 中灰 - 次要文本 */
+  --gray-600: #a6a9ad;         /* 中深灰 - 强调文本 */
+  --gray-800: #d6d8da;         /* 深灰 → 浅 - 强调文本、悬停状态 */
+  --gray-900: #e9ebeb;         /* 近黑 → 近白 - 最深强调色 */
+
+  /* 阴影在暗底上需加重才可见（各页零散硬编码阴影保持原样，视觉可接受） */
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --card-shadow-hover: 0 4px 6px rgba(0, 0, 0, 0.45);
+}
+
+/* 主题切换过渡：stores/theme.ts 在切换瞬间临时挂 html.theme-transition，
+   让全站色彩属性平滑渐变，窗口结束后摘除（常驻会拖慢其它交互过渡）。
+   双保险：CSS 侧也限定 no-preference，reduced-motion 用户瞬时切换。 */
+@media (prefers-reduced-motion: no-preference) {
+  html.theme-transition,
+  html.theme-transition *,
+  html.theme-transition *::before,
+  html.theme-transition *::after {
+    transition:
+      background-color 200ms ease,
+      border-color 200ms ease,
+      color 200ms ease,
+      fill 200ms ease,
+      stroke 200ms ease,
+      box-shadow 200ms ease !important;
+  }
 }
 
 /* ============================================
