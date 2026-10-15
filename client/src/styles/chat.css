@@ -120,6 +120,55 @@
   color: var(--color-text);
 }
 
+/* 个人主页联动：注册用户的身份条（头像 + 姓名，整体可点跳 /u/:username）。
+   头像 28px 圆标——有自定义头像用图片，否则用户名首字母灰底圆标；游客不渲染身份条（与原布局一致） */
+.page-chat .message .message-identity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.page-chat .message .message-identity:hover .message-sender,
+.page-chat .message .message-identity:focus-visible .message-sender {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.page-chat .message .message-identity:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+  border-radius: var(--space-1);
+}
+
+.page-chat .message .message-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--divider-color);
+  background-color: var(--paper);
+}
+
+.page-chat .message .message-avatar--letter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--gray-200);
+  color: var(--color-text-secondary);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.page-chat .message .message-identity:hover .message-avatar--letter,
+.page-chat .message .message-identity:focus-visible .message-avatar--letter {
+  background-color: var(--gray-300);
+}
+
 .page-chat .message .message-content {
   font-size: var(--text-base);
   line-height: var(--leading-relaxed);

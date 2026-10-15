@@ -20,11 +20,14 @@ export interface Question {
   answer: string
 }
 
-// 聊天消息
+// 聊天消息（username/avatar 仅当发送者为注册用户时携带：
+// 聊天↔个人主页联动，消息卡片的头像/姓名据此渲染为跳转 /u/:username 的链接）
 export interface ChatMessage {
   sender: string
   message: string
   timestamp?: string
+  username?: string
+  avatar?: string | null
 }
 
 // 屏幕转播信令帧（wire format 为 'RTC:' + JSON，经聊天 WebSocket 传输）
@@ -38,9 +41,12 @@ export type RtcClientMessage =
   | { t: 'answer'; to: string; sdp: RTCSessionDescriptionInit }
   | { t: 'ice'; to: string; candidate: RTCIceCandidateInit }
 
-// 服务端 → 客户端（转发消息带 from）
+// 服务端 → 客户端（转发消息带 from）。
+// 'chat' 为聊天广播帧（服务端统一以帧下发，纯文本 split 仅作解析失败的回落路径）：
+// u = 注册用户名（缺失即游客，from 为 IP）、av = 头像文件名（可 null = 无自定义头像）
 export type RtcServerMessage =
-  | { t: 'welcome'; id: string; host: { id: string; label: string } | null }
+  | { t: 'chat'; from: string; u?: string; av?: string | null; msg: string }
+  | { t: 'welcome'; id: string; host: { id: string; label: string } | null; av?: string | null }
   | { t: 'started'; from: string; label: string }
   | { t: 'stopped'; from: string }
   | { t: 'denied'; reason: string }

@@ -4,7 +4,9 @@ import WriterByline from '../components/WriterByline.vue'
 import MessageCard from '../components/MessageCard.vue'
 import { useWebSocket } from '../composables/useWebSocket'
 import { useScreenBroadcast } from '../composables/useScreenBroadcast'
+import { api } from '../composables/useApi'
 import { useLocale } from '../stores/locale'
+import type { ChatMessage } from '../types'
 
 const { t } = useLocale()
 const container = ref<HTMLElement | null>(null)
@@ -73,6 +75,14 @@ function sendMessage() {
   input.value = ''
 }
 
+// 个人主页联动：注册用户消息携带身份条（头像 URL 由文件名拼出；
+// 无自定义头像时缺省 → MessageCard 回落首字母圆标），游客无身份
+function identityOf(msg: ChatMessage) {
+  return msg.username
+    ? { username: msg.username, avatarUrl: msg.avatar ? api.avatarUrl(msg.avatar) : undefined }
+    : undefined
+}
+
 onMounted(connect)
 onUnmounted(() => {
   // 离开页面前先收尾转播（停流/断开 P2P），再断开聊天连接
@@ -131,6 +141,7 @@ onUnmounted(() => {
           :sender="msg.sender"
           :message="msg.message"
           :timestamp="msg.timestamp"
+          :identity="identityOf(msg)"
         />
       </div>
 

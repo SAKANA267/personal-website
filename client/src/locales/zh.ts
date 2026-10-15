@@ -225,6 +225,8 @@ export default {
     send: '发送',
     sys: '系统',
     you: '你',
+    viewProfile: '查看 {name} 的主页',
+    avatarAlt: '{name} 的头像',
     connected: '连接已打开',
     disconnected: '连接已关闭',
     sysBusy: '已有人正在转播，无法开始新的转播',

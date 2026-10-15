@@ -219,6 +219,8 @@ const en: MessagePack = {
     send: 'Send',
     sys: 'System',
     you: 'You',
+    viewProfile: "View {name}'s profile",
+    avatarAlt: "{name}'s avatar",
     connected: 'Connection opened',
     disconnected: 'Connection closed',
     sysBusy: 'Someone is already broadcasting; a new broadcast cannot start',

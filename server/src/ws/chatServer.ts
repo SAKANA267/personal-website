@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import https from 'node:https'
+import type { IncomingMessage } from 'node:http'
 import { WebSocket, WebSocketServer } from 'ws'
 import { pool } from '../db.js'
 import { consumeWsToken } from '../wsTokens.js'
@@ -109,6 +110,14 @@ export function startChatServer(): WebSocketServer {
   }
 
   wss.on('connection', (ws, req) => {
+    // async：注册用户需先查一次头像文件名（个人主页联动），再下发 welcome/处理消息
+    void handleConnection(ws, req).catch((err: unknown) => {
+      console.log('连接初始化失败:', err)
+      ws.close()
+    })
+  })
+
+  async function handleConnection(ws: WebSocket, req: IncomingMessage) {
     const clientIP = req.socket.remoteAddress || 'unknown'
     // 登录适配：握手 URL 携带一次性 token（Express 签发）换取用户名，游客保持 IP 标识（原行为）
     let username: string | null = null
@@ -117,6 +126,18 @@ export function startChatServer(): WebSocketServer {
       username = consumeWsToken(query.searchParams.get('token'))
     } catch {
       username = null
+    }
+    // 个人主页联动：注册用户的头像文件名随连接查出（连接生命周期内不再变；
+    // 查询失败按无头像处理，不影响连接），供聊天广播帧与 welcome 帧携带
+    let userAvatar: string | null = null
+    if (username) {
+      try {
+        const [rows] = await pool.query('SELECT avatar FROM users WHERE username = ? LIMIT 1', [username])
+        const row = (rows as Record<string, unknown>[])[0]
+        userAvatar = row && typeof row.avatar === 'string' ? row.avatar : null
+      } catch {
+        console.log(`头像查询失败（${username}），按无头像处理`)
+      }
     }
     // 展示名 = 用户名（登录）或 IP（游客）；clients 键加 @ 前缀避免用户名与 IP 字符串碰撞
     const clientKey = username ? `@${username}` : clientIP
@@ -129,8 +150,9 @@ export function startChatServer(): WebSocketServer {
       '系统',
       `客户端已连接，${username ? `用户 ${username}` : `IP 地址: ${clientIP}`}`
     )
-    // 下发其 peer id 与当前直播状态，晚加入者由此得知有人转播中
-    sendTo(ws, { t: 'welcome', id: peerId, host: currentHost })
+    // 下发其 peer id 与当前直播状态，晚加入者由此得知有人转播中；
+    // 登录用户附带自己的头像文件名（av，客户端本地回显用）
+    sendTo(ws, { t: 'welcome', id: peerId, host: currentHost, ...(username ? { av: userAvatar } : {}) })
 
     // 滑动窗口发送频率计数：记录窗口内的时间戳，超限即断开（防刷屏/防广播放大）
     let chatTimes: number[] = []
@@ -173,10 +195,15 @@ export function startChatServer(): WebSocketServer {
         return
       }
       logToDatabase(display, msg)
-      // 广播给除自己外的所有就绪客户端，格式保留 "<展示名>: <message>"（登录=用户名，游客=IP）
+      // 广播给除自己外的所有就绪客户端。个人主页联动：改用结构化帧（与信令同走 'RTC:' JSON 通道）
+      // ——注册用户带 u=用户名、av=头像文件名，客户端据此把头像/姓名渲染为跳个人主页的链接；
+      // 游客仅 from=IP，无身份。logs 表落库与控制台输出仍为纯文本（原行为）。
+      // 附带收益：帧内 msg 为完整原文，消息文本自身含 ': ' 时不再被客户端按 ': ' 切分截断。
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN && client !== ws) {
-          client.send(`${display}: ${msg}`)
+          sendTo(client, username
+            ? { t: 'chat', from: display, u: username, av: userAvatar, msg }
+            : { t: 'chat', from: display, msg })
         }
       })
     })
@@ -201,7 +228,7 @@ export function startChatServer(): WebSocketServer {
         broadcastSignaling({ t: 'stopped', from: peerId }, ws)
       }
     })
-  })
+  }
 
   return wss
 }
