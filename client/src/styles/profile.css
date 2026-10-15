@@ -226,24 +226,85 @@
   user-select: none;
 }
 
-/* 上传预览：头像 = 圆形 96px；壁纸 = 条带比例（宽 320 / 高 80，cover 裁切即最终观感） */
-.page-profile .profile-image-preview {
-  display: block;
-  object-fit: cover;
+/* ===== 裁剪器（头像 1:1 / 壁纸 4:1）：固定比例视口 + 拖动平移 + 滚轮/双指缩放 ===== */
+.page-profile .profile-cropper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   flex-shrink: 0;
+}
+
+.page-profile .profile-cropper-viewport {
+  position: relative;
+  overflow: hidden;
   border: var(--input-border-width) solid var(--gray-300);
-}
-
-.page-profile .profile-avatar--preview {
-  width: 96px;
-  height: 96px;
-  border-radius: 50%;
-}
-
-.page-profile .profile-banner--preview {
-  width: min(320px, 100%);
-  height: 80px;
   border-radius: var(--btn-border-radius);
+  background: var(--gray-100);
+  /* 拖动/捏合交给 Pointer Events 处理，不让浏览器接管触摸滚动 */
+  touch-action: none;
+  cursor: grab;
+}
+
+.page-profile .profile-cropper-viewport:active {
+  cursor: grabbing;
+}
+
+/* 全局 img max-width:100% 会夹住缩放布局盒——裁剪图必须按原始尺寸布局后交给 transform */
+.page-profile .profile-cropper-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  max-width: none;
+  max-height: none;
+  user-select: none;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.page-profile .profile-cropper-ops {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.page-profile .profile-cropper-btn {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--divider-border-width) solid var(--gray-300);
+  border-radius: 50%;
+  color: var(--gray-600);
+  font-size: var(--text-base);
+  line-height: 1;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.page-profile .profile-cropper-btn:hover {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.page-profile .profile-cropper-reset {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.page-profile .profile-cropper-reset:hover {
+  color: var(--ink);
+}
+
+.page-profile .profile-cropper-hint {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+  margin: 0;
 }
 
 /* 换头像：悬停浮层（触屏常显半透明底） */

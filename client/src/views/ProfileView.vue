@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import ImageCropper from '../components/ImageCropper.vue'
 import { api } from '../composables/useApi'
 import { useAuth } from '../stores/auth'
 import { useLocale } from '../stores/locale'
@@ -107,6 +108,9 @@ const pickedFile = ref<File | null>(null)
 const pickedUrl = ref('')
 const imageProgress = ref(-1) // -1 = 未在上传中
 const imageError = ref('')
+// 裁剪器（图片加载完成后才允许确认上传）
+const cropperEl = ref<InstanceType<typeof ImageCropper> | null>(null)
+const cropperReady = ref(false)
 
 const avatarSrc = computed(() =>
   profile.value?.avatar ? api.avatarUrl(profile.value.avatar) : ''
@@ -152,6 +156,7 @@ function onImagePick(e: Event, kind: ImageKind) {
   pickedKind.value = kind
   pickedFile.value = file
   pickedUrl.value = URL.createObjectURL(file)
+  cropperReady.value = false
   imagePending.value = true
 }
 
@@ -162,8 +167,14 @@ async function confirmImage() {
   imageProgress.value = 0
   const onProgress = (pct: number) => (imageProgress.value = pct)
   try {
+    // 裁剪器就绪 → 上传视口裁剪结果（所见即所得）；未就绪兜底传原文件
+    let uploadFile: File = pickedFile.value
+    if (cropperEl.value?.loaded) {
+      const blob = await cropperEl.value.crop()
+      uploadFile = new File([blob], `cropped-${kind}.jpg`, { type: 'image/jpeg' })
+    }
     if (kind === 'avatar') {
-      const res = await api.uploadAvatar(pickedFile.value, onProgress)
+      const res = await api.uploadAvatar(uploadFile, onProgress)
       if (res.ok && res.data.avatar && profile.value) {
         profile.value.avatar = res.data.avatar
         cancelImage()
@@ -172,7 +183,7 @@ async function confirmImage() {
         imageError.value = apiError(res.data, 'profile.avatarUploadFail')
       }
     } else {
-      const res = await api.uploadBanner(pickedFile.value, onProgress)
+      const res = await api.uploadBanner(uploadFile, onProgress)
       if (res.ok && res.data.banner && profile.value) {
         profile.value.banner = res.data.banner
         cancelImage()
@@ -767,18 +778,20 @@ async function removeComment(comment: ProfileComment) {
           </div>
         </header>
 
-        <!-- 头像/壁纸上传：预览 → 确认 / 取消（失败保留文件可直接重试） -->
+        <!-- 头像/壁纸上传：裁剪（拖动平移 + 滚轮/双指缩放）→ 确认上传 / 取消（失败保留文件可直接重试） -->
         <section v-if="imagePending" class="profile-card profile-avatar-panel">
           <p class="profile-card-label">
-            {{ pickedKind === 'avatar' ? t('profile.avatarPreview') : t('profile.bannerPreview') }}
+            {{ pickedKind === 'avatar' ? t('profile.cropAvatar') : t('profile.cropBanner') }}
           </p>
           <div class="profile-avatar-panel-body">
-            <img
+            <ImageCropper
               v-if="pickedUrl"
-              class="profile-image-preview"
-              :class="pickedKind === 'banner' ? 'profile-banner--preview' : 'profile-avatar--preview'"
+              ref="cropperEl"
               :src="pickedUrl"
-              :alt="pickedKind === 'avatar' ? t('profile.avatarPreview') : t('profile.bannerPreview')"
+              :ratio="pickedKind === 'avatar' ? 1 : 4"
+              :viewport-width="pickedKind === 'avatar' ? 280 : 360"
+              :max-out-width="pickedKind === 'avatar' ? 512 : 1600"
+              @ready="cropperReady = true"
             />
             <div class="profile-avatar-panel-ops">
               <p v-if="imageProgress >= 0" class="profile-avatar-progress">
@@ -786,7 +799,7 @@ async function removeComment(comment: ProfileComment) {
               </p>
               <div class="profile-avatar-panel-btns">
                 <button type="button" class="profile-btn profile-btn--primary"
-                  :disabled="imageProgress >= 0" @click="confirmImage">
+                  :disabled="imageProgress >= 0 || !cropperReady" @click="confirmImage">
                   {{ t('profile.avatarConfirm') }}
                 </button>
                 <button type="button" class="profile-btn" :disabled="imageProgress >= 0"
