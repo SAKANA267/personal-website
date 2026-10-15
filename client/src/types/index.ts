@@ -115,6 +115,7 @@ export interface UserProfile {
   username: string
   displayName: string | null
   avatar: string | null // 头像文件名；null = 默认首字头像
+  banner: string | null // 壁纸文件名（头卡顶部条带）；null = 无壁纸不渲染条带
   bio: string | null
   region: string | null
   regionVisible: boolean

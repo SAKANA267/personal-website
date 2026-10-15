@@ -207,9 +207,20 @@ export const api = {
     )
   },
   deleteAvatar: () => request<{ success?: boolean; error?: string }>('DELETE', '/auth/avatar'),
+  // 壁纸：multipart 上传（服务端等比压到 ≤1600×400 WebP，条带裁切交给前端）；删除后回落无条带布局
+  uploadBanner: (file: File, onProgress?: (pct: number) => void) => {
+    const form = new FormData()
+    form.append('file', file)
+    return postForm<{ success?: boolean; banner?: string; error?: string; maxMb?: number }>(
+      '/auth/banner',
+      form,
+      onProgress
+    )
+  },
+  deleteBanner: () => request<{ success?: boolean; error?: string }>('DELETE', '/auth/banner'),
+  // 用户图片文件地址（头像/壁纸同一路由；不可变内容长缓存；生产在 /web 前缀下）
+  avatarUrl: (name: string) => `${BASE}/users/avatars/${encodeURIComponent(name)}`,
   // 注销账号：旧密码验证身份 + 输入用户名二次确认（服务端级联删除内容并匿名化账号行）
   deleteAccount: (data: { password: string; confirm: string }) =>
     post<{ success?: boolean; error?: string }>('/auth/delete-account', data),
-  // 头像文件地址（不可变内容长缓存；生产在 /web 前缀下）
-  avatarUrl: (name: string) => `${BASE}/users/avatars/${encodeURIComponent(name)}`,
 }

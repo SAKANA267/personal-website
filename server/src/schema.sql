@@ -26,6 +26,7 @@ CREATE TABLE IF NOT EXISTS users (
   password VARCHAR(255) NOT NULL,                -- bcrypt 哈希（约 60 字符，预留余量）
   display_name VARCHAR(40) NULL,                 -- 昵称（个人主页展示；NULL = 用用户名）
   avatar VARCHAR(120) NULL,                      -- 头像文件名（uploads/avatars/<32hex>.webp；NULL = 默认首字头像）
+  banner VARCHAR(120) NULL,                      -- 壁纸文件名（头卡顶部条带；NULL = 无壁纸不渲染条带）
   bio VARCHAR(500) NULL,                         -- 简介
   region VARCHAR(60) NULL,                       -- 地区
   social_links JSON NULL,                        -- 社交链接 [{label,url}]，≤5 条
@@ -151,3 +152,6 @@ CREATE TABLE IF NOT EXISTS share_items (
 -- ALTER TABLE users ADD COLUMN allow_index TINYINT(1) NOT NULL DEFAULT 0 AFTER show_content;
 -- ALTER TABLE users ADD COLUMN status ENUM('active','disabled','deleted') NOT NULL DEFAULT 'active' AFTER allow_index;
 -- ALTER TABLE users ADD COLUMN created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER status;
+--
+-- 个人主页壁纸（2026-10，部署本次改动前执行；已建过上面 13 列的部署补这一条）：
+-- ALTER TABLE users ADD COLUMN banner VARCHAR(120) NULL AFTER avatar;

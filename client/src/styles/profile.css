@@ -65,12 +65,96 @@
 }
 
 /* ===== 个人信息卡片 ===== */
+/* 纵向两段：壁纸条带（仅有壁纸时渲染）+ 头像/身份横排（.profile-head-row）；
+   --banner-overlap 控制头像叠入壁纸下缘的深度（= 头像高度一半，移动端随断点收小） */
 .page-profile .profile-head {
   display: flex;
-  gap: var(--space-8);
+  flex-direction: column;
+  --banner-overlap: 56px;
   padding-bottom: var(--space-8);
   border-bottom: var(--divider-border-width) solid var(--divider-color);
   margin-bottom: var(--space-8);
+}
+
+/* 无壁纸时行距即卡片顶部；有壁纸时头像经负边距叠入条带下缘（GitHub 风） */
+.page-profile .profile-head-row {
+  display: flex;
+  gap: var(--space-8);
+}
+
+/* ===== 壁纸条带：内容列宽 × ~150px 的横幅（非全屏背景） ===== */
+.page-profile .profile-banner-wrap {
+  position: relative;
+  border: var(--input-border-width) solid var(--gray-300);
+  border-radius: var(--btn-border-radius);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+
+/* 头像叠入壁纸下缘（GitHub 风）：负边距只拉头像列，身份文字保持在壁纸下方 */
+.page-profile .has-banner .profile-avatar-col {
+  margin-top: calc(-1 * var(--banner-overlap) - var(--space-4));
+}
+
+.page-profile .profile-banner {
+  display: block;
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+/* 换壁纸：悬停浮层（与头像浮层同一交互；触屏常显半透明底） */
+.page-profile .profile-banner-edit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--paper);
+  background: rgba(10, 10, 10, 0.45);
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-out);
+}
+
+.page-profile .profile-banner-edit svg {
+  width: 26px;
+  height: 26px;
+}
+
+.page-profile .profile-banner-wrap:hover .profile-banner-edit,
+.page-profile .profile-banner-edit:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .page-profile .profile-banner-edit {
+    opacity: 0.85;
+  }
+}
+
+/* 删除壁纸：条带右下角的墨底纸字小签（浅色壁纸上也可读） */
+.page-profile .profile-banner-remove {
+  position: absolute;
+  right: var(--space-2);
+  bottom: var(--space-2);
+  background: var(--ink);
+  color: var(--paper);
+  border-radius: var(--btn-border-radius);
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+  opacity: 0.85;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.page-profile .profile-banner-remove:hover {
+  opacity: 1;
+}
+
+/* 有壁纸时头像加纸色描边圈，与条带边缘分离可读（随主题反转） */
+.page-profile .has-banner .profile-avatar {
+  box-shadow: 0 0 0 3px var(--paper);
 }
 
 /* 头像列：圆形头像 + 悬停换头像 + 移除按钮 */
@@ -111,9 +195,24 @@
   user-select: none;
 }
 
+/* 上传预览：头像 = 圆形 96px；壁纸 = 条带比例（宽 320 / 高 80，cover 裁切即最终观感） */
+.page-profile .profile-image-preview {
+  display: block;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: var(--input-border-width) solid var(--gray-300);
+}
+
 .page-profile .profile-avatar--preview {
   width: 96px;
   height: 96px;
+  border-radius: 50%;
+}
+
+.page-profile .profile-banner--preview {
+  width: min(320px, 100%);
+  height: 80px;
+  border-radius: var(--btn-border-radius);
 }
 
 /* 换头像：悬停浮层（触屏常显半透明底） */
@@ -807,13 +906,21 @@
 
 /* ===== 响应式 ===== */
 
-/* 768：平板——信息卡上下堆叠、头像居中 */
+/* 768：平板——信息卡上下堆叠、头像居中；壁纸收窄、叠入深度随头像（88px）收小 */
 @media (max-width: 768px) {
   .page-profile .profile-shell {
     padding-top: var(--space-6);
   }
 
   .page-profile .profile-head {
+    --banner-overlap: 44px;
+  }
+
+  .page-profile .profile-banner {
+    height: 110px;
+  }
+
+  .page-profile .profile-head-row {
     flex-direction: column;
     align-items: center;
     text-align: center;
@@ -849,7 +956,7 @@
   }
 }
 
-/* 480：手机——留白收紧、数据概览缩距 */
+/* 480：手机——留白收紧、数据概览缩距、壁纸条带再收一档 */
 @media (max-width: 480px) {
   .page-profile .profile-shell {
     padding: var(--space-4) var(--space-3) var(--space-12);
@@ -859,6 +966,10 @@
   .page-profile .profile-avatar {
     width: 88px;
     height: 88px;
+  }
+
+  .page-profile .profile-banner {
+    height: 90px;
   }
 
   .page-profile .profile-name {

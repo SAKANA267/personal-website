@@ -81,7 +81,7 @@ function applyRobots() {
 }
 onBeforeUnmount(() => {
   document.querySelector('meta[name="robots"]')?.remove()
-  cancelAvatar()
+  cancelImage()
 })
 
 // ---------- 复制主页链接 ----------
@@ -92,20 +92,27 @@ function copyLink(e: MouseEvent) {
   copy(`${window.location.origin}${href}`, e.clientX, e.clientY)
 }
 
-// ---------- 头像 ----------
+// ---------- 用户图片（头像 / 壁纸） ----------
 
-const AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp']
-const AVATAR_MAX_MB = 2 // 与服务端默认一致；真实上限由服务端裁决（错误附 maxMb）
+const USER_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/bmp']
+// 与服务端默认一致（AVATAR_MAX_MB=2 / BANNER_MAX_MB=4）；真实上限由服务端裁决（错误附 maxMb）
+const IMAGE_MAX_MB = { avatar: 2, banner: 4 } as const
+type ImageKind = 'avatar' | 'banner'
 
 const avatarInput = ref<HTMLInputElement | null>(null)
-const avatarPending = ref(false)
+const bannerInput = ref<HTMLInputElement | null>(null)
+const imagePending = ref(false)
+const pickedKind = ref<ImageKind>('avatar')
 const pickedFile = ref<File | null>(null)
 const pickedUrl = ref('')
-const avatarProgress = ref(-1) // -1 = 未在上传中
-const avatarError = ref('')
+const imageProgress = ref(-1) // -1 = 未在上传中
+const imageError = ref('')
 
 const avatarSrc = computed(() =>
   profile.value?.avatar ? api.avatarUrl(profile.value.avatar) : ''
+)
+const bannerSrc = computed(() =>
+  profile.value?.banner ? api.avatarUrl(profile.value.banner) : ''
 )
 // 默认头像：昵称/用户名首字（unicode 安全取码点）
 const avatarInitial = computed(() => {
@@ -114,64 +121,93 @@ const avatarInitial = computed(() => {
   return (first ?? '?').toUpperCase()
 })
 
-function pickAvatar() {
-  avatarError.value = ''
-  avatarInput.value?.click()
+function uploadFailKey(kind: ImageKind) {
+  return kind === 'avatar' ? 'profile.avatarUploadFail' : 'profile.bannerUploadFail'
 }
 
-function onAvatarPick(e: Event) {
+function pickImage(kind: ImageKind) {
+  imageError.value = ''
+  const input = kind === 'avatar' ? avatarInput.value : bannerInput.value
+  input?.click()
+}
+
+function onImagePick(e: Event, kind: ImageKind) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = '' // 允许再次选择同一文件
   if (!file) return
-  avatarError.value = ''
-  if (!AVATAR_TYPES.includes(file.type)) {
-    avatarError.value = t('profile.avatarInvalidType')
+  imageError.value = ''
+  if (!USER_IMAGE_TYPES.includes(file.type)) {
+    imageError.value = t(kind === 'avatar' ? 'profile.avatarInvalidType' : 'profile.bannerInvalidType')
     return
   }
-  if (file.size > AVATAR_MAX_MB * 1024 * 1024) {
-    avatarError.value = t('profile.avatarTooLarge', { max: `${AVATAR_MAX_MB}MB` })
+  const max = IMAGE_MAX_MB[kind]
+  if (file.size > max * 1024 * 1024) {
+    imageError.value = t(
+      kind === 'avatar' ? 'profile.avatarTooLarge' : 'profile.bannerTooLarge',
+      { max: `${max}MB` }
+    )
     return
   }
+  pickedKind.value = kind
   pickedFile.value = file
   pickedUrl.value = URL.createObjectURL(file)
-  avatarPending.value = true
+  imagePending.value = true
 }
 
-async function confirmAvatar() {
-  if (!pickedFile.value || avatarProgress.value >= 0) return
-  avatarError.value = ''
-  avatarProgress.value = 0
+async function confirmImage() {
+  const kind = pickedKind.value
+  if (!pickedFile.value || imageProgress.value >= 0) return
+  imageError.value = ''
+  imageProgress.value = 0
+  const onProgress = (pct: number) => (imageProgress.value = pct)
   try {
-    const res = await api.uploadAvatar(pickedFile.value, (pct) => (avatarProgress.value = pct))
-    if (res.ok && res.data.avatar && profile.value) {
-      profile.value.avatar = res.data.avatar
-      cancelAvatar()
+    if (kind === 'avatar') {
+      const res = await api.uploadAvatar(pickedFile.value, onProgress)
+      if (res.ok && res.data.avatar && profile.value) {
+        profile.value.avatar = res.data.avatar
+        cancelImage()
+      } else {
+        // 失败保留所选文件，用户可直接重试
+        imageError.value = apiError(res.data, 'profile.avatarUploadFail')
+      }
     } else {
-      avatarError.value = apiError(res.data, 'profile.avatarUploadFail')
-      // 失败保留所选文件，用户可直接重试
+      const res = await api.uploadBanner(pickedFile.value, onProgress)
+      if (res.ok && res.data.banner && profile.value) {
+        profile.value.banner = res.data.banner
+        cancelImage()
+      } else {
+        imageError.value = apiError(res.data, 'profile.bannerUploadFail')
+      }
     }
   } catch {
-    avatarProgress.value = -1
-    avatarError.value = t('profile.avatarUploadFail')
+    imageProgress.value = -1
+    imageError.value = t(uploadFailKey(kind))
   }
 }
 
-function cancelAvatar() {
+function cancelImage() {
   if (pickedUrl.value) URL.revokeObjectURL(pickedUrl.value)
   pickedFile.value = null
   pickedUrl.value = ''
-  avatarPending.value = false
-  avatarProgress.value = -1
+  imagePending.value = false
+  imageProgress.value = -1
 }
 
-async function removeAvatar() {
-  if (!profile.value?.avatar) return
-  if (!window.confirm(t('profile.avatarRemoveConfirm'))) return
-  avatarError.value = ''
-  const res = await api.deleteAvatar()
-  if (res.ok && profile.value) profile.value.avatar = null
-  else avatarError.value = apiError(res.data, 'profile.avatarUploadFail')
+async function removeImage(kind: ImageKind) {
+  if (!profile.value) return
+  if (kind === 'avatar' && !profile.value.avatar) return
+  if (kind === 'banner' && !profile.value.banner) return
+  if (!window.confirm(t(kind === 'avatar' ? 'profile.avatarRemoveConfirm' : 'profile.bannerRemoveConfirm')))
+    return
+  imageError.value = ''
+  const res = kind === 'avatar' ? await api.deleteAvatar() : await api.deleteBanner()
+  if (res.ok && profile.value) {
+    if (kind === 'avatar') profile.value.avatar = null
+    else profile.value.banner = null
+  } else {
+    imageError.value = apiError(res.data, uploadFailKey(kind))
+  }
 }
 
 // ---------- 编辑资料 ----------
@@ -572,8 +608,46 @@ async function removeComment(comment: ProfileComment) {
           {{ t('profile.privateNote') }}
         </p>
 
-        <!-- 个人信息卡片 -->
-        <header class="profile-head">
+        <!-- 个人信息卡片（有壁纸时：顶部条带 + 头像叠下缘；无壁纸不渲染条带，与原布局一致） -->
+        <header class="profile-head" :class="{ 'has-banner': !!profile.banner }">
+          <!-- 壁纸条带：占内容列宽 × 约 150px 的横幅（非全屏背景），本人悬停可更换 -->
+          <div v-if="profile.banner" class="profile-banner-wrap">
+            <img class="profile-banner" :src="bannerSrc"
+              :alt="t('profile.bannerAlt', { name: profile.username })" />
+            <button
+              v-if="profile.isSelf"
+              type="button"
+              class="profile-banner-edit"
+              :title="t('profile.changeBanner')"
+              :aria-label="t('profile.changeBanner')"
+              @click="pickImage('banner')"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M4.25 8.25h3l1.5-2.5h6.5l1.5 2.5h3v11h-15.5z" />
+                <circle cx="11.999" cy="13.5" r="3.25" />
+              </svg>
+            </button>
+            <button
+              v-if="profile.isSelf"
+              type="button"
+              class="profile-banner-remove"
+              @click="removeImage('banner')"
+            >
+              {{ t('profile.removeBanner') }}
+            </button>
+          </div>
+          <input
+            v-if="profile.isSelf"
+            ref="bannerInput"
+            type="file"
+            class="sr-only"
+            accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
+            :aria-label="t('profile.changeBanner')"
+            @change="onImagePick($event, 'banner')"
+          />
+
+          <div class="profile-head-row">
           <div class="profile-avatar-col">
             <div class="profile-avatar-wrap">
               <img v-if="avatarSrc" class="profile-avatar" :src="avatarSrc"
@@ -588,7 +662,7 @@ async function removeComment(comment: ProfileComment) {
                 class="profile-avatar-edit"
                 :title="t('profile.changeAvatar')"
                 :aria-label="t('profile.changeAvatar')"
-                @click="pickAvatar"
+                @click="pickImage('avatar')"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -604,13 +678,13 @@ async function removeComment(comment: ProfileComment) {
               class="sr-only"
               accept="image/png,image/jpeg,image/gif,image/webp,image/bmp"
               :aria-label="t('profile.changeAvatar')"
-              @change="onAvatarPick"
+              @change="onImagePick($event, 'avatar')"
             />
             <button
               v-if="profile.isSelf && profile.avatar"
               type="button"
               class="profile-avatar-remove"
-              @click="removeAvatar"
+              @click="removeImage('avatar')"
             >
               {{ t('profile.removeAvatar') }}
             </button>
@@ -675,33 +749,41 @@ async function removeComment(comment: ProfileComment) {
               </button>
             </div>
           </div>
+          </div>
         </header>
 
-        <!-- 头像上传：预览 → 确认 / 取消（失败保留文件可直接重试） -->
-        <section v-if="avatarPending" class="profile-card profile-avatar-panel">
-          <p class="profile-card-label">{{ t('profile.avatarPreview') }}</p>
+        <!-- 头像/壁纸上传：预览 → 确认 / 取消（失败保留文件可直接重试） -->
+        <section v-if="imagePending" class="profile-card profile-avatar-panel">
+          <p class="profile-card-label">
+            {{ pickedKind === 'avatar' ? t('profile.avatarPreview') : t('profile.bannerPreview') }}
+          </p>
           <div class="profile-avatar-panel-body">
-            <img v-if="pickedUrl" class="profile-avatar profile-avatar--preview" :src="pickedUrl"
-              :alt="t('profile.avatarPreview')" />
+            <img
+              v-if="pickedUrl"
+              class="profile-image-preview"
+              :class="pickedKind === 'banner' ? 'profile-banner--preview' : 'profile-avatar--preview'"
+              :src="pickedUrl"
+              :alt="pickedKind === 'avatar' ? t('profile.avatarPreview') : t('profile.bannerPreview')"
+            />
             <div class="profile-avatar-panel-ops">
-              <p v-if="avatarProgress >= 0" class="profile-avatar-progress">
-                {{ t('profile.avatarUploading', { pct: avatarProgress }) }}
+              <p v-if="imageProgress >= 0" class="profile-avatar-progress">
+                {{ t('profile.avatarUploading', { pct: imageProgress }) }}
               </p>
               <div class="profile-avatar-panel-btns">
                 <button type="button" class="profile-btn profile-btn--primary"
-                  :disabled="avatarProgress >= 0" @click="confirmAvatar">
+                  :disabled="imageProgress >= 0" @click="confirmImage">
                   {{ t('profile.avatarConfirm') }}
                 </button>
-                <button type="button" class="profile-btn" :disabled="avatarProgress >= 0"
-                  @click="cancelAvatar">
+                <button type="button" class="profile-btn" :disabled="imageProgress >= 0"
+                  @click="cancelImage">
                   {{ t('profile.avatarCancel') }}
                 </button>
               </div>
-              <p v-if="avatarError" class="profile-form-error">{{ avatarError }}</p>
+              <p v-if="imageError" class="profile-form-error">{{ imageError }}</p>
             </div>
           </div>
         </section>
-        <p v-else-if="avatarError" class="profile-inline-error">{{ avatarError }}</p>
+        <p v-else-if="imageError" class="profile-inline-error">{{ imageError }}</p>
 
         <!-- ===== 编辑资料（焦点态，替代标签区） ===== -->
         <section v-if="editing" class="profile-card">

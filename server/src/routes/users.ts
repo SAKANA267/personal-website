@@ -48,6 +48,7 @@ interface UserRow {
   username: string
   display_name: string | null
   avatar: string | null
+  banner: string | null
   bio: string | null
   region: string | null
   social_links: unknown
@@ -64,7 +65,7 @@ interface UserRow {
 async function loadVisibleUser(req: Request, res: Response): Promise<UserRow | null> {
   const username = String(req.params.username ?? '')
   const [rows] = (await pool.query(
-    `SELECT id, username, display_name, avatar, bio, region, social_links,
+    `SELECT id, username, display_name, avatar, banner, bio, region, social_links,
        is_profile_public, show_region, show_social, show_content, allow_index, status,
        DATE_FORMAT(created_at, '%Y-%m-%d') AS created_at
      FROM users WHERE username = ?`,
@@ -122,6 +123,7 @@ usersRouter.get('/:username/profile', async (req, res) => {
       username: user.username,
       displayName: user.display_name ?? null,
       avatar: user.avatar ?? null,
+      banner: user.banner ?? null,
       bio: user.bio ?? null,
       region: showRegion ? user.region ?? null : null,
       regionVisible: user.show_region === 1,

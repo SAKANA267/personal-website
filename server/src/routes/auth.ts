@@ -420,13 +420,17 @@ authRouter.put(
   }
 )
 
-// 头像上传（登录）：multipart 字段 file。校验链与博客插图同款（大小 → mime 白名单 →
-// 扩展名一致 → 魔数嗅探），通过后统一重编码为 256×256 居中裁切的 WebP（GIF/WebP 保动画），
-// 旧头像文件随即回收。单头像大小上限可用 AVATAR_MAX_MB 调整（默认 2MB，nginx 需同步）
+// ---------- 用户图片上传（头像 / 壁纸共用） ----------
+// 校验链与博客插图同款：multer 大小限制 → 声明 mime 白名单（SVG 一律拒绝）→ 扩展名一致
+// → 魔数嗅探；通过后 sharp 重编码为 WebP 落 uploads/avatars/<32hex>.webp（与头像同目录同
+// 命名规则），由 GET /api/users/avatars/:name 公开服务（文件名白名单 + immutable 长缓存）。
+// 头像 → 256×256 居中裁切（AVATAR_MAX_MB 默认 2）；壁纸 → ≤1600×400 等比缩放（BANNER_MAX_MB
+// 默认 4），条带呈现由前端 object-fit:cover 完成。GIF/WebP 保动画。
 const AVATAR_MAX_MB = Number(process.env.AVATAR_MAX_MB) || 2
+const BANNER_MAX_MB = Number(process.env.BANNER_MAX_MB) || 4
 fs.mkdirSync(AVATAR_DIR, { recursive: true })
 
-const AVATAR_TYPES: Record<string, { exts: string[]; mimes: string[]; sniff: (b: Buffer) => boolean }> = {
+const USER_IMAGE_TYPES: Record<string, { exts: string[]; mimes: string[]; sniff: (b: Buffer) => boolean }> = {
   png: {
     exts: ['.png'], mimes: ['image/png'],
     sniff: (b) => b.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])),
@@ -449,20 +453,78 @@ const AVATAR_TYPES: Record<string, { exts: string[]; mimes: string[]; sniff: (b:
   },
 }
 
-function avatarSpecByMime(mime: string) {
-  for (const spec of Object.values(AVATAR_TYPES)) if (spec.mimes.includes(mime)) return spec
+function userImageSpecByMime(mime: string) {
+  for (const spec of Object.values(USER_IMAGE_TYPES)) if (spec.mimes.includes(mime)) return spec
   return null
 }
 
-const avatarStorage = multer.diskStorage({
+/** 声明 mime 白名单 → 扩展名一致 → 魔数嗅探；通过返回命中 spec，否则返回短错误码（调用方按头像/壁纸拼前缀） */
+async function sniffUserImage(
+  file: { path: string; mimetype?: string; originalname?: string }
+): Promise<{ spec: (typeof USER_IMAGE_TYPES)[string] } | { error: 'INVALID_TYPE' | 'MALFORMED' }> {
+  const declared = String(file.mimetype || '').toLowerCase()
+  const spec = userImageSpecByMime(declared)
+  if (!spec) return { error: 'INVALID_TYPE' }
+  const rawExt = path.extname(file.originalname || '').toLowerCase()
+  if (rawExt && !spec.exts.includes(rawExt)) return { error: 'INVALID_TYPE' }
+  const fh = await fs.promises.open(file.path, 'r')
+  try {
+    const head = Buffer.alloc(16)
+    await fh.read(head, 0, 16, 0)
+    if (!spec.sniff(head)) return { error: 'MALFORMED' }
+  } finally {
+    await fh.close()
+  }
+  return { spec }
+}
+
+const userImageStorage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, AVATAR_DIR),
   filename: (_req, _file, cb) => cb(null, crypto.randomBytes(16).toString('hex')),
 })
-const avatarUpload = multer({
-  storage: avatarStorage,
-  limits: { fileSize: AVATAR_MAX_MB * 1024 * 1024, files: 1 },
-})
+function userImageUpload(maxMb: number) {
+  return multer({ storage: userImageStorage, limits: { fileSize: maxMb * 1024 * 1024, files: 1 } })
+}
 
+// 重编码 + 落盘 + 清理临时文件的公共尾段：返回规范 webp 文件名（<32hex>.webp）
+async function reencodeUserImage(
+  tmpPath: string,
+  spec: (typeof USER_IMAGE_TYPES)[string],
+  resize: 256 | 'banner'
+): Promise<string> {
+  const animated = spec === USER_IMAGE_TYPES.gif || spec === USER_IMAGE_TYPES.webp
+  const pipeline =
+    resize === 256
+      ? sharp(tmpPath, { animated }).resize(256, 256, { fit: 'cover', position: 'centre' })
+      : sharp(tmpPath, { animated }).resize({
+          width: 1600,
+          height: 400,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
+  const buf = await pipeline.webp({ quality: resize === 256 ? 85 : 82 }).toBuffer()
+  const name = crypto.randomBytes(16).toString('hex') + '.webp'
+  await fs.promises.writeFile(path.join(AVATAR_DIR, name), buf)
+  fs.promises.unlink(tmpPath).catch(() => {})
+  return name
+}
+
+// 读取旧图名 → 更新列 → 回收旧文件（名字过白名单才动磁盘，杜绝路径穿越）
+async function replaceUserImage(
+  username: string,
+  column: 'avatar' | 'banner',
+  name: string
+): Promise<void> {
+  const [[row]] = (await pool.query(`SELECT id, ${column} AS old FROM users WHERE username = ?`, [
+    username,
+  ])) as any[]
+  await pool.query(`UPDATE users SET ${column} = ? WHERE username = ?`, [name, username])
+  if (row?.old && AVATAR_NAME_RE.test(String(row.old))) {
+    fs.promises.unlink(path.join(AVATAR_DIR, String(row.old))).catch(() => {})
+  }
+}
+
+// 头像上传（登录，限流 10/10min/用户）
 authRouter.post(
   '/avatar',
   rateLimit({
@@ -471,7 +533,7 @@ authRouter.post(
     key: (req) => sessionUsername(req) ?? String(req.ip),
   }),
   (req, res) => {
-    avatarUpload.single('file')(req, res, async (err) => {
+    userImageUpload(AVATAR_MAX_MB).single('file')(req, res, async (err) => {
       const fail = (status: number, payload: Record<string, unknown>) => {
         if (req.file) fs.promises.unlink(req.file.path).catch(() => {})
         res.status(status).json(payload)
@@ -488,40 +550,10 @@ authRouter.post(
         if (!username) return fail(401, { error: 'AUTH_NOT_LOGGED_IN' })
         const file = req.file
         if (!file) return fail(400, { error: 'AVATAR_NO_FILE' })
-
-        // 1) 声明 mime 白名单（SVG 同源 XSS，一律拒绝）2) 扩展名一致 3) 魔数嗅探
-        const declared = String(file.mimetype || '').toLowerCase()
-        const spec = avatarSpecByMime(declared)
-        if (!spec) return fail(400, { error: 'AVATAR_INVALID_TYPE' })
-        const rawExt = path.extname(file.originalname || '').toLowerCase()
-        if (rawExt && !spec.exts.includes(rawExt)) return fail(400, { error: 'AVATAR_INVALID_TYPE' })
-        const fh = await fs.promises.open(file.path, 'r')
-        try {
-          const head = Buffer.alloc(16)
-          await fh.read(head, 0, 16, 0)
-          if (!spec.sniff(head)) return fail(400, { error: 'AVATAR_MALFORMED' })
-        } finally {
-          await fh.close()
-        }
-
-        // 重编码为统一规格：256×256 居中裁切 WebP（GIF/WebP 动画头像保动画）
-        const name = crypto.randomBytes(16).toString('hex') + '.webp'
-        const abs = path.join(AVATAR_DIR, name)
-        const buf = await sharp(file.path, { animated: spec === AVATAR_TYPES.gif || spec === AVATAR_TYPES.webp })
-          .resize(256, 256, { fit: 'cover', position: 'centre' })
-          .webp({ quality: 85 })
-          .toBuffer()
-        await fs.promises.writeFile(abs, buf)
-        fs.promises.unlink(file.path).catch(() => {})
-
-        // 读取旧头像名 → 更新库 → 回收旧文件（名字过白名单才动磁盘，杜绝路径穿越）
-        const [[row]] = (await pool.query('SELECT id, avatar FROM users WHERE username = ?', [
-          username,
-        ])) as any[]
-        await pool.query('UPDATE users SET avatar = ? WHERE username = ?', [name, username])
-        if (row?.avatar && AVATAR_NAME_RE.test(String(row.avatar))) {
-          fs.promises.unlink(path.join(AVATAR_DIR, String(row.avatar))).catch(() => {})
-        }
+        const sniffed = await sniffUserImage(file)
+        if ('error' in sniffed) return fail(400, { error: `AVATAR_${sniffed.error}` })
+        const name = await reencodeUserImage(file.path, sniffed.spec, 256)
+        await replaceUserImage(username, 'avatar', name)
         res.json({ success: true, avatar: name })
       } catch (e: any) {
         console.error('avatar process failed:', e)
@@ -550,6 +582,68 @@ authRouter.delete('/avatar', async (req, res) => {
     res.json({ success: true })
   } catch (e: any) {
     console.error('delete avatar failed:', e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+// 壁纸上传（登录，限流 10/10min/用户）：重编码为 ≤1600×400 等比 WebP，条带裁切交给前端
+authRouter.post(
+  '/banner',
+  rateLimit({
+    windowMs: 10 * 60_000,
+    max: 10,
+    key: (req) => sessionUsername(req) ?? String(req.ip),
+  }),
+  (req, res) => {
+    userImageUpload(BANNER_MAX_MB).single('file')(req, res, async (err) => {
+      const fail = (status: number, payload: Record<string, unknown>) => {
+        if (req.file) fs.promises.unlink(req.file.path).catch(() => {})
+        res.status(status).json(payload)
+      }
+      if (err) {
+        if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+          return fail(400, { error: 'BANNER_TOO_LARGE', maxMb: BANNER_MAX_MB })
+        }
+        console.error('banner upload failed:', err)
+        return fail(400, { error: 'BANNER_UPLOAD_FAILED' })
+      }
+      try {
+        const username = await activeUsername(req)
+        if (!username) return fail(401, { error: 'AUTH_NOT_LOGGED_IN' })
+        const file = req.file
+        if (!file) return fail(400, { error: 'BANNER_NO_FILE' })
+        const sniffed = await sniffUserImage(file)
+        if ('error' in sniffed) return fail(400, { error: `BANNER_${sniffed.error}` })
+        const name = await reencodeUserImage(file.path, sniffed.spec, 'banner')
+        await replaceUserImage(username, 'banner', name)
+        res.json({ success: true, banner: name })
+      } catch (e: any) {
+        console.error('banner process failed:', e)
+        if (req.file) fs.promises.unlink(req.file.path).catch(() => {})
+        res.status(500).json({ error: 'SERVER_ERROR' })
+      }
+    })
+  }
+)
+
+// 删除壁纸（登录）：清空列并回收文件，主页回落无条带布局
+authRouter.delete('/banner', async (req, res) => {
+  const username = await activeUsername(req)
+  if (!username) {
+    res.status(401).json({ error: 'AUTH_NOT_LOGGED_IN' })
+    return
+  }
+  try {
+    const [[row]] = (await pool.query('SELECT id, banner FROM users WHERE username = ?', [
+      username,
+    ])) as any[]
+    await pool.query('UPDATE users SET banner = NULL WHERE username = ?', [username])
+    if (row?.banner && AVATAR_NAME_RE.test(String(row.banner))) {
+      fs.promises.unlink(path.join(AVATAR_DIR, String(row.banner))).catch(() => {})
+    }
+    res.json({ success: true })
+  } catch (e: any) {
+    console.error('delete banner failed:', e)
     res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
@@ -627,14 +721,17 @@ authRouter.post(
           fs.promises.unlink(path.join(SHARE_DIR, path.basename(String(item.stored_name)))).catch(() => {})
         }
       }
-      // 5) 账号行匿名化：密码打乱（永远无法登录）、资料清空、头像文件回收
+      // 5) 账号行匿名化：密码打乱（永远无法登录）、资料清空、头像/壁纸文件回收
       if (user.avatar && AVATAR_NAME_RE.test(String(user.avatar))) {
         fs.promises.unlink(path.join(AVATAR_DIR, String(user.avatar))).catch(() => {})
+      }
+      if (user.banner && AVATAR_NAME_RE.test(String(user.banner))) {
+        fs.promises.unlink(path.join(AVATAR_DIR, String(user.banner))).catch(() => {})
       }
       const scrambled = await bcrypt.hash(crypto.randomBytes(32).toString('hex'), 10)
       await pool.query(
         `UPDATE users SET status = 'deleted', password = ?, display_name = NULL, avatar = NULL,
-           bio = NULL, region = NULL, social_links = NULL WHERE id = ?`,
+           banner = NULL, bio = NULL, region = NULL, social_links = NULL WHERE id = ?`,
         [scrambled, user.id]
       )
       console.log(`[account] 用户 ${username} 已注销（内容已删除，账号行匿名化保留）`)
