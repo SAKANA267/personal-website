@@ -146,6 +146,7 @@ export default {
     avatarTooLarge: '头像不能超过 {max}',
     avatarUploadFail: '头像上传失败，请重试',
     changeBanner: '更换壁纸',
+    addBanner: '添加主页壁纸',
     removeBanner: '删除壁纸',
     bannerRemoveConfirm: '删除壁纸并恢复默认版式？',
     bannerPreview: '壁纸预览',

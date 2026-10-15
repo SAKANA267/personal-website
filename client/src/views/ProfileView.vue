@@ -637,6 +637,21 @@ async function removeComment(comment: ProfileComment) {
               {{ t('profile.removeBanner') }}
             </button>
           </div>
+          <!-- 无壁纸时的上传入口（仅本人）：虚线占位条，点击即选图；他人视角不渲染任何占位。
+               此前无壁纸时条带与按钮一并 v-if 掉，第一次上传没有可见入口——占位条补上这个空态 -->
+          <button
+            v-if="profile.isSelf && !profile.banner"
+            type="button"
+            class="profile-banner-empty"
+            @click="pickImage('banner')"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4.25 8.25h3l1.5-2.5h6.5l1.5 2.5h3v11h-15.5z" />
+              <circle cx="11.999" cy="13.5" r="3.25" />
+            </svg>
+            {{ t('profile.addBanner') }}
+          </button>
           <input
             v-if="profile.isSelf"
             ref="bannerInput"

@@ -140,6 +140,7 @@ const en: MessagePack = {
     avatarTooLarge: 'Avatar must be under {max}',
     avatarUploadFail: 'Avatar upload failed, please retry',
     changeBanner: 'Change banner',
+    addBanner: 'Add profile banner',
     removeBanner: 'Remove banner',
     bannerRemoveConfirm: 'Remove banner and fall back to the default layout?',
     bannerPreview: 'Banner preview',

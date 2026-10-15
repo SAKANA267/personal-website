@@ -152,6 +152,37 @@
   opacity: 1;
 }
 
+/* 无壁纸占位条（仅本人）：虚线框提示首次上传，不参与头像叠加几何（下方留常规间距） */
+.page-profile .profile-banner-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: 110px;
+  border: var(--divider-border-width) dashed var(--gray-300);
+  border-radius: var(--btn-border-radius);
+  color: var(--gray-500);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: var(--space-5);
+  transition: border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.page-profile .profile-banner-empty svg {
+  width: 20px;
+  height: 20px;
+}
+
+.page-profile .profile-banner-empty:hover,
+.page-profile .profile-banner-empty:focus-visible {
+  border-color: var(--gray-500);
+  color: var(--ink);
+}
+
 /* 有壁纸时头像加纸色描边圈，与条带边缘分离可读（随主题反转） */
 .page-profile .has-banner .profile-avatar {
   box-shadow: 0 0 0 3px var(--paper);
@@ -918,6 +949,10 @@
 
   .page-profile .profile-banner {
     height: 110px;
+  }
+
+  .page-profile .profile-banner-empty {
+    height: 90px;
   }
 
   .page-profile .profile-head-row {
