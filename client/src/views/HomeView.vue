@@ -102,6 +102,7 @@ onMounted(fetchMessages)
         <p class="btn" @click="router.push('/dev-log')">{{ t('home.linkLog') }}</p>
         <p class="btn" @click="router.push('/blog')">{{ t('home.linkBlog') }}</p>
         <p class="btn" @click="router.push('/share')">{{ t('home.linkShare') }}</p>
+        <p class="btn" @click="router.push('/data-mask')">{{ t('home.linkMask') }}</p>
       </div>
 
       <h2>{{ t('home.contact') }}</h2>

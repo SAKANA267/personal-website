@@ -1,0 +1,617 @@
+/* ============================================
+   数据脱敏页样式 (Data Mask Page Styles)
+   .page-data-mask - 纯前端 Excel/CSV 脱敏工作台
+   全部消费设计系统变量，亮暗主题自动跟随
+   ============================================ */
+
+/* ============================================
+   1. 容器与页头 (Container & Header)
+   ============================================ */
+
+.page-data-mask {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-8) var(--container-padding) var(--space-12);
+}
+
+.page-data-mask .mask-container {
+  width: 100%;
+  max-width: var(--container-max-width);
+}
+
+.page-data-mask .mask-header {
+  margin-bottom: var(--space-8);
+}
+
+.page-data-mask .mask-header h1 {
+  margin-bottom: var(--space-2);
+}
+
+.page-data-mask .mask-desc {
+  color: var(--color-text-secondary);
+  max-width: var(--content-max-width);
+  margin-bottom: var(--space-3);
+}
+
+/* 本地处理声明：mono 小签（仅文案，无装饰图形） */
+.page-data-mask .mask-privacy {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--divider-color);
+  border-radius: 999px;
+  padding: 2px var(--space-3);
+  margin: 0;
+}
+
+/* ============================================
+   2. 上传区 (Upload Drop Zone)
+   ============================================ */
+
+.page-data-mask .mask-drop {
+  border: 1.5px dashed var(--color-border-strong);
+  border-radius: var(--space-2);
+  padding: var(--space-12) var(--space-6);
+  text-align: center;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-normal) var(--ease-out),
+    background-color var(--duration-normal) var(--ease-out);
+}
+
+.page-data-mask .mask-drop:hover,
+.page-data-mask .mask-drop:focus-visible,
+.page-data-mask .mask-drop.is-drag {
+  border-color: var(--color-text);
+  background-color: var(--gray-100);
+}
+
+.page-data-mask .mask-drop.is-busy {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.page-data-mask .mask-drop-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+  margin: 0 0 var(--space-2);
+}
+
+.page-data-mask .mask-drop-hint {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.page-data-mask .mask-file-input {
+  display: none;
+}
+
+/* ============================================
+   3. 文件信息条 (File Bar)
+   ============================================ */
+
+.page-data-mask .mask-filebar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.page-data-mask .mask-file-name {
+  font-family: var(--font-mono);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.page-data-mask .mask-file-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.page-data-mask .mask-file-meta.mask-stat {
+  color: var(--color-text);
+  border-bottom: 2px solid var(--gray-300);
+}
+
+.page-data-mask .mask-sheet-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.page-data-mask .mask-sheet-pick select {
+  width: auto;
+  min-width: 100px;
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-xs);
+}
+
+/* ============================================
+   4. 工作区布局 (Workspace Layout)
+   桌面双栏：左预览 / 右规则+导出（sticky）；
+   ≤1024 收单列堆叠。宽表只在容器内滚动。
+   ============================================ */
+
+.page-data-mask .mask-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: var(--space-6);
+  align-items: start;
+  margin-top: var(--space-2);
+}
+
+.page-data-mask .mask-side {
+  position: sticky;
+  top: calc(var(--corner-bar-h, 64px) + var(--space-4));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.page-data-mask .mask-panel {
+  background-color: var(--paper);
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-radius: var(--space-1);
+  padding: var(--space-5);
+  min-width: 0;
+}
+
+.page-data-mask .mask-panel h2 {
+  font-size: var(--text-lg);
+  margin-bottom: var(--space-4);
+}
+
+.page-data-mask .mask-panel h3 {
+  font-size: var(--text-base);
+  margin: 0;
+}
+
+.page-data-mask .mask-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.page-data-mask .mask-panel-head h2 {
+  margin-bottom: 0;
+}
+
+.page-data-mask .mask-note {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+  margin: var(--space-2) 0 0;
+}
+
+/* 错误提示（红色沿 share 页先例，暗色下仍可读） */
+.page-data-mask .mask-error {
+  color: #b3261e;
+  font-size: var(--text-sm);
+  margin: var(--space-2) 0 0;
+}
+
+/* 选择状态条 */
+.page-data-mask .mask-selbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text);
+  background-color: var(--gray-100);
+  border-radius: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  margin: var(--space-3) 0 0;
+}
+
+/* 对照原值开关 */
+.page-data-mask .mask-compare {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text);
+  margin: 0;
+  cursor: pointer;
+}
+
+/* 小型操作按钮（更换文件 / 清除选择 / 重置） */
+.page-data-mask .mask-mini-btn {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.page-data-mask .mask-mini-btn:hover {
+  color: var(--color-text);
+  border-color: var(--color-text);
+}
+
+/* ============================================
+   5. 预览表格 (Preview Table)
+   ============================================ */
+
+.page-data-mask .mask-table-scroll {
+  width: 100%;
+  max-height: 62vh;
+  overflow: auto;
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-radius: var(--space-1);
+  margin-top: var(--space-3);
+  overscroll-behavior: contain;
+}
+
+.page-data-mask .mask-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 100%;
+  font-size: var(--text-sm);
+}
+
+/* 列选中：col 着色整列底（单元格自身背景叠加其上） */
+.page-data-mask col.is-col-on {
+  background-color: var(--gray-100);
+}
+
+.page-data-mask .mask-th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: var(--paper);
+  border-bottom: 1px solid var(--color-border-strong);
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.page-data-mask .mask-th:hover {
+  background-color: var(--gray-100);
+}
+
+.page-data-mask .mask-th.is-col-on {
+  background-color: var(--ink);
+  color: var(--paper);
+}
+
+.page-data-mask .mask-th .mask-th-label {
+  display: inline-block;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+/* 行号列：横向滚动时冻结在左 */
+.page-data-mask .mask-th-gutter {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  width: 44px;
+  min-width: 44px;
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+
+.page-data-mask .mask-th-gutter:hover {
+  background-color: var(--paper);
+}
+
+.page-data-mask .mask-td {
+  border-bottom: 1px solid var(--divider-color);
+  padding: var(--space-1) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  vertical-align: top;
+}
+
+.page-data-mask .mask-td.is-changed {
+  background-color: var(--gray-100);
+  font-weight: var(--font-medium);
+}
+
+.page-data-mask .mask-td-gutter {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background-color: var(--paper);
+  text-align: center;
+  border-right: 1px solid var(--divider-color);
+}
+
+.page-data-mask tr.is-row-on .mask-td-gutter {
+  background-color: var(--gray-100);
+}
+
+.page-data-mask .mask-row-check {
+  accent-color: var(--ink);
+  cursor: pointer;
+}
+
+.page-data-mask .mask-val {
+  display: block;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 对照模式：原值删除线小字叠在脱敏值上方 */
+.page-data-mask .mask-orig {
+  display: block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--gray-500);
+  text-decoration: line-through;
+  font-size: var(--text-xs);
+  line-height: var(--leading-tight);
+}
+
+/* ============================================
+   6. 规则表单与列表 (Rule Form & List)
+   ============================================ */
+
+.page-data-mask .mask-rule-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--divider-border-width) solid var(--divider-color);
+  margin-bottom: var(--space-4);
+}
+
+.page-data-mask .mask-field {
+  display: block;
+  margin: 0;
+  min-width: 0;
+}
+
+.page-data-mask .mask-field-label {
+  display: block;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-1);
+}
+
+.page-data-mask .mask-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.page-data-mask .mask-input {
+  width: 100%;
+  max-width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background-color: var(--paper);
+  border: var(--input-border-width) solid var(--input-border-color);
+  border-radius: var(--input-border-radius);
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.page-data-mask .mask-input:focus {
+  outline: none;
+  border-color: var(--input-focus-border-color);
+}
+
+.page-data-mask .mask-input--mono,
+.page-data-mask .mask-input--fill {
+  font-family: var(--font-mono);
+}
+
+.page-data-mask .mask-target {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.page-data-mask .mask-hint-warn {
+  font-size: var(--text-xs);
+  color: var(--gray-600);
+  margin: 0;
+}
+
+.page-data-mask .mask-apply {
+  width: 100%;
+  max-width: 100%;
+}
+
+.page-data-mask .mask-rules-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.page-data-mask .mask-rules-list {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.page-data-mask .mask-rule-item {
+  position: relative;
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--space-1);
+  padding: var(--space-2) var(--space-8) var(--space-2) var(--space-3);
+}
+
+.page-data-mask .mask-rule-main {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
+.page-data-mask .mask-rule-type {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--color-text);
+}
+
+.page-data-mask .mask-rule-params {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.page-data-mask .mask-rule-target {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--gray-600);
+  margin-top: var(--space-1);
+  overflow-wrap: anywhere;
+}
+
+.page-data-mask .mask-rule-remove {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-2);
+  font-size: var(--text-lg);
+  line-height: 1;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--space-1);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.page-data-mask .mask-rule-remove:hover {
+  color: var(--color-text);
+}
+
+/* ============================================
+   7. 导出区 (Export)
+   ============================================ */
+
+.page-data-mask .mask-export-actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.page-data-mask .mask-export-actions .btn {
+  flex: 1 1 auto;
+  min-width: 120px;
+}
+
+/* ============================================
+   8. 响应式设计 (Responsive Design)
+   断点体系 1024 / 768 / 480（与全站一致）
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .page-data-mask .mask-workspace {
+    grid-template-columns: 1fr;
+  }
+
+  .page-data-mask .mask-side {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-data-mask {
+    padding: var(--space-6) var(--container-padding) var(--space-8);
+  }
+
+  .page-data-mask .mask-panel {
+    padding: var(--space-4);
+  }
+
+  .page-data-mask .mask-drop {
+    padding: var(--space-8) var(--space-4);
+  }
+
+  .page-data-mask .mask-table-scroll {
+    max-height: 55vh;
+  }
+
+  .page-data-mask .mask-th .mask-th-label {
+    max-width: 120px;
+  }
+
+  .page-data-mask .mask-val {
+    max-width: 160px;
+  }
+
+  .page-data-mask .mask-export-actions .btn {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-data-mask .mask-field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .page-data-mask .mask-filebar {
+    gap: var(--space-1) var(--space-3);
+  }
+
+  .page-data-mask .mask-th .mask-th-label {
+    max-width: 90px;
+  }
+
+  .page-data-mask .mask-val {
+    max-width: 120px;
+  }
+
+  .page-data-mask .mask-orig {
+    max-width: 110px;
+  }
+}
+
+/* 减少动画（遵循全站约定） */
+@media (prefers-reduced-motion: reduce) {
+  .page-data-mask .mask-drop,
+  .page-data-mask .mask-mini-btn,
+  .page-data-mask .mask-th,
+  .page-data-mask .mask-rule-remove {
+    transition-duration: 0.01ms !important;
+  }
+}

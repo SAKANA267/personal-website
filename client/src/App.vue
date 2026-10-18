@@ -25,6 +25,7 @@ import './styles/profile.css' // 个人主页样式
 import './styles/title_card.css' // 标题卡英雄区样式
 import './styles/charts_lab.css' // 图表实验室测试页样式
 import './styles/share.css' // 二维码分享页样式
+import './styles/data_mask.css' // 数据脱敏页样式
 import './styles/admin.css' // 管理面板样式（独立设计体系）
 
 const route = useRoute()
