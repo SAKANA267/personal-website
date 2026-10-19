@@ -153,3 +153,30 @@ export interface ProfileComment {
   content: string
   createdAt: string
 }
+
+// ---------- 全站搜索（Ctrl+K 弹窗） ----------
+
+// 检索模块开关（管理面板「搜索设置」可配，服务端 site_settings 下发）：
+// posts/comments/devlog/messages/users 为服务端 DB 模块，
+// questions/charts/pages 为客户端本地索引模块，键与服务端 searchConfig.ts 一致
+export interface SearchScope {
+  posts: boolean
+  comments: boolean
+  devlog: boolean
+  messages: boolean
+  users: boolean
+  questions: boolean
+  charts: boolean
+  pages: boolean
+}
+
+// GET /api/search 的分组响应（仅服务端模块；questions/charts/pages 在客户端本地检索）
+export interface ServerSearchResults {
+  query: string
+  modules: SearchScope
+  posts: { slug: string; title: string; snippet: string; category: string; date: string }[]
+  comments: { postSlug: string; postTitle: string; username: string; snippet: string }[]
+  devlogs: { timestamp: string; description: string }[]
+  messages: { name: string; snippet: string; timestamp: string }[]
+  users: { username: string; displayName: string | null; bio: string }[]
+}

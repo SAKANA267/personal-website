@@ -1,12 +1,12 @@
 import type {
   Message, DevLogEntry, User, ShareItem, BlogPost, PostComment, PostLikes,
-  UserProfile, ProfilePrivacy, ProfileComment, SocialLink,
+  UserProfile, ProfilePrivacy, ProfileComment, SocialLink, SearchScope, ServerSearchResults,
 } from '../types'
 
 const BASE = import.meta.env.VITE_API_BASE || '/api'
 
-async function getJson<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`)
+async function getJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { signal })
   return res.json()
 }
 
@@ -223,4 +223,13 @@ export const api = {
   // 注销账号：旧密码验证身份 + 输入用户名二次确认（服务端级联删除内容并匿名化账号行）
   deleteAccount: (data: { password: string; confirm: string }) =>
     post<{ success?: boolean; error?: string }>('/auth/delete-account', data),
+  // ---------- 全站搜索（Ctrl+K 弹窗） ----------
+  // DB 内容分组检索（signal 供弹窗防抖中止旧请求；失败由调用方降级为本地结果）
+  search: async (q: string, signal?: AbortSignal) => {
+    const res = await fetch(`${BASE}/search?q=${encodeURIComponent(q)}`, { signal })
+    const data = await res.json().catch(() => ({}))
+    return { ok: res.ok, status: res.status, data: data as ServerSearchResults & { error?: string } }
+  },
+  // 检索模块开关下发（管理面板「搜索设置」配置，60s 缓存）
+  getSearchScope: (signal?: AbortSignal) => getJson<{ modules: SearchScope }>('/search/config', signal),
 }

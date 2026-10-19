@@ -12,6 +12,7 @@ import {
   type AdminUser,
 } from '../composables/useAdminApi'
 import { useAuth } from '../stores/auth'
+import type { SearchScope } from '../types'
 
 /**
  * 管理面板（/admin，仅 ADMIN_USERNAMES 白名单可见）：侧栏标签式工作台。
@@ -25,7 +26,7 @@ const { username } = useAuth()
 
 // ---------- 标签页 ----------
 
-type TabKey = 'overview' | 'messages' | 'posts' | 'comments' | 'shares' | 'users' | 'logs' | 'devlog'
+type TabKey = 'overview' | 'messages' | 'posts' | 'comments' | 'shares' | 'users' | 'logs' | 'devlog' | 'search'
 const TABS: { key: TabKey; label: string }[] = [
   { key: 'overview', label: '概览' },
   { key: 'messages', label: '留言板' },
@@ -35,6 +36,7 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'users', label: '用户' },
   { key: 'logs', label: '聊天日志' },
   { key: 'devlog', label: '开发日志' },
+  { key: 'search', label: '搜索设置' },
 ]
 const TAB_TITLE: Record<TabKey, string> = {
   overview: '站点概览',
@@ -45,6 +47,7 @@ const TAB_TITLE: Record<TabKey, string> = {
   users: '用户管理',
   logs: '聊天日志',
   devlog: '开发日志',
+  search: '全站搜索设置',
 }
 
 const activeTab = ref<TabKey>('overview')
@@ -107,7 +110,7 @@ interface AnyList {
   st: { rows: any[]; total: number; page: number; pageSize: number; q: string; loading: boolean; loaded: boolean; error: string | null }
   load: (reset?: boolean) => Promise<void>
 }
-const lists: Record<Exclude<TabKey, 'overview'>, AnyList> = {
+const lists: Record<Exclude<TabKey, 'overview' | 'search'>, AnyList> = {
   messages: messagesList,
   posts: postsList,
   comments: commentsList,
@@ -117,9 +120,9 @@ const lists: Record<Exclude<TabKey, 'overview'>, AnyList> = {
   devlog: devlogList,
 }
 
-// 当前标签对应的列表（概览标签为 null）
+// 当前标签对应的列表（概览/搜索设置为设置型标签，无列表）
 const activeList = computed<AnyList | null>(() =>
-  activeTab.value === 'overview' ? null : lists[activeTab.value]
+  activeTab.value === 'overview' || activeTab.value === 'search' ? null : lists[activeTab.value]
 )
 
 // ---------- 概览 ----------
@@ -315,11 +318,61 @@ async function submitDevlog() {
   }
 }
 
+// ---------- 搜索设置（全站检索范围软编码，Ctrl+K 弹窗消费） ----------
+
+// side 标注该模块由服务端查表还是客户端本地索引执行
+const SEARCH_MODULE_META: { key: keyof SearchScope; label: string; desc: string; side: 'server' | 'client' }[] = [
+  { key: 'posts', label: '博客文章', desc: '用户博文标题/正文（服务端查表）+ 静态博文全文（本地索引）', side: 'server' },
+  { key: 'comments', label: '博客评论', desc: '已发布文章下的评论内容，结果跳转对应文章', side: 'server' },
+  { key: 'devlog', label: '开发日志', desc: '变更描述检索，结果跳转开发日志页', side: 'server' },
+  { key: 'messages', label: '留言板', desc: '公开留言（含隐藏的不检索）的昵称与内容', side: 'server' },
+  { key: 'users', label: '用户主页', desc: '仅公开主页且允许收录的用户，可被用户隐私设置排除', side: 'server' },
+  { key: 'questions', label: '题库', desc: '访客浏览器本地保存的题库数据（不上传）', side: 'client' },
+  { key: 'charts', label: '图表实验室', desc: '案例卡片的名称/摘要等文本', side: 'client' },
+  { key: 'pages', label: '页面快捷入口', desc: '弹窗的页面直达条目与空结果兜底', side: 'client' },
+]
+
+const searchConfig = ref<SearchScope | null>(null)
+const searchLoading = ref(false)
+const searchError = ref<string | null>(null)
+const searchSaving = ref(false)
+
+async function loadSearchConfig() {
+  searchLoading.value = true
+  searchError.value = null
+  try {
+    searchConfig.value = await adminApi.getSearchConfig()
+  } catch (e: unknown) {
+    searchError.value = (e as Error)?.message || 'REQUEST_FAILED'
+  } finally {
+    searchLoading.value = false
+  }
+}
+
+async function saveSearchConfig() {
+  if (!searchConfig.value || searchSaving.value) return
+  searchSaving.value = true
+  try {
+    const data = await adminApi.putSearchConfig({ ...searchConfig.value })
+    searchSaving.value = false
+    if (data.success) {
+      notify('搜索设置已保存（公开侧约 1 分钟内生效）')
+    } else {
+      notify('保存失败', 'err')
+    }
+  } catch (e: unknown) {
+    searchSaving.value = false
+    notify(`保存失败（${(e as Error)?.message || 'REQUEST_FAILED'}）`, 'err')
+  }
+}
+
 // ---------- 标签切换 / 深链（?tab=） ----------
 
 function ensureLoaded(key: TabKey) {
   if (key === 'overview') {
     if (!overview.value && !overviewLoading.value) void loadOverview()
+  } else if (key === 'search') {
+    if (!searchConfig.value && !searchLoading.value) void loadSearchConfig()
   } else {
     const l = lists[key]
     if (!l.st.loaded && !l.st.loading) void l.load()
@@ -921,6 +974,35 @@ const SHARE_TYPE_LABEL: Record<AdminShare['type'], string> = { text: '文字', i
             @go="(p) => { devlogList.st.page = p; devlogList.load() }"
             @size="(s) => { devlogList.st.pageSize = s; devlogList.load(true) }"
           />
+        </div>
+
+        <!-- ===== 搜索设置（全站检索范围软编码） ===== -->
+        <div v-else-if="activeTab === 'search'" class="admin-pane">
+          <p class="admin-hint">
+            全站搜索（Ctrl+K 弹窗 / 导航条放大镜）的检索范围按模块开关：服务端模块关闭后不再查询对应数据表，
+            客户端模块关闭后弹窗不再检索对应本地内容；保存后公开侧约 1 分钟内生效。
+          </p>
+          <div v-if="searchLoading" class="admin-hint">加载中…</div>
+          <div v-else-if="searchError" class="admin-hint danger">加载失败：{{ searchError }}</div>
+          <template v-else-if="searchConfig">
+            <div class="admin-search-config">
+              <label v-for="m in SEARCH_MODULE_META" :key="m.key" class="admin-search-module">
+                <input v-model="searchConfig[m.key]" type="checkbox" />
+                <span class="admin-search-module-text">
+                  <span class="admin-search-module-label">
+                    {{ m.label }}
+                    <span class="admin-tag" :class="m.side === 'server' ? 'muted' : 'ok'">
+                      {{ m.side === 'server' ? '服务端' : '客户端' }}
+                    </span>
+                  </span>
+                  <span class="admin-search-module-desc">{{ m.desc }}</span>
+                </span>
+              </label>
+            </div>
+            <button type="button" class="admin-btn" :disabled="searchSaving" @click="saveSearchConfig">
+              {{ searchSaving ? '保存中…' : '保存设置' }}
+            </button>
+          </template>
         </div>
       </section>
     </main>

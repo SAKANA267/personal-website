@@ -121,6 +121,13 @@ CREATE TABLE IF NOT EXISTS share_items (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 站点设置（键值存 JSON；目前仅全局搜索的模块开关，管理面板可改）
+CREATE TABLE IF NOT EXISTS site_settings (
+  k VARCHAR(64) NOT NULL PRIMARY KEY,
+  v TEXT NOT NULL,                                -- JSON 值（如 search_scope 的模块开关表）
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
 -- ===== 已有部署升级迁移（按顺序执行；新库由上面建表语句直接包含）=====
 -- 分享归属（历史迁移，已执行过）：
 -- ALTER TABLE share_items ADD COLUMN uploader_user VARCHAR(255) NULL AFTER uploader_ip;
@@ -155,3 +162,6 @@ CREATE TABLE IF NOT EXISTS share_items (
 --
 -- 个人主页壁纸（2026-10，部署本次改动前执行；已建过上面 13 列的部署补这一条）：
 -- ALTER TABLE users ADD COLUMN banner VARCHAR(120) NULL AFTER avatar;
+--
+-- 全站搜索（2026-10，部署本次改动前执行）：
+-- CREATE TABLE site_settings（同上方定义；行不预置，缺省走代码内默认全开）；

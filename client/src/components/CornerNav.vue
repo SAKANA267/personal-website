@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AccountMenu from './AccountMenu.vue'
 import { useLocale } from '../stores/locale'
 import { useTheme } from '../stores/theme'
+import { useSearch } from '../composables/useSearch'
 
 // 全站顶部导航条（App 级，替代各页 TopNav 的文字导航行）：
 // 左侧「返回」icon——二级页面（博客阅读/撰写）为「返回博客列表」箭头，其余为返回主页 house icon（首页自身不显示）；
@@ -17,6 +18,8 @@ const route = useRoute()
 const router = useRouter()
 const { locale, t, setLocale } = useLocale()
 const { isDark, toggleTheme } = useTheme()
+const { openSearch } = useSearch()
+const searchBtnEl = ref<HTMLElement | null>(null)
 
 // /admin 幽灵态：透明无底条只承载图标——管理面板有自己的顶栏体系（admin.css 自留 64px 让位）
 const isGhost = computed(() => route.path === '/admin')
@@ -120,6 +123,28 @@ const themeLabel = computed(() => t(isDark.value ? 'nav.toLight' : 'nav.toDark')
       </svg>
     </button>
     <div v-if="showAccount" class="corner-nav-side">
+      <!-- 全站搜索入口（Ctrl+K 同款）：点击唤起 SearchDialog，关闭时焦点回到本按钮 -->
+      <button
+        ref="searchBtnEl"
+        type="button"
+        class="corner-search"
+        :aria-label="t('nav.search')"
+        :title="t('nav.search')"
+        @click="openSearch(searchBtnEl ?? undefined)"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <circle cx="11" cy="11" r="6.25" />
+          <path d="M15.5 15.5L20.25 20.25" />
+        </svg>
+      </button>
       <button
         type="button"
         class="corner-theme"

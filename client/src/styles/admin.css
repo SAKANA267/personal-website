@@ -826,3 +826,64 @@
     max-width: 200px;
   }
 }
+
+/* ============================================
+   搜索设置（全站检索范围软编码，Ctrl+K 弹窗消费）
+   ============================================ */
+
+.admin-search-config {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+  margin: 14px 0 18px;
+}
+
+.admin-search-module {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--ap-panel);
+  border: 1px solid var(--ap-line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.admin-search-module:hover {
+  border-color: var(--ap-line-strong);
+}
+
+.admin-search-module input[type='checkbox'] {
+  flex-shrink: 0;
+  margin-top: 3px;
+  accent-color: var(--ap-seal);
+}
+
+.admin-search-module-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.admin-search-module-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ap-ink);
+}
+
+.admin-search-module-desc {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--ap-ink-2);
+}
+
+@media (max-width: 768px) {
+  .admin-search-config {
+    grid-template-columns: 1fr;
+  }
+}

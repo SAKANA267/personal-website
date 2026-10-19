@@ -1,0 +1,361 @@
+/* ============================================
+   全站搜索弹窗 (Search Dialog, Ctrl+K)
+   App 级 RouterView 之外的 fixed 遮罩弹窗（components/SearchDialog.vue）：
+   头部搜索框（在途 spinner / 清除 / Esc 提示）+ 分组结果列表
+   （本地索引与 /api/search 合并）+ 空态/少结果兜底 + 底部快捷键提示条。
+   命中高亮 mark 为墨底纸字（--ink/--paper 反转，暗色主题经变量自动跟随）。
+   z-index 9000：高于顶部导航条（100），低于 tooltip（10000）与加载遮罩；
+   开合不触碰 loading 遮罩，结果跳转走路由级遮罩。
+   ============================================ */
+
+.search-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 12vh var(--space-4) var(--space-6);
+  background-color: rgba(10, 10, 10, 0.45);
+  animation: searchMaskIn var(--duration-fast) var(--ease-out);
+}
+
+@keyframes searchMaskIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.search-dialog {
+  display: flex;
+  flex-direction: column;
+  width: min(640px, 100%);
+  max-height: min(72vh, 640px);
+  overflow: hidden;
+  background-color: var(--paper);
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-radius: var(--btn-border-radius);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+  animation: searchPanelIn var(--duration-normal) var(--ease-out);
+}
+
+@keyframes searchPanelIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- 头部：图标 + 输入框 + 在途/清除 + Esc 提示 ---------- */
+
+.search-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--divider-border-width) solid var(--divider-color);
+}
+
+.search-icon {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: var(--gray-500);
+}
+
+.search-input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background-color: transparent;
+  font-family: var(--font-body);
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+
+.search-input::placeholder {
+  color: var(--gray-500);
+}
+
+/* 自带清除按钮由 .search-clear 承担，隐藏 webkit 原生叉避免双控件 */
+.search-input::-webkit-search-cancel-button {
+  display: none;
+}
+
+/* 服务端在途 spinner（与清除按钮互斥占同一位置） */
+.search-spinner {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--gray-300);
+  border-top-color: var(--ink);
+  border-radius: 50%;
+  animation: searchSpin 0.7s linear infinite;
+}
+
+@keyframes searchSpin {
+  to { transform: rotate(360deg); }
+}
+
+.search-clear {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--btn-border-radius);
+  color: var(--gray-500);
+  background-color: transparent;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.search-clear:hover {
+  background-color: var(--gray-100);
+  color: var(--ink);
+}
+
+.search-clear svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* kbd 小签（头部 Esc 与底部提示条共用） */
+.search-kbd,
+.search-foot kbd {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--gray-600);
+  background-color: var(--paper);
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-radius: var(--btn-border-radius);
+  padding: 0 5px;
+}
+
+.search-kbd {
+  flex: none;
+}
+
+/* ---------- 服务端降级提示条 ---------- */
+
+.search-notice {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--gray-600);
+  background-color: var(--gray-100);
+  border-bottom: var(--divider-border-width) solid var(--divider-color);
+}
+
+/* ---------- 结果区 ---------- */
+
+.search-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-2);
+}
+
+.search-group-title {
+  padding: var(--space-2) var(--space-3) var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--gray-500);
+}
+
+.search-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid transparent;
+  color: var(--ink);
+  background-color: transparent;
+  transition: background-color var(--duration-instant) linear;
+}
+
+.search-item.is-active {
+  background-color: var(--gray-100);
+  border-left-color: var(--ink);
+}
+
+.search-item-title {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  line-height: 1.5;
+}
+
+.search-item-snippet {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  margin-top: 2px;
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--gray-500);
+}
+
+.search-item-meta {
+  display: block;
+  margin-top: var(--space-1);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+/* 命中高亮：墨底纸字（变量反转，暗色主题自动镜像；呼应 tooltip 的反差签名） */
+.search-hl {
+  background-color: var(--ink);
+  color: var(--paper);
+  padding: 0 1px;
+}
+
+/* 行内加载态（服务端在途且本地暂无结果） */
+.search-status {
+  padding: var(--space-4) var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--gray-500);
+}
+
+/* ---------- 快捷入口网格（空 query 面板 / 空态兜底共用） ---------- */
+
+.search-quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-1) var(--space-2);
+}
+
+.search-quick {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: var(--divider-border-width) solid var(--divider-color);
+  border-radius: var(--btn-border-radius);
+  color: var(--ink);
+  background-color: transparent;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.search-quick:hover,
+.search-quick.is-active {
+  background-color: var(--gray-100);
+  border-color: var(--ink);
+}
+
+.search-quick-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.search-quick-path {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+/* ---------- 空态兜底 ---------- */
+
+.search-empty {
+  padding: var(--space-4) var(--space-3) var(--space-2);
+}
+
+.search-empty-title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--ink);
+}
+
+.search-empty-hint {
+  margin: var(--space-1) 0 var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+/* ---------- 底部快捷键提示条 ---------- */
+
+.search-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border-top: var(--divider-border-width) solid var(--divider-color);
+}
+
+.search-foot-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--gray-500);
+}
+
+.search-foot-brand {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  color: var(--gray-500);
+}
+
+/* ---------- 响应式（断点循 1024/768/480 基线） ---------- */
+
+@media (max-width: 768px) {
+  .search-mask {
+    padding-top: 8vh;
+  }
+
+  .search-input {
+    font-size: var(--text-base);
+  }
+}
+
+@media (max-width: 480px) {
+  .search-mask {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  /* 窄屏退化为近全幅面板：无 12vh 悬浮感，贴边更易触达 */
+  .search-dialog {
+    width: 100%;
+    max-height: 100dvh;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  .search-quick-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .search-foot {
+    gap: var(--space-3);
+  }
+
+  .search-foot-brand {
+    display: none;
+  }
+}
+
+/* 动效弱化偏好：入场动画整体关闭（功能性状态不变） */
+@media (prefers-reduced-motion: reduce) {
+  .search-mask,
+  .search-dialog {
+    animation: none;
+  }
+}
+
+/* 打印：弹窗不参与输出（与 corner-nav 同步退场） */
+@media print {
+  .search-mask {
+    display: none;
+  }
+}

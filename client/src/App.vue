@@ -5,6 +5,7 @@ import LoadingOverlay from './components/LoadingOverlay.vue'
 import AppFooter from './components/AppFooter.vue'
 import AshParticles from './components/AshParticles.vue'
 import CornerNav from './components/CornerNav.vue'
+import SearchDialog from './components/SearchDialog.vue'
 import { useLoading, LOADING_COVER_MS } from './stores/loading'
 import { useAuth } from './stores/auth'
 
@@ -26,6 +27,7 @@ import './styles/title_card.css' // 标题卡英雄区样式
 import './styles/charts_lab.css' // 图表实验室测试页样式
 import './styles/share.css' // 二维码分享页样式
 import './styles/data_mask.css' // 数据脱敏页样式
+import './styles/search.css' // 全站搜索弹窗样式（全局遮罩，非页面级）
 import './styles/admin.css' // 管理面板样式（独立设计体系）
 
 const route = useRoute()
@@ -65,6 +67,8 @@ onMounted(() => {
        首页标题卡在场期间（titleCardRevealed=false）整条不渲染 -->
   <CornerNav :show-home="route.path !== '/'" :show-account="route.path !== '/' || titleCardRevealed" />
   <AshParticles v-if="route.path === '/' && titleCardRevealed" />
+  <!-- 全站搜索弹窗（Ctrl+K）：App 级 RouterView 之外，fixed 遮罩不受页面入场动画影响 -->
+  <SearchDialog />
   <RouterView />
   <AppFooter v-if="showFooter" />
 </template>

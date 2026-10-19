@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { pool } from '../db.js'
 import { sessionUsername, isAdmin } from '../admin.js'
 import { rateLimit } from '../rateLimit.js'
+import { readSearchScope, saveSearchScope, sanitizeSearchScope } from '../searchConfig.js'
 
 export const adminRouter = Router()
 
@@ -45,8 +46,8 @@ function parsePager(req: { query: any }): { page: number; pageSize: number; offs
   return { page, pageSize, offset: (page - 1) * pageSize }
 }
 
-/** 关键词 → LIKE 模式（%_\\ 转义，配对 SQL 里的 ESCAPE '\\'） */
-function likePattern(q: unknown): string | null {
+/** 关键词 → LIKE 模式（%_\\ 转义，配对 SQL 里的 ESCAPE '\\'）；导出供全站搜索路由复用 */
+export function likePattern(q: unknown): string | null {
   if (typeof q !== 'string' || !q.trim()) return null
   const esc = q.trim().slice(0, 100).replace(/[\\%_]/g, '\\$&')
   return `%${esc}%`
@@ -429,3 +430,36 @@ adminRouter.get('/logs', async (req, res) => {
     res.status(500).json({ error: 'SERVER_ERROR' })
   }
 })
+
+// ---------- 全站搜索设置（模块开关软编码；公开读走 /api/search/config） ----------
+
+adminRouter.get('/search-config', async (_req, res) => {
+  try {
+    // 管理面板要即时生效的值，绕过公开 config 的 60s 缓存
+    res.set('Cache-Control', 'no-store')
+    res.json({ modules: await readSearchScope() })
+  } catch (e) {
+    console.error(e)
+    res.status(500).json({ error: 'SERVER_ERROR' })
+  }
+})
+
+adminRouter.put(
+  '/search-config',
+  rateLimit({ windowMs: 60_000, max: 30 }),
+  async (req, res) => {
+    try {
+      const scope = sanitizeSearchScope(req.body?.modules)
+      if (!scope) {
+        res.status(400).json({ error: 'SEARCH_CONFIG_INVALID' })
+        return
+      }
+      await saveSearchScope(scope)
+      console.log(`[admin] ${sessionUsername(req)} 更新搜索模块开关: ${JSON.stringify(scope)}`)
+      res.json({ success: true, modules: scope })
+    } catch (e) {
+      console.error(e)
+      res.status(500).json({ error: 'SERVER_ERROR' })
+    }
+  }
+)

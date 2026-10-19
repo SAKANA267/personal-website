@@ -396,8 +396,9 @@ label {
    纸白条状背景 + 发丝线底边，正文经 body padding-top 让出条高避免被压。
    /admin 幽灵态（.corner-nav--ghost）透明无底——管理面板有自己的顶栏与 64px 让位。
    z-index 高于正文与粒子（10），低于 tooltip（10000）与加载遮罩。
-   右侧组从左到右：黑夜/白天切换（.corner-theme，日/月 icon，见 stores/theme.ts）、
-   语言切换小方块、账号入口。
+   右侧组从左到右：全站搜索（.corner-search，放大镜 icon，Ctrl+K 同款入口，
+   样式与 .corner-theme 共用同一组选择器）、黑夜/白天切换（.corner-theme，日/月 icon，
+   见 stores/theme.ts）、语言切换小方块、账号入口。
    ============================================ */
 
 /* 条高：条身与 body 让位共用同一变量；≤768 收紧（本节末响应式块） */
@@ -515,9 +516,10 @@ body:has(.admin-app) {
   outline-offset: 2px;
 }
 
-/* 黑夜/白天切换：语言方块同款发丝线 chip，承载日/月 icon（1.5 线径与站点图标体系一致）。
+/* 黑夜/白天切换 & 全站搜索：语言方块同款发丝线 chip（搜索为放大镜 icon，唤起 Ctrl+K 弹窗）。
    hover 墨块反转、暗色下随 --ink/--paper 变量自动镜像 */
-.corner-theme {
+.corner-theme,
+.corner-search {
   display: grid;
   place-items: center;
   width: 40px;
@@ -533,13 +535,15 @@ body:has(.admin-app) {
     color var(--duration-fast) var(--ease-out);
 }
 
-.corner-theme:hover {
+.corner-theme:hover,
+.corner-search:hover {
   background-color: var(--ink);
   border-color: var(--ink);
   color: var(--paper);
 }
 
-.corner-theme:focus-visible {
+.corner-theme:focus-visible,
+.corner-search:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
 }
@@ -584,7 +588,8 @@ body:has(.admin-app) {
 .account-entry-btn svg,
 .corner-nav-home svg,
 .corner-nav-back svg,
-.corner-theme svg {
+.corner-theme svg,
+.corner-search svg {
   width: 20px;
   height: 20px;
 }
@@ -663,7 +668,8 @@ body:has(.admin-app) {
   .corner-nav-home,
   .corner-nav-back,
   .corner-lang,
-  .corner-theme {
+  .corner-theme,
+  .corner-search {
     width: 36px;
     height: 36px;
   }
@@ -671,7 +677,8 @@ body:has(.admin-app) {
   .account-entry-btn svg,
   .corner-nav-home svg,
   .corner-nav-back svg,
-  .corner-theme svg {
+  .corner-theme svg,
+  .corner-search svg {
     width: 18px;
     height: 18px;
   }

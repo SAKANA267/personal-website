@@ -13,6 +13,7 @@ import { blogRouter } from './routes/blog.js'
 import { shareRouter } from './routes/share.js'
 import { usersRouter } from './routes/users.js'
 import { adminRouter } from './routes/admin.js'
+import { searchRouter } from './routes/search.js'
 import { startChatServer } from './ws/chatServer.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -72,6 +73,8 @@ app.use('/api/share', shareRouter)
 app.use('/api/users', usersRouter)
 // 管理面板聚合接口（统一 admin 白名单门禁，路由内部自行 401/403）
 app.use('/api/admin', adminRouter)
+// 全站搜索（Ctrl+K 弹窗）：DB 内容分组检索 + 模块开关下发
+app.use('/api/search', searchRouter)
 
 // 生产：托管前端构建产物并做 SPA 回退
 const distDir = path.resolve(__dirname, '../../client/dist')

@@ -3,6 +3,7 @@
 // （api.setMessageDisplayed / api.deletePost / api.deleteComment / api.deleteShare /
 //  api.postDevLog / api.adminResetPassword），这里只补面板专属的 publish 开关与过期清理。
 import { api } from './useApi'
+import type { SearchScope } from '../types'
 
 const BASE = import.meta.env.VITE_API_BASE || '/api'
 
@@ -126,7 +127,7 @@ async function getList<T>(path: string, query: AdminListQuery): Promise<AdminPag
   return data as AdminPaged<T>
 }
 
-async function mutate<T = unknown>(method: 'PATCH' | 'POST', path: string, body?: unknown) {
+async function mutate<T = unknown>(method: 'PATCH' | 'POST' | 'PUT', path: string, body?: unknown) {
   const res = await fetch(`${BASE}/admin/${path}`, {
     method,
     headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
@@ -159,6 +160,15 @@ export const adminApi = {
     mutate<{ success: boolean; username: string; status: string }>('PATCH', `users/${id}/status`, { status }),
   cleanupShares: () => mutate<{ success: boolean; removed: number }>('POST', 'shares/cleanup', {}),
   cleanupImages: () => mutate<{ success: boolean; removed: number }>('POST', 'images/cleanup', {}),
+  // 全站搜索模块开关（搜索设置 tab；GET 为即时值——绕过公开 config 的 60s 缓存）
+  getSearchConfig: async (): Promise<SearchScope> => {
+    const res = await fetch(`${BASE}/admin/search-config`)
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) throw Object.assign(new Error(data?.error || 'REQUEST_FAILED'), { status: res.status })
+    return (data?.modules ?? {}) as SearchScope
+  },
+  putSearchConfig: (modules: SearchScope) =>
+    mutate<{ success: boolean; modules: SearchScope }>('PUT', 'search-config', { modules }),
   // 透传既有业务接口，供视图统一从 adminApi 调用
   setMessageDisplayed: api.setMessageDisplayed,
   deletePost: api.deletePost,
