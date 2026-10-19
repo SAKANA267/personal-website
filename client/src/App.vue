@@ -27,6 +27,7 @@ import './styles/title_card.css' // 标题卡英雄区样式
 import './styles/charts_lab.css' // 图表实验室测试页样式
 import './styles/share.css' // 二维码分享页样式
 import './styles/data_mask.css' // 数据脱敏页样式
+import './styles/tracking.css' // 数值追踪页样式
 import './styles/search.css' // 全站搜索弹窗样式（全局遮罩，非页面级）
 import './styles/admin.css' // 管理面板样式（独立设计体系）
 

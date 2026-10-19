@@ -128,6 +128,30 @@ CREATE TABLE IF NOT EXISTS site_settings (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- 数值追踪：项目（一个项目 = 图上一条序列，如「体重」「学习时长」）
+CREATE TABLE IF NOT EXISTS tracking_projects (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  owner_username VARCHAR(255) NOT NULL,           -- 归属（session 用户名；数据严格私有，无管理入口）
+  name VARCHAR(40) NOT NULL,                      -- 项目名（图表图例用）
+  unit VARCHAR(20) NOT NULL DEFAULT '',           -- 计量单位（kg / 小时…，空 = 无单位）
+  description VARCHAR(200) NOT NULL DEFAULT '',
+  color CHAR(7) NULL,                             -- 科研风格系列色（#rrggbb）；墨线风格固定走 Mono 灰阶
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NULL ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_tp_owner (owner_username, id)
+);
+
+-- 数值追踪：数据点（recorded_at 由客户端本地时间提供，原样存储不做时区换算）
+CREATE TABLE IF NOT EXISTS tracking_points (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  value DECIMAL(15,4) NOT NULL,                   -- |v| < 1e11（DECIMAL(15,4) 的安全上限），4 位小数
+  recorded_at DATETIME NOT NULL,                  -- 用户可指定（补录历史），缺省 NOW()
+  note VARCHAR(200) NOT NULL DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_tpt (project_id, recorded_at, id)
+);
+
 -- ===== 已有部署升级迁移（按顺序执行；新库由上面建表语句直接包含）=====
 -- 分享归属（历史迁移，已执行过）：
 -- ALTER TABLE share_items ADD COLUMN uploader_user VARCHAR(255) NULL AFTER uploader_ip;
@@ -165,3 +189,6 @@ CREATE TABLE IF NOT EXISTS site_settings (
 --
 -- 全站搜索（2026-10，部署本次改动前执行）：
 -- CREATE TABLE site_settings（同上方定义；行不预置，缺省走代码内默认全开）；
+--
+-- 数值追踪（2026-10，部署本次改动前执行）：
+-- CREATE TABLE tracking_projects / tracking_points（同上方定义）；

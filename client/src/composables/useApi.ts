@@ -1,6 +1,7 @@
 import type {
   Message, DevLogEntry, User, ShareItem, BlogPost, PostComment, PostLikes,
   UserProfile, ProfilePrivacy, ProfileComment, SocialLink, SearchScope, ServerSearchResults,
+  TrackingProject, TrackingPoint,
 } from '../types'
 
 const BASE = import.meta.env.VITE_API_BASE || '/api'
@@ -232,4 +233,23 @@ export const api = {
   },
   // 检索模块开关下发（管理面板「搜索设置」配置，60s 缓存）
   getSearchScope: (signal?: AbortSignal) => getJson<{ modules: SearchScope }>('/search/config', signal),
+  // ---------- 数值追踪（登录私有数据；recordedAt 为本地时间字符串，空由服务端取 NOW()） ----------
+  getTrackingProjects: () => getJson<TrackingProject[]>('/tracking/projects'),
+  createTrackingProject: (data: { name: string; unit?: string; description?: string; color?: string | null }) =>
+    post<{ success?: boolean; project?: TrackingProject; error?: string }>('/tracking/projects', data),
+  updateTrackingProject: (
+    id: number,
+    data: { name: string; unit?: string; description?: string; color?: string | null }
+  ) =>
+    request<{ success?: boolean; project?: TrackingProject; error?: string }>('PUT', `/tracking/projects/${id}`, data),
+  deleteTrackingProject: (id: number) =>
+    request<{ success?: boolean; error?: string }>('DELETE', `/tracking/projects/${id}`),
+  getTrackingPoints: (projectId: number) =>
+    getJson<TrackingPoint[]>(`/tracking/projects/${projectId}/points`),
+  addTrackingPoint: (projectId: number, data: { value: number; recordedAt?: string; note?: string }) =>
+    post<{ success?: boolean; point?: TrackingPoint; error?: string }>(`/tracking/projects/${projectId}/points`, data),
+  updateTrackingPoint: (id: number, data: { value?: number; recordedAt?: string; note?: string }) =>
+    request<{ success?: boolean; point?: TrackingPoint; error?: string }>('PUT', `/tracking/points/${id}`, data),
+  deleteTrackingPoint: (id: number) =>
+    request<{ success?: boolean; error?: string }>('DELETE', `/tracking/points/${id}`),
 }

@@ -31,6 +31,8 @@ const router = createRouter({
     { path: '/charts-lab', component: () => import('../views/ChartsLabView.vue') },
     // 数据脱敏：纯前端 Excel/CSV 脱敏工作台（文件只进内存，零上传零后端交互）
     { path: '/data-mask', component: () => import('../views/DataMaskView.vue') },
+    // 数值追踪：多项目数值变化统计（服务端按用户私有存储；墨线/科研双风格手写 SVG 折线）
+    { path: '/tracking', component: () => import('../views/TrackingView.vue') },
     // 管理面板：admin 白名单专用工作台（守卫在下方法等待登录对账后校验）
     { path: '/admin', component: () => import('../views/AdminView.vue') },
     { path: '/:pathMatch(.*)*', redirect: '/' },

@@ -61,6 +61,7 @@ const PAGE_ENTRIES: { to: string; labelKey: MessageKey; kw: string }[] = [
   { to: '/share', labelKey: 'search.pageShare', kw: 'share 分享 二维码 qr 取件' },
   { to: '/charts-lab', labelKey: 'search.pageCharts', kw: 'charts 图表 实验室 lab 可视化' },
   { to: '/data-mask', labelKey: 'search.pageMask', kw: 'data mask 数据脱敏 excel csv' },
+  { to: '/tracking', labelKey: 'search.pageTracking', kw: 'tracking 数值追踪 折线图 趋势 trend line chart 统计' },
 ]
 
 const DEFAULT_SCOPE: SearchScope = {

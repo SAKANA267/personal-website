@@ -180,3 +180,28 @@ export interface ServerSearchResults {
   messages: { name: string; snippet: string; timestamp: string }[]
   users: { username: string; displayName: string | null; bio: string }[]
 }
+
+// ---------- 数值追踪（/tracking，服务端按用户私有存储） ----------
+
+// 项目 = 图上一条序列（体重/学习时长/里程…）；统计字段由服务端聚合下发
+export interface TrackingProject {
+  id: number
+  name: string
+  unit: string
+  description: string
+  color: string | null // 科研风格系列色（#rrggbb）；墨线风格固定走 Mono 灰阶
+  createdAt: string
+  pointCount: number
+  latestValue: number | null
+  latestAt: string | null
+  minValue: number | null
+  maxValue: number | null
+}
+
+// 数据点：recordedAt 为 'YYYY-MM-DDTHH:mm:ss'（本地时间，无时区标记，往返稳定）
+export interface TrackingPoint {
+  id: number
+  value: number
+  recordedAt: string
+  note: string
+}
