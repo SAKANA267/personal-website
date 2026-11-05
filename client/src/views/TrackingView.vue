@@ -5,8 +5,13 @@ import { useLocale } from '../stores/locale'
 import { useAuth } from '../stores/auth'
 import { useTheme } from '../stores/theme'
 import {
-  useTracking, fmtValue, OKABE_ITO,
+  useTracking, fmtValue, OKABE_ITO, TRACKING_POINT_CAP,
 } from '../composables/useTracking'
+import {
+  IMPORT_ACCEPT, IMPORT_MAX_MB, IMPORT_PREVIEW_LIMIT,
+  buildImportTemplateCsv, colLabel, detectMapping, mapSheet, parseImportFile, validateImportFile,
+} from '../composables/useTrackingImport'
+import type { ImportMapping, ParsedImportFile } from '../composables/useTrackingImport'
 import InkLineChart from '../components/tracking/InkLineChart.vue'
 import ScienceLineChart from '../components/tracking/ScienceLineChart.vue'
 
@@ -27,6 +32,7 @@ const {
   loadAll, enterDemo, exitDemo,
   createProject, updateProject, deleteProject,
   addPoint, updatePoint, deletePoint,
+  importPoints,
   exportFrameCsv, exportSvgPng,
 } = useTracking()
 
@@ -212,6 +218,144 @@ async function removePoint(pid: number) {
   await deletePoint(pid, selectedProjectId.value)
 }
 
+// ---------- Excel 批量导入（目标 = 当前选中项目） ----------
+
+const importOpen = ref(false)
+const importBusy = ref(false)
+const importError = ref('')
+const importProgress = ref<{ done: number; total: number } | null>(null)
+const importParsed = ref<ParsedImportFile | null>(null)
+const importSheetIdx = ref(0)
+const importMapping = ref<ImportMapping>({ dateCol: 0, valueCol: 1, noteCol: 2 })
+const importResult = ref<{ ok: boolean; imported: number; error: string } | null>(null)
+const importDragOver = ref(false)
+const importFileInput = ref<HTMLInputElement | null>(null)
+
+const importSheet = computed(() => importParsed.value?.sheets[importSheetIdx.value] ?? null)
+
+// 该项目已有数据点的时刻集合（'YYYY-MM-DD HH:mm:ss'），预览重复提示用（仅提示不阻止）
+const existingTimes = computed(() => {
+  const id = selectedProjectId.value
+  const set = new Set<string>()
+  if (id !== null) for (const p of pointsMap.value[id] || []) set.add(p.recordedAt.replace('T', ' '))
+  return set
+})
+
+const importRows = computed(() =>
+  importSheet.value ? mapSheet(importSheet.value, importMapping.value, existingTimes.value) : []
+)
+const importValidRows = computed(() => importRows.value.filter((r) => !r.error))
+const importInvalidCount = computed(() => importRows.value.length - importValidRows.value.length)
+const importDupCount = computed(() => importValidRows.value.filter((r) => r.dup).length)
+const importPreviewRows = computed(() => importRows.value.slice(0, IMPORT_PREVIEW_LIMIT))
+
+// 映射完整性：日期/数值列不同且都在网格内
+const importMappingBad = computed(() => {
+  const s = importSheet.value
+  const m = importMapping.value
+  if (!s) return false
+  return m.dateCol === m.valueCol || m.dateCol >= s.width || m.valueCol >= s.width
+})
+
+// 服务端单项目 10000 点上限的剩余额度
+const importRemaining = computed(() => {
+  const p = selectedProject.value
+  return Math.max(0, TRACKING_POINT_CAP - (p?.pointCount ?? 0))
+})
+
+// 导入按钮禁用原因（null = 可导入）
+const importBlockedKey = computed<
+  'tracking.importBlockedMapping' | 'tracking.importBlockedNone' | 'tracking.importBlockedCap' | null
+>(() => {
+  if (importMappingBad.value) return 'tracking.importBlockedMapping'
+  if (!importValidRows.value.length) return 'tracking.importBlockedNone'
+  if (importValidRows.value.length > importRemaining.value) return 'tracking.importBlockedCap'
+  return null
+})
+
+function resetImportState() {
+  importParsed.value = null
+  importResult.value = null
+  importError.value = ''
+  importProgress.value = null
+  importSheetIdx.value = 0
+}
+
+function closeImport() {
+  importOpen.value = false
+  resetImportState()
+}
+
+function onImportSheetChange() {
+  const s = importSheet.value
+  if (s) importMapping.value = detectMapping(s)
+}
+
+async function onImportFile(file: File | null | undefined) {
+  if (!file) return
+  importError.value = ''
+  importResult.value = null
+  const bad = validateImportFile(file)
+  if (bad) {
+    importError.value = t(bad === 'type' ? 'tracking.importErrType' : 'tracking.importErrSize', { mb: IMPORT_MAX_MB })
+    return
+  }
+  importBusy.value = true
+  try {
+    const parsed = await parseImportFile(file)
+    if (!parsed.sheets.length) {
+      importError.value = t('tracking.importErrEmpty')
+    } else {
+      importParsed.value = parsed
+      importSheetIdx.value = 0
+      importMapping.value = detectMapping(parsed.sheets[0])
+    }
+  } catch {
+    importError.value = t('tracking.importErrParse')
+  }
+  importBusy.value = false
+}
+
+function onImportPick(e: Event) {
+  const input = e.target as HTMLInputElement
+  void onImportFile(input.files?.[0])
+  input.value = '' // 允许重复选择同名文件
+}
+function onImportDrop(e: DragEvent) {
+  importDragOver.value = false
+  void onImportFile(e.dataTransfer?.files?.[0])
+}
+
+async function submitImport() {
+  const pid = selectedProjectId.value
+  if (pid === null || importBusy.value || importBlockedKey.value) return
+  importBusy.value = true
+  importResult.value = null
+  importProgress.value = { done: 0, total: importValidRows.value.length }
+  const rows = importValidRows.value.map((x) => ({
+    value: x.value as number,
+    recordedAt: x.dateStr as string,
+    note: x.note,
+  }))
+  const r = await importPoints(pid, rows, (done, total) => {
+    importProgress.value = { done, total }
+  })
+  importBusy.value = false
+  importProgress.value = null
+  importResult.value = r.ok
+    ? { ok: true, imported: r.imported, error: '' }
+    : {
+        ok: false,
+        imported: r.imported,
+        error: r.error === 'NETWORK' ? t('tracking.errNetwork') : apiError({ error: r.error }, 'api.SERVER_ERROR'),
+      }
+}
+
+// 切换项目即切换导入目标：清空已解析文件与结果，避免误导入到别的项目
+watch(selectedProjectId, () => {
+  if (importOpen.value) resetImportState()
+})
+
 // ---------- 导出 ----------
 
 const chartBox = ref<HTMLElement | null>(null)
@@ -395,8 +539,146 @@ watch(projects, (list) => {
 
           <!-- 数据点面板（选中项目；演示模式只读） -->
           <section v-if="selectedProject" class="point-panel">
-            <h3>{{ t('tracking.pointPanelOf', { name: selectedProject.name, n: selectedProject.pointCount }) }}</h3>
+            <div class="point-panel-head">
+              <h3>{{ t('tracking.pointPanelOf', { name: selectedProject.name, n: selectedProject.pointCount }) }}</h3>
+              <button
+                v-if="username"
+                type="button"
+                class="btn-ghost btn-mini"
+                :class="{ 'is-active': importOpen }"
+                @click="importOpen ? closeImport() : (importOpen = true)"
+              >{{ t('tracking.importBtn') }}</button>
+            </div>
             <p v-if="demoMode" class="side-note">{{ t('tracking.demoReadOnly') }}</p>
+
+            <!-- 批量导入面板（登录；导入目标 = 当前选中项目） -->
+            <div v-if="importOpen && username" class="import-panel">
+              <h4>{{ t('tracking.importTitle') }}</h4>
+
+              <!-- 结果态 -->
+              <template v-if="importResult">
+                <p class="import-result" :class="importResult.ok ? 'is-ok' : 'is-fail'" role="status">
+                  <template v-if="importResult.ok">{{ t('tracking.importDone', { n: importResult.imported }) }}</template>
+                  <template v-else>{{ t('tracking.importPartial', { n: importResult.imported }) }}{{ importResult.error ? '：' + importResult.error : '' }}</template>
+                </p>
+                <div class="import-actions">
+                  <button type="button" class="btn-primary btn-mini" @click="resetImportState()">{{ t('tracking.importAgain') }}</button>
+                  <button type="button" class="btn-ghost btn-mini" @click="closeImport()">{{ t('tracking.importClose') }}</button>
+                </div>
+              </template>
+
+              <!-- 未选文件：拖拽/点击上传 + 模板 -->
+              <template v-else-if="!importParsed">
+                <div
+                  class="import-drop"
+                  :class="{ 'is-over': importDragOver, 'is-busy': importBusy }"
+                  role="button"
+                  tabindex="0"
+                  @click="!importBusy && importFileInput?.click()"
+                  @keydown.enter.prevent="!importBusy && importFileInput?.click()"
+                  @dragover.prevent="importDragOver = true"
+                  @dragleave.prevent="importDragOver = false"
+                  @drop.prevent="onImportDrop"
+                >
+                  <p class="import-drop-main">{{ importBusy ? t('tracking.importBusy') : t('tracking.importDrop') }}</p>
+                  <p class="import-drop-sub">{{ t('tracking.importHint') }}</p>
+                </div>
+                <input ref="importFileInput" type="file" :accept="IMPORT_ACCEPT" hidden @change="onImportPick" />
+                <p v-if="importError" class="form-error" role="alert">{{ importError }}</p>
+                <div class="import-actions">
+                  <button type="button" class="btn-ghost btn-mini" @click="buildImportTemplateCsv()">{{ t('tracking.importTemplate') }}</button>
+                  <button type="button" class="btn-ghost btn-mini" @click="closeImport()">{{ t('tracking.importCancel') }}</button>
+                </div>
+              </template>
+
+              <!-- 已解析：工作表/列映射 + 逐行预览校验 -->
+              <template v-else-if="importSheet">
+                <p class="import-file">
+                  <span class="mono">{{ importParsed.fileName }}</span>
+                  <label v-if="importParsed.sheets.length > 1" class="import-sheet-pick">
+                    {{ t('tracking.importSheet') }}
+                    <select v-model.number="importSheetIdx" @change="onImportSheetChange">
+                      <option v-for="(s, i) in importParsed.sheets" :key="s.name" :value="i">{{ s.name }}</option>
+                    </select>
+                  </label>
+                </p>
+
+                <div class="import-mapping">
+                  <label class="field">
+                    <span>{{ t('tracking.importColDate') }}</span>
+                    <select v-model="importMapping.dateCol">
+                      <option v-for="c in importSheet.width" :key="'d' + c" :value="c - 1">{{ colLabel(importSheet, c - 1) }}</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>{{ t('tracking.importColValue') }}</span>
+                    <select v-model="importMapping.valueCol">
+                      <option v-for="c in importSheet.width" :key="'v' + c" :value="c - 1">{{ colLabel(importSheet, c - 1) }}</option>
+                    </select>
+                  </label>
+                  <label class="field">
+                    <span>{{ t('tracking.importColNote') }}</span>
+                    <select v-model="importMapping.noteCol">
+                      <option :value="-1">{{ t('tracking.importColNone') }}</option>
+                      <option v-for="c in importSheet.width" :key="'n' + c" :value="c - 1">{{ colLabel(importSheet, c - 1) }}</option>
+                    </select>
+                  </label>
+                </div>
+
+                <p class="import-stats">{{ t('tracking.importStats', { total: importRows.length, ok: importValidRows.length, bad: importInvalidCount, dup: importDupCount }) }}</p>
+
+                <div v-if="importRows.length" class="table-scroll import-preview">
+                  <table class="point-table">
+                    <thead>
+                      <tr>
+                        <th>#</th>
+                        <th>{{ t('tracking.colTime') }}</th>
+                        <th>{{ t('tracking.colValue') }}</th>
+                        <th>{{ t('tracking.colNote') }}</th>
+                        <th>{{ t('tracking.importColStatus') }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="r in importPreviewRows" :key="r.rowNo" :class="r.error ? 'is-err' : 'is-ok'">
+                        <td class="mono">{{ r.rowNo }}</td>
+                        <td class="mono">{{ r.dateStr ?? '—' }}</td>
+                        <td class="mono">{{ r.value !== null ? fmtValue(r.value) : '—' }}</td>
+                        <td class="note-cell">{{ r.note }}</td>
+                        <td>
+                          <span v-if="r.error" class="status-chip is-err">{{ t(r.error) }}</span>
+                          <span v-else-if="r.dup" class="status-chip is-dup">{{ t('tracking.importDup') }}</span>
+                          <span v-else class="status-chip is-ok">{{ t('tracking.importOk') }}</span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <p v-if="importRows.length > IMPORT_PREVIEW_LIMIT" class="import-more">
+                  {{ t('tracking.importPreviewNote', { n: IMPORT_PREVIEW_LIMIT, total: importRows.length }) }}
+                </p>
+
+                <p v-if="importError" class="form-error" role="alert">{{ importError }}</p>
+                <p v-if="importBlockedKey" class="import-blocked" role="alert">
+                  {{ t(importBlockedKey, { n: importValidRows.length, left: importRemaining, cap: TRACKING_POINT_CAP }) }}
+                </p>
+
+                <div class="import-actions">
+                  <button
+                    type="button"
+                    class="btn-primary btn-mini"
+                    :disabled="importBusy || !!importBlockedKey"
+                    @click="submitImport()"
+                  >{{
+                    importBusy && importProgress
+                      ? t('tracking.importProgress', { done: importProgress.done, total: importProgress.total })
+                      : t('tracking.importSubmit', { n: importValidRows.length })
+                  }}</button>
+                  <button type="button" class="btn-ghost btn-mini" :disabled="importBusy" @click="resetImportState()">{{ t('tracking.importChange') }}</button>
+                  <button type="button" class="btn-ghost btn-mini" :disabled="importBusy" @click="closeImport()">{{ t('tracking.importCancel') }}</button>
+                </div>
+              </template>
+            </div>
+
             <form v-if="username" class="point-form" @submit.prevent="submitPoint">
               <div class="point-grid">
                 <label class="field">

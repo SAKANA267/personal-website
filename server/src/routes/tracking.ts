@@ -300,6 +300,67 @@ trackingRouter.post(
   }
 )
 
+// ---------- 批量导入（Excel 上传客户端解析后整批提交） ----------
+
+// 单次批量请求的行数上限；超出由客户端分片顺序提交（每片各自原子）
+const BATCH_MAX_ROWS = 1000
+
+// 批量导入数据点（本人项目）。限流独立于单条录入：每 10 分钟 20 次
+trackingRouter.post(
+  '/projects/:id/points/batch',
+  rateLimit({
+    windowMs: 10 * 60_000,
+    max: 20,
+    key: (req) => sessionUsername(req) ?? String(req.ip),
+  }),
+  async (req, res) => {
+    try {
+      const user = sessionUsername(req)
+      if (!user) return res.status(401).json({ error: 'LOGIN_REQUIRED' })
+      const id = Number(req.params.id)
+      const found = await findOwnedProject(id, user)
+      if (found.code === 404) return res.status(404).json({ error: 'TRACKING_NOT_FOUND' })
+      if (found.code === 403) return res.status(403).json({ error: 'NOT_ALLOWED' })
+
+      const points = req.body?.points
+      if (!Array.isArray(points) || points.length === 0) {
+        return res.status(400).json({ error: 'TRACKING_BATCH_EMPTY' })
+      }
+      if (points.length > BATCH_MAX_ROWS) {
+        return res.status(400).json({ error: 'TRACKING_BATCH_TOO_LARGE', max: BATCH_MAX_ROWS })
+      }
+
+      // 逐条复用单点校验；客户端预览已按同规则把关，这里兜底并回传首个坏行序号
+      const rows: { value: number; note: string; recordedAt: string | null }[] = []
+      for (let i = 0; i < points.length; i++) {
+        const v = validatePointInput(points[i])
+        if ('error' in v) return res.status(400).json({ error: v.error, index: i })
+        rows.push(v)
+      }
+
+      const [[{ count }]] = (await pool.query(
+        'SELECT COUNT(*) AS count FROM tracking_points WHERE project_id = ?',
+        [id]
+      )) as any[]
+      if (count + rows.length > POINT_PROJECT_LIMIT) {
+        return res.status(400).json({ error: 'TRACKING_POINT_LIMIT' })
+      }
+
+      // 单条多值 INSERT：整批原子，全成或全不成
+      const placeholders = rows.map(() => '(?, ?, IFNULL(?, NOW()), ?)').join(', ')
+      const params: unknown[] = []
+      for (const r of rows) params.push(id, r.value, r.recordedAt, r.note)
+      const [result] = (await pool.query(
+        `INSERT INTO tracking_points (project_id, value, recorded_at, note) VALUES ${placeholders}`,
+        params
+      )) as any
+      res.json({ success: true, inserted: result.affectedRows })
+    } catch (e: any) {
+      console.error(e); res.status(500).json({ error: 'SERVER_ERROR' })
+    }
+  }
+)
+
 // 改数据点（本人项目；value/recordedAt/note 均可改，未传字段保持原值）
 trackingRouter.put('/points/:id', async (req, res) => {
   try {

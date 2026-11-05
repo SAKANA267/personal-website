@@ -252,4 +252,12 @@ export const api = {
     request<{ success?: boolean; point?: TrackingPoint; error?: string }>('PUT', `/tracking/points/${id}`, data),
   deleteTrackingPoint: (id: number) =>
     request<{ success?: boolean; error?: string }>('DELETE', `/tracking/points/${id}`),
+  importTrackingPoints: (
+    projectId: number,
+    points: { value: number; recordedAt?: string; note?: string }[]
+  ) =>
+    post<{ success?: boolean; inserted?: number; error?: string; index?: number }>(
+      `/tracking/projects/${projectId}/points/batch`,
+      { points }
+    ),
 }

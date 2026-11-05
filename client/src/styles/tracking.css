@@ -196,7 +196,8 @@
 
 .proj-form h3 { font-size: var(--text-base); font-weight: 700; }
 
-.field {
+/* 带 .page-tracking 前缀：.field 是登录/注册等页也在用的通用类名，裸写会外溢覆盖它们 */
+.page-tracking .field {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -206,18 +207,18 @@
   min-width: 0;
 }
 
-.field > span,
-.field legend {
+.page-tracking .field > span,
+.page-tracking .field legend {
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--color-text-secondary);
   letter-spacing: 0.04em;
 }
 
-.field input[type='text'],
-.field input[type='number'],
-.field input[type='datetime-local'],
-.field input[type='date'],
+.page-tracking .field input[type='text'],
+.page-tracking .field input[type='number'],
+.page-tracking .field input[type='datetime-local'],
+.page-tracking .field input[type='date'],
 .cell-input {
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -230,14 +231,14 @@
   box-sizing: border-box;
 }
 
-.field input:focus,
+.page-tracking .field input:focus,
 .cell-input:focus {
   outline: 2px solid var(--color-text);
   outline-offset: 1px;
   border-color: transparent;
 }
 
-.field-hint {
+.page-tracking .field-hint {
   font-size: var(--text-xs);
   color: var(--color-text-secondary);
   opacity: 0.85;
@@ -409,6 +410,115 @@
 .point-table .row-actions { white-space: nowrap; text-align: right; }
 .point-table tr.is-editing td { padding: 4px 4px; }
 .cell-input { padding: 4px 6px; font-size: var(--text-xs); }
+
+/* 批量导入面板（导入目标 = 当前选中项目） */
+.point-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.import-panel {
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.import-panel h4 { font-size: var(--text-sm); font-weight: 700; }
+
+.import-drop {
+  border: 1px dashed var(--color-border);
+  border-radius: 12px;
+  padding: var(--space-5) var(--space-3);
+  text-align: center;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.import-drop:hover,
+.import-drop:focus-visible,
+.import-drop.is-over { border-color: var(--color-text); background: var(--color-bg); }
+.import-drop.is-busy { cursor: progress; opacity: 0.7; }
+
+.import-drop-main { font-size: var(--text-sm); font-weight: 600; }
+.import-drop-sub { font-size: var(--text-xs); color: var(--color-text-secondary); }
+
+.import-file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+  word-break: break-all;
+}
+
+.import-sheet-pick { display: inline-flex; align-items: center; gap: 6px; }
+
+.import-mapping {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.import-mapping .field select {
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  padding: 7px 8px;
+  font-size: var(--text-sm);
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.import-mapping .field select:focus {
+  outline: 2px solid var(--color-text);
+  outline-offset: 1px;
+  border-color: transparent;
+}
+
+.import-stats { font-size: var(--text-xs); color: var(--color-text-secondary); }
+
+.import-preview { max-height: 320px; overflow-y: auto; }
+.import-preview .status-chip {
+  display: inline-block;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 2px 8px;
+  border: 1px solid var(--divider-color);
+}
+.import-preview .status-chip.is-ok { color: var(--color-text-secondary); }
+.import-preview .status-chip.is-err { color: var(--color-danger, #b3554d); border-color: currentColor; }
+.import-preview .status-chip.is-dup { color: var(--color-text-secondary); font-style: italic; }
+.import-preview tr.is-err td { opacity: 0.75; }
+
+.import-more { font-size: var(--text-xs); color: var(--color-text-secondary); }
+
+.import-blocked {
+  font-size: var(--text-xs);
+  color: var(--color-danger, #b3554d);
+}
+
+.import-result { font-size: var(--text-sm); }
+.import-result.is-ok { color: var(--color-text); font-weight: 600; }
+.import-result.is-fail { color: var(--color-danger, #b3554d); }
+
+.import-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
 
 /* ===== 7. 右栏：图表工作区 ===== */
 .tracking-main {
@@ -696,9 +806,13 @@
   /* 移动端图表优先：主栏置顶，项目/录数随后 */
   .tracking-main { order: -1; }
 
-  .tracking-side { position: static; }
+  /* 单列下侧栏允许收窄：否则内部宽表（导入预览/点位表）的 min-content 会把 1fr 轨道撑出视口 */
+  .tracking-side { position: static; min-width: 0; }
 
   .point-grid { grid-template-columns: 1fr; }
+
+  /* 导入列映射三列收两列（窄侧栏放不下三个下拉） */
+  .import-mapping { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 480px) {
@@ -715,6 +829,10 @@
   .style-switch button { flex: 1 1 auto; }
 
   .export-row { justify-content: flex-end; }
+
+  .import-mapping { grid-template-columns: 1fr; }
+
+  .import-actions .btn-primary { flex: 1 1 auto; }
 }
 
 /* 动画偏好降级 */

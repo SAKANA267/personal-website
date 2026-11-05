@@ -1,6 +1,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { api } from './useApi'
 import { useAuth } from '../stores/auth'
+import { IMPORT_CHUNK } from './useTrackingImport'
 import type { TrackingPoint, TrackingProject } from '../types'
 
 /**
@@ -829,6 +830,44 @@ async function deletePoint(id: number, projectId: number): Promise<ApiResult> {
   return r
 }
 
+// ---------- Excel 批量导入（分片顺序提交，每片服务端单语句原子） ----------
+
+/** 单项目数据点上限（与服务端 POINT_PROJECT_LIMIT 一致，预览容量拦截用） */
+export const TRACKING_POINT_CAP = 10000
+
+export interface ImportPointsResult {
+  /** 全部分片成功为 true；false 时 imported 为中断前已入库条数（≥0） */
+  ok: boolean
+  imported: number
+  error?: string
+}
+
+async function importPoints(
+  projectId: number,
+  rows: { value: number; recordedAt: string; note: string }[],
+  onProgress?: (done: number, total: number) => void
+): Promise<ImportPointsResult> {
+  let imported = 0
+  try {
+    for (let i = 0; i < rows.length; i += IMPORT_CHUNK) {
+      const chunk = rows.slice(i, i + IMPORT_CHUNK)
+      const r = await api.importTrackingPoints(projectId, chunk)
+      if (!r.ok) {
+        // 中断也刷新（已入库的分片要在页面上可见），并带回已导入数
+        if (imported > 0) await refreshProject(projectId)
+        return { ok: false, imported, error: String(r.data?.error || 'SERVER_ERROR') }
+      }
+      imported += chunk.length
+      onProgress?.(imported, rows.length)
+    }
+  } catch {
+    if (imported > 0) await refreshProject(projectId)
+    return { ok: false, imported, error: 'NETWORK' }
+  }
+  await refreshProject(projectId)
+  return { ok: true, imported }
+}
+
 // ---------- 导出 ----------
 
 export function useTracking() {
@@ -846,6 +885,7 @@ export function useTracking() {
     loadAll, enterDemo, exitDemo,
     createProject, updateProject, deleteProject,
     addPoint, updatePoint, deletePoint,
+    importPoints,
     // 导出
     exportFrameCsv, exportSvgPng,
   }
